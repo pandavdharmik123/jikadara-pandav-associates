@@ -1,0 +1,7 @@
+{
+    "name": "@indicjs/unicode-conversion-maps",
+    "version": "1.0.10942849560",
+    "homepage": "https://github.com/libindic/unicode-conversion-maps",
+    "main": "unicode-conversion-maps.mjs",
+    "type": "module"
+}
