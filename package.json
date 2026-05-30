@@ -14,7 +14,8 @@
     "@ant-design/icons": "^6.2.3",
     "antd": "^6.4.3",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-to-print": "^3.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

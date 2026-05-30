@@ -185,3 +185,34 @@ body {
   font-family: 'Ghanshyam', sans-serif !important;
 }
 
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body, .jantri-calculator-wrap, .glass-panel {
+    background: white !important;
+    background-color: white !important;
+    color: black !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  * {
+    color: black !important;
+  }
+  .ant-card-body {
+    padding: 12px !important;
+  }
+  .ant-card {
+    page-break-inside: avoid;
+    margin-bottom: 8px !important;
+    border: 1px solid #ccc !important;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  .jantri-calculator-wrap {
+    padding: 0 !important;
+  }
+}
