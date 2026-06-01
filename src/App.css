@@ -1,120 +1,60 @@
-.app-container {
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 24px;
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;800&family=Noto+Serif+Gujarati:wght@400;600;800&family=Baloo+Bhai+2:wght@400;600;800&family=Mogra&family=Farsan&display=swap');
+
+@font-face {
+  font-family: 'Ghanshyam';
+  src: url('/Ghanshyam.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* Header Styles */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  border-radius: 16px;
-  margin-bottom: 8px;
+/* General reset and base variables for simple design */
+:root {
+  --app-bg: #f5f5f5;
+  --panel-bg: #ffffff;
+  --text-primary: #1f1f1f;
+  --text-secondary: #595959;
+  --text-muted: #8c8c8c;
+  --border-color: #f0f0f0;
 }
 
-.brand-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+[data-theme='dark'] {
+  --app-bg: #141414;
+  --panel-bg: #1f1f1f;
+  --text-primary: #ffffff;
+  --text-secondary: #a6a6a6;
+  --text-muted: #595959;
+  --border-color: #303030;
 }
 
-.brand-logo {
-  font-size: 28px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-.brand-tag {
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--primary);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+/* Base Panel style for simple design */
+.glass-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
 }
 
-/* Main Dashboard Layout */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-  flex: 1;
-}
-
-@media (min-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1.3fr 0.7fr;
-  }
-}
-
-/* Three-step pipeline (font studio tab only) */
-@media (min-width: 1180px) {
-  .studio-editors-container {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-  }
-}
-
-/* English → Unicode → Ghanshyam translator tab */
-.translator-tab-wrap .translator-tab-editors {
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-
-@media (min-width: 720px) {
-  .translator-tab-wrap .translator-tab-editors {
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .translator-tab-wrap .translator-tab-ghanshyam-card {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (min-width: 1240px) {
-  .translator-tab-wrap .translator-tab-editors {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-  }
-
-  .translator-tab-wrap .translator-tab-ghanshyam-card {
-    grid-column: auto;
-  }
-}
-
-.main-app-tabs .ant-tabs-nav {
-  margin-bottom: 4px;
-}
-
-.editors-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
+/* Hide or remove old ambient glows */
+.radial-glow-1, .radial-glow-2 {
+  display: none;
 }
 
 /* Editor Panel Styles */
 .editor-card {
   display: flex;
   flex-direction: column;
-  height: 520px;
-  border-radius: 16px;
+  background: var(--panel-bg);
+  border-radius: 8px;
   overflow: hidden;
-  position: relative;
-  box-shadow: var(--shadow-lg);
 }
 
 .editor-header {
@@ -122,7 +62,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.03);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -172,7 +112,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 18px;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
   color: var(--text-secondary);
@@ -183,7 +123,7 @@
   background: var(--bg-secondary) !important;
   border: 1px solid var(--primary) !important;
   border-radius: 8px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), var(--shadow-glow) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   padding: 4px !important;
   margin-top: 2px !important;
   z-index: 10000 !important;
@@ -194,8 +134,7 @@
   width: auto !important;
   min-width: 160px !important;
   display: block !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  background-color: var(--panel-bg) !important;
 }
 
 .react-transliterate-dropdown-item {
@@ -215,10 +154,9 @@
 .react-transliterate-dropdown-item:hover {
   background: var(--primary) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5) !important;
 }
 
-/* Controls Panel (Top or Bottom) */
+/* Controls Panel */
 .controls-panel {
   display: flex;
   flex-wrap: wrap;
@@ -226,7 +164,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .control-group {
@@ -247,11 +185,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 20px;
   height: 100%;
   max-height: 1100px;
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
 }
 
 .sidebar-header {
@@ -282,8 +220,8 @@
 
 .history-card {
   padding: 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border-color);
   cursor: pointer;
   display: flex;
@@ -295,9 +233,7 @@
 }
 
 .history-card:hover {
-  background: rgba(99, 102, 241, 0.05);
-  border-color: rgba(99, 102, 241, 0.3);
-  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .history-card-header {
@@ -325,45 +261,28 @@
   text-overflow: ellipsis;
 }
 
-/* Footer Section */
-.app-footer {
-  text-align: center;
-  padding: 24px;
-  margin-top: auto;
-  color: var(--text-muted);
-  font-size: 13px;
-  border-top: 1px solid var(--border-color);
-}
-
-/* Micro-animations */
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.9;
-  }
-}
-
-.logo-icon {
-  animation: pulseGlow 4s infinite ease-in-out;
-}
+/* Font Classes */
+.font-noto-sans { font-family: 'Noto Sans Gujarati', sans-serif; }
+.font-noto-serif { font-family: 'Noto Serif Gujarati', serif; }
+.font-baloo { font-family: 'Baloo Bhai 2', cursive; }
+.font-mogra { font-family: 'Mogra', cursive; }
+.font-farsan { font-family: 'Farsan', cursive; }
+.font-ghanshyam { font-family: 'Ghanshyam', sans-serif; }
 
 .legacy-alert-banner {
-  background: rgba(245, 158, 11, 0.1);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(250, 173, 20, 0.1);
+  border-bottom: 1px solid rgba(250, 173, 20, 0.25);
   padding: 8px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 12px;
-  animation: fadeIn 0.3s ease;
 }
 
 .legacy-alert-tag {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(250, 173, 20, 0.2);
+  color: #d48806;
+  border: 1px solid rgba(250, 173, 20, 0.35);
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
@@ -377,16 +296,11 @@
   color: var(--text-secondary);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Custom Transliterate Input matching Ant Design */
+/* Custom Transliterate Input */
 .custom-transliterate-input {
   width: 100%;
   padding: 4px 11px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
   background-color: transparent;
   color: var(--text-primary);
@@ -400,11 +314,60 @@
 .custom-transliterate-input:focus,
 .custom-transliterate-input:hover {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
-.react-transliterate-dropdown {
-  z-index: 2147483647 !important; /* maximum z-index */
-  opacity: 1 !important;
-  background-color: var(--bg-primary) !important;
+/* Dashboard Grid for studio tab */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1.3fr 0.7fr;
+  }
+}
+
+.studio-editors-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1180px) {
+  .studio-editors-container {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+/* Translator tab editors */
+.translator-tab-editors {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 720px) {
+  .translator-tab-editors {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .translator-tab-ghanshyam-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1240px) {
+  .translator-tab-editors {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .translator-tab-ghanshyam-card {
+    grid-column: auto;
+  }
 }

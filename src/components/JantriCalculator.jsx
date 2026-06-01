@@ -258,7 +258,15 @@ export default function JantriCalculator({ currentAccentColor }) {
                 </Col>
                 {propertyType === 'ખેતી ની જમીન' && (
                   <>
-                    <Col xs={24} sm={8}>
+                    <Col xs={24} sm={6}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જમીનનું ક્ષેત્રફળ હે.આ.</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={plotArea ? (plotArea / 100) : 0}
+                        disabled
+                      />
+                    </Col>
+                    <Col xs={24} sm={6}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા પસંદગી</Text>
                       <Select
                         value={gunthaSelection}
@@ -267,23 +275,23 @@ export default function JantriCalculator({ currentAccentColor }) {
                         options={[
                           { value: 16, label: '16' },
                           { value: 18, label: '18' },
-                          { value: 24, label: '24' },
+                          { value: 23.78, label: '23.78' },
                         ]}
                       />
                     </Col>
-                    <Col xs={24} sm={8}>
+                    <Col xs={24} sm={6}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વીઘા</Text>
                       <InputNumber
                         style={{ width: '100%', height: '28px' }}
-                        value={plotArea ? (plotArea / gunthaSelection) : 0}
+                        value={plotArea ? ((plotArea / 100) / gunthaSelection) : 0}
                         disabled
                       />
                     </Col>
-                    <Col xs={24} sm={8}>
+                    <Col xs={24} sm={6}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા</Text>
                       <InputNumber
                         style={{ width: '100%', height: '28px' }}
-                        value={plotArea ? ((plotArea / gunthaSelection) * gunthaSelection) : 0}
+                        value={plotArea ? (((plotArea / 100) / gunthaSelection) * gunthaSelection) : 0}
                         disabled
                       />
                     </Col>
@@ -423,7 +431,7 @@ export default function JantriCalculator({ currentAccentColor }) {
 
         {/* Right Column: Final Calculation Summary */}
         <Col xs={24} lg={8} className="main-print-col-right">
-          <Card size="small" className="glass-panel" bordered={false} style={{ position: 'sticky', top: 12, borderTop: `4px solid ${currentAccentColor}` }}>
+          <Card size="small" className="glass-panel" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
             <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14 }}>Final Calculation</Title>
 
             <Space direction="vertical" style={{ width: '100%' }} size="small">

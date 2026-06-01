@@ -19,7 +19,8 @@ import {
   theme,
   message,
   Divider,
-  Tabs
+  Tabs,
+  Menu
 } from 'antd';
 import {
   CopyOutlined,
@@ -86,7 +87,7 @@ window.fetch = async function (input, init) {
   return originalFetch.apply(this, arguments);
 };
 
-const { Header, Content, Footer } = Layout;
+const { Header, Sider, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
 const COLOR_PALETTES = {
@@ -121,6 +122,7 @@ function App() {
 
   // Main navigation: full studio vs. English → Unicode only
   const [mainTab, setMainTab] = useState('studio');
+  const [collapsed, setCollapsed] = useState(false);
 
   // Editor Text State (canonical Unicode Gujarati once converted; may contain Roman while typing)
   const [text, setText] = useState('');
@@ -522,17 +524,24 @@ function App() {
         }
       }}
     >
-      <div className="app-container">
-        {/* Ambient background glows */}
-        <div className="radial-glow-1"></div>
-        <div className="radial-glow-2"></div>
-
-        {/* Brand/Utility Header */}
-        <header className="app-header glass-panel">
-          <div className="brand-section">
-            <TranslationOutlined className="logo-icon" style={{ fontSize: 26, color: currentAccentColor }} />
-            <div className="brand-logo">LipiSetu</div>
-            <div className="brand-tag">Gujarati Converter</div>
+      <Layout style={{ minHeight: '100vh' }}>
+        {/* Fixed Header */}
+        <Header style={{
+          position: 'fixed',
+          zIndex: 100,
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          background: themeMode === 'dark' ? '#141414' : '#ffffff',
+          borderBottom: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <img src="/logo.png" alt="logo" style={{ height: 32 }} />
+            <Title level={4} style={{ margin: 0, color: currentAccentColor }}>
+              Jikadara & Pandav Associates
+            </Title>
           </div>
 
           <Space size="large">
@@ -544,9 +553,7 @@ function App() {
             >
               Saved History ({history.length})
             </Button>
-
             <Divider type="vertical" style={{ height: 20 }} />
-
             <Space size="middle">
               <SunOutlined style={{ color: themeMode === 'light' ? currentAccentColor : 'gray' }} />
               <Switch
@@ -558,24 +565,53 @@ function App() {
               <MoonOutlined style={{ color: themeMode === 'dark' ? currentAccentColor : 'gray' }} />
             </Space>
           </Space>
-        </header>
+        </Header>
 
-        <Tabs
-          activeKey={mainTab}
-          onChange={setMainTab}
-          className="main-app-tabs glass-panel"
-          style={{ padding: '4px 16px 0', borderRadius: 16 }}
-          items={[
-            {
-              key: 'studio',
-              label: (
-                <span>
-                  <FontSizeOutlined /> Font studio
-                </span>
-              ),
-              children: (
-                <div className="dashboard-grid">
-                  {/* Main workspace (split into input/output) */}
+        <Layout style={{ marginTop: 64 }}>
+          {/* Collapsible Sidebar */}
+          <Sider
+            collapsible
+            collapsed={collapsed}
+            onCollapse={(value) => setCollapsed(value)}
+            width={260}
+            theme={themeMode === 'dark' ? 'dark' : 'light'}
+            style={{
+              overflow: 'auto',
+              height: 'calc(100vh - 64px)',
+              position: 'fixed',
+              left: 0,
+              top: 64,
+              bottom: 0,
+              borderRight: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`
+            }}
+          >
+            <Menu
+              theme={themeMode === 'dark' ? 'dark' : 'light'}
+              mode="inline"
+              selectedKeys={[mainTab]}
+              onClick={(e) => setMainTab(e.key)}
+              style={{ borderRight: 0, marginTop: 16 }}
+              items={[
+                { key: 'studio', icon: <FontSizeOutlined />, label: 'Font Studio' },
+                { key: 'translator', icon: <TranslationOutlined />, label: 'English → Gujarati' },
+                { key: 'universal', icon: <TranslationOutlined />, label: 'Universal Converter' },
+                { key: 'jantri', icon: <CalculatorOutlined />, label: 'Jantri Calculator' }
+              ]}
+            />
+          </Sider>
+
+          {/* Main Content Area */}
+          <Layout style={{ marginLeft: collapsed ? 80 : 260, transition: 'all 0.2s', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+            <Content style={{
+              background: themeMode === 'dark' ? '#1f1f1f' : '#ffffff',
+              padding: '12px 24px',
+              margin: 0,
+              flex: 1,
+              // borderRadius: 8,
+              // border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`
+            }}>
+              {mainTab === 'studio' && (
+                <div className="dashboard-grid" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {/* Theme / Palette Customizer Bar */}
                     <div className="controls-panel glass-panel">
@@ -867,16 +903,9 @@ function App() {
                     </div>
                   </div>
                 </div>
-              ),
-            },
-            {
-              key: 'translator',
-              label: (
-                <span>
-                  <TranslationOutlined /> English → Unicode Gujarati
-                </span>
-              ),
-              children: (
+              )}
+
+              {mainTab === 'translator' && (
                 <div className="translator-tab-wrap" style={{ padding: '8px 0 20px' }}>
                   <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
                     Three steps: <Text strong>English</Text> → <Text strong>Unicode Gujarati</Text> (auto) → <Text strong>Harikrishna keystrokes</Text> for <Text code>Ghanshyam.ttf</Text> / Nilkanth (Latin letters that render as Gujarati when the font is applied). Put <Text code>Ghanshyam.ttf</Text> in <Text code>public/</Text> so it loads as <Text code>/Ghanshyam.ttf</Text>. Copy step 3 for Word / PageMaker with the font installed.
@@ -1006,17 +1035,9 @@ function App() {
                     </div>
                   </div>
                 </div>
-              ),
-            },
+              )}
 
-            {
-              key: 'universal',
-              label: (
-                <span>
-                  <TranslationOutlined /> Universal Converter
-                </span>
-              ),
-              children: (
+              {mainTab === 'universal' && (
                 <div className="universal-tab-wrap" style={{ padding: '8px 0 20px' }}>
                   <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
                     Select your source input format and target font format.
@@ -1042,81 +1063,83 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="editors-container">
-                    <div className="editor-card glass-panel">
-                      <div className="editor-header">
-                        <div className="editor-title">
-                          <Badge color={currentAccentColor} status={isUniConverting ? "processing" : "default"} />
-                          <span>Input ({uniFrom === 'english' ? 'English' : 'Unicode'})</span>
+                  <Row gutter={24} style={{ display: 'flex', alignItems: 'stretch' }}>
+                    <Col span={12}>
+                      <div className="editor-card" style={{ height: '100%', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}` }}>
+                        <div className="editor-header">
+                          <div className="editor-title">
+                            <Badge color={currentAccentColor} status={isUniConverting ? "processing" : "default"} />
+                            <span>Input ({uniFrom === 'english' ? 'English' : 'Unicode'})</span>
+                          </div>
+                          <Tooltip title="Clear Input">
+                            <Button
+                              type="text"
+                              shape="circle"
+                              icon={<ClearOutlined />}
+                              onClick={() => { setUniInput(''); setUniOutput(''); }}
+                              disabled={!uniInput}
+                            />
+                          </Tooltip>
                         </div>
-                        <Tooltip title="Clear Input">
-                          <Button
-                            type="text"
-                            shape="circle"
-                            icon={<ClearOutlined />}
-                            onClick={() => { setUniInput(''); setUniOutput(''); }}
-                            disabled={!uniInput}
+                        <div className="editor-body" style={{ minHeight: 300 }}>
+                          <textarea
+                            className="textarea-editor"
+                            value={uniInput}
+                            onChange={(e) => setUniInput(e.target.value)}
+                            placeholder={uniFrom === 'english' ? "Type english phonetics e.g. kem cho" : "Type/paste Gujarati Unicode e.g. કેમ છો"}
+                            spellCheck={uniFrom === 'english'}
+                            style={{ height: '100%' }}
                           />
-                        </Tooltip>
+                        </div>
                       </div>
-                      <div className="editor-body">
-                        <textarea
-                          className="textarea-editor"
-                          value={uniInput}
-                          onChange={(e) => setUniInput(e.target.value)}
-                          placeholder={uniFrom === 'english' ? "Type english phonetics e.g. kem cho" : "Type/paste Gujarati Unicode e.g. કેમ છો"}
-                          spellCheck={uniFrom === 'english'}
-                        />
-                      </div>
-                    </div>
+                    </Col>
 
-                    <div className="editor-card glass-panel" style={{ borderLeft: `2px solid ${currentAccentColor}` }}>
-                      <div className="editor-header">
-                        <div className="editor-title">
-                          <span style={{ color: currentAccentColor }}>●</span>
-                          <span>Output ({uniTo} encoding)</span>
+                    <Col span={12}>
+                      <div className="editor-card" style={{ height: '100%', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`, borderLeft: `4px solid ${currentAccentColor}` }}>
+                        <div className="editor-header">
+                          <div className="editor-title">
+                            <span style={{ color: currentAccentColor }}>●</span>
+                            <span>Output ({uniTo} encoding)</span>
+                          </div>
+                          <Tooltip title="Copy converted text">
+                            <Button
+                              type="text"
+                              shape="circle"
+                              icon={<CopyOutlined />}
+                              onClick={() => {
+                                navigator.clipboard.writeText(uniOutput);
+                                message.success('Copied!');
+                              }}
+                              disabled={!uniOutput}
+                            />
+                          </Tooltip>
                         </div>
-                        <Tooltip title="Copy converted text">
-                          <Button
-                            type="text"
-                            shape="circle"
-                            icon={<CopyOutlined />}
-                            onClick={() => {
-                              navigator.clipboard.writeText(uniOutput);
-                              message.success('Copied!');
-                            }}
-                            disabled={!uniOutput}
+                        <div className="editor-body" style={{ minHeight: 300 }}>
+                          <textarea
+                            readOnly
+                            value={uniOutput}
+                            className="textarea-editor font-ghanshyam"
+                            placeholder="Converted text will appear here..."
+                            style={{ opacity: isUniConverting ? 0.55 : 1, fontSize: 20, height: '100%' }}
                           />
-                        </Tooltip>
+                        </div>
                       </div>
-                      <div className="editor-body">
-                        <textarea
-                          readOnly
-                          value={uniOutput}
-                          className="textarea-editor font-ghanshyam"
-                          placeholder="Converted text will appear here..."
-                          style={{ opacity: isUniConverting ? 0.55 : 1, fontSize: 20 }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    </Col>
+                  </Row>
                 </div>
-              ),
-            },
+              )}
 
-            {
-              key: 'jantri',
-              label: (
-                <span>
-                  <CalculatorOutlined /> Jantri Calculator
-                </span>
-              ),
-              children: (
+              {mainTab === 'jantri' && (
                 <JantriCalculator currentAccentColor={currentAccentColor} />
-              )
-            },
-          ]}
-        />
+              )}
+            </Content>
+
+            {/* Global Footer */}
+            <Footer style={{ textAlign: 'center', padding: '16px 24px', background: 'transparent' }}>
+              Jikadara & Pandav Associates &copy; {new Date().getFullYear()}. All Rights Reserved.
+            </Footer>
+          </Layout>
+        </Layout>
 
         {/* History Drawer */}
         <Drawer
@@ -1175,11 +1198,7 @@ function App() {
           </div>
         </Modal>
 
-        {/* Global Footer */}
-        <Footer className="app-footer">
-          LipiSetu &copy; 2026. Designed for seamless phonetic Gujarati Unicode Transliteration & Typographic Artistry.
-        </Footer>
-      </div>
+      </Layout>
     </ConfigProvider>
   );
 }
