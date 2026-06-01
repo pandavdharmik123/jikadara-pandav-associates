@@ -371,3 +371,163 @@ body {
     grid-column: auto;
   }
 }
+
+/* PDF Generation Styles */
+.pdf-header, .pdf-footer {
+  display: none;
+}
+
+.pdf-export-container {
+  overflow: visible !important;
+}
+
+.pdf-container.pdf-mode {
+  background: white !important;
+  color: black !important;
+  padding: 10px 12px !important;
+  width: 100% !important;
+  max-width: 794px !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 1093px !important; // A4 height at 96 DPI minus margins
+  display: flex !important;
+  flex-direction: column !important;
+
+  .pdf-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 4px !important;
+    margin-bottom: 4px !important;
+
+    img {
+      height: 32px !important;
+      margin-bottom: 6px !important;
+    }
+
+    h4.ant-typography {
+      font-size: 14px !important;
+      margin: 0 0 2px !important;
+      line-height: 1.3 !important;
+    }
+
+    .ant-typography-secondary {
+      font-size: 10px !important;
+      line-height: 1.3 !important;
+    }
+
+    .ant-divider {
+      margin: 8px 0 10px !important;
+    }
+  }
+
+  .pdf-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: auto !important; /* Pushes the footer to the bottom of the flex container */
+    padding-top: 6px !important;
+    border-top: 1px solid #ccc;
+    .pdf-footer-content {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+    }
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .main-print-col-left > div {
+    gap: 8px !important;
+  }
+
+  .ant-card { position: static !important; border: 1px solid #ddd !important; margin-bottom: 0 !important; box-shadow: none !important; }
+  .ant-card-head { min-height: 26px !important; padding: 4px 10px !important; border-bottom: 1px solid #eee !important; }
+  .ant-card-head-title { padding: 4px 0 !important; font-size: 11px !important; color: black !important; line-height: 1.35 !important; }
+  .ant-card-body { padding: 8px 10px !important; }
+  .ant-row { row-gap: 6px !important; margin: 0 !important; }
+  .ant-col { padding-top: 2px !important; padding-bottom: 2px !important; }
+
+  /* Label → field spacing */
+  .ant-col > .ant-typography:first-child {
+    margin-bottom: 4px !important;
+    display: block !important;
+  }
+
+  .ant-typography { font-size: 10px !important; margin-bottom: 2px !important; color: black !important; line-height: 1.35 !important; }
+  .ant-statistic { margin-bottom: 2px !important; }
+  .ant-statistic-title { font-size: 10px !important; margin-bottom: 3px !important; }
+  .ant-statistic-content { font-size: 13px !important; }
+  .ant-statistic-content-value { font-size: 13px !important; color: black !important; }
+  .ant-input-number, .ant-select-selector, .ant-input, .custom-transliterate-input { 
+    height: 24px !important; 
+    min-height: 24px !important; 
+    font-size: 11px !important; 
+    color: black !important; 
+    padding: 0 6px !important; 
+    line-height: 22px !important; 
+    box-sizing: border-box !important;
+  }
+  .ant-input-number-input { height: 22px !important; padding: 0 6px !important; color: black !important; line-height: 22px !important; }
+  .ant-select-selection-item { line-height: 22px !important; color: black !important; padding: 0 !important; }
+  .ant-divider { margin: 8px 0 !important; border-color: #ccc !important; }
+  .ant-space { gap: 6px !important; }
+  .glass-panel { background: white !important; color: black !important; border-color: #ddd !important; }
+
+  /* Side-by-side: inputs left, final calculation right — saves vertical space */
+  .main-print-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    row-gap: 0 !important;
+  }
+  .main-print-col-left {
+    width: 64% !important;
+    max-width: 64% !important;
+    flex: 0 0 64% !important;
+    padding-right: 4px !important;
+    overflow: visible !important;
+  }
+  .main-print-col-right {
+    width: 36% !important;
+    max-width: 36% !important;
+    flex: 0 0 36% !important;
+    overflow: visible !important;
+  }
+  .pdf-final-calculation {
+    position: static !important;
+    top: auto !important;
+    margin-top: 0 !important;
+
+    h5.ant-typography {
+      margin-top: 0 !important;
+      margin-bottom: 8px !important;
+      font-size: 12px !important;
+    }
+
+    .ant-card-body { padding: 10px 10px !important; }
+
+    .ant-space-item {
+      padding: 1px 0 !important;
+    }
+  }
+
+  .pdf-total-cost-box {
+    margin-top: 8px !important;
+    padding: 8px !important;
+    border-radius: 6px !important;
+
+    .ant-typography {
+      font-size: 10px !important;
+      margin-bottom: 4px !important;
+    }
+
+    .ant-typography strong {
+      font-size: 18px !important;
+    }
+  }
+}

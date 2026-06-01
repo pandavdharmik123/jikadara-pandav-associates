@@ -1,58 +1,134 @@
 import React, { useState, useRef } from 'react';
-import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button } from 'antd';
+import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message } from 'antd';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
-import { CalculatorOutlined, PrinterOutlined } from '@ant-design/icons';
-import { useReactToPrint } from 'react-to-print';
+import { CalculatorOutlined, FilePdfOutlined } from '@ant-design/icons';
+import html2pdf from 'html2pdf.js';
 
 const { Title, Text } = Typography;
 
 export default function JantriCalculator({ currentAccentColor }) {
   const componentRef = useRef();
 
-  const printCSS = `
-    @media print {
-      @page { size: A4 portrait; margin: 8mm; }
-      body { -webkit-print-color-adjust: exact; }
-      .ant-card { page-break-inside: avoid; border: 1px solid #ddd !important; margin-bottom: 4px !important; box-shadow: none !important; }
-      .ant-card-head { min-height: 24px !important; padding: 2px 8px !important; border-bottom: 1px solid #eee !important; }
-      .ant-card-head-title { padding: 4px 0 !important; font-size: 12px !important; }
-      .ant-card-body { padding: 6px 8px !important; }
-      .ant-row { row-gap: 4px !important; }
-      .ant-col { padding-top: 2px !important; padding-bottom: 2px !important; }
-      .ant-typography { font-size: 10px !important; margin-bottom: 2px !important; }
-      .ant-statistic-title { font-size: 10px !important; margin-bottom: 2px !important; }
-      .ant-statistic-content { font-size: 14px !important; }
-      .ant-statistic-content-value { font-size: 14px !important; }
-      .ant-input-number, .ant-select-selector, .ant-input, .custom-transliterate-input { height: 26px !important; min-height: 26px !important; font-size: 11px !important; }
-      .ant-input-number-input { height: 24px !important; padding: 0 4px !important; }
-      .ant-select-selection-item { line-height: 24px !important; }
-      .ant-divider { margin: 6px 0 !important; }
-      .no-print { display: none !important; }
-      .glass-panel { background: white !important; }
-      /* Final Calculation Box */
-      .ant-space-item > div { margin-bottom: 2px !important; }
-      .ant-space { gap: 4px !important; }
-      h5.ant-typography { margin-bottom: 8px !important; font-size: 14px !important; }
-      /* Force side-by-side layout in print to prevent the right column from stacking onto page 2 */
-      .main-print-row { display: flex !important; flex-wrap: nowrap !important; }
-      .main-print-col-left { width: 68% !important; max-width: 68% !important; flex: 0 0 68% !important; padding-right: 8px !important; }
-      .main-print-col-right { width: 32% !important; max-width: 32% !important; flex: 0 0 32% !important; }
+  const syncCloneFormState = (original, clone) => {
+    const originalInputs = original.querySelectorAll('input, textarea, select');
+    const clonedInputs = clone.querySelectorAll('input, textarea, select');
+    originalInputs.forEach((input, index) => {
+      const target = clonedInputs[index];
+      if (!target) return;
+      if (input.type === 'checkbox' || input.type === 'radio') {
+        target.checked = input.checked;
+      } else {
+        target.value = input.value;
+        target.setAttribute('value', input.value);
+      }
+    });
+
+    const originalSelects = original.querySelectorAll('.ant-select');
+    const clonedSelects = clone.querySelectorAll('.ant-select');
+    originalSelects.forEach((select, index) => {
+      const selectionItem = select.querySelector('.ant-select-selection-item');
+      const cloneItem = clonedSelects[index]?.querySelector('.ant-select-selection-item');
+      if (selectionItem && cloneItem) {
+        cloneItem.textContent = selectionItem.textContent;
+      }
+    });
+  };
+
+  const handleGeneratePDF = async () => {
+    const element = componentRef.current;
+    if (!element) return;
+
+    const clone = element.cloneNode(true);
+    syncCloneFormState(element, clone);
+    clone.classList.add('pdf-mode');
+
+    const container = document.createElement('div');
+    container.className = 'pdf-export-container';
+    Object.assign(container.style, {
+      position: 'fixed',
+      left: '-10000px',
+      top: '0',
+      width: '794px',
+      overflow: 'visible',
+      pointerEvents: 'none',
+      zIndex: '-1',
+    });
+    Object.assign(clone.style, {
+      overflow: 'visible',
+      height: 'auto',
+      maxHeight: 'none',
+    });
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+    // Shrink to fit one A4 page if content is still too tall after compact CSS
+    const PAGE_WIDTH_PX = 794;
+    const PDF_MARGIN_IN = 0.15;
+    const A4_HEIGHT_IN = 11.69;
+    const maxContentHeightPx = (A4_HEIGHT_IN - PDF_MARGIN_IN * 2) * 96 * 0.97;
+
+    let captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+    if (captureHeight > maxContentHeightPx) {
+      clone.style.zoom = String(maxContentHeightPx / captureHeight);
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+      captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
     }
-  `;
 
-  const handlePrint = useReactToPrint({
-    contentRef: componentRef,
-    documentTitle: 'Jantri_Calculations',
-    pageStyle: printCSS
-  });
+    const captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
 
-  const legacyPrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: 'Jantri_Calculations',
-    pageStyle: printCSS
-  });
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'visible';
+    document.documentElement.style.overflow = 'visible';
 
-  const doPrint = handlePrint || legacyPrint;
+    const filename = buyerName ? `${buyerName}_Jantri.pdf` : 'Jantri.pdf';
+
+    const opt = {
+      margin: [PDF_MARGIN_IN, 0.2, PDF_MARGIN_IN, 0.2],
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: captureWidth,
+        windowHeight: captureHeight,
+        onclone: (doc) => {
+          const clonedRoot = doc.querySelector('.pdf-container.pdf-mode');
+          if (!clonedRoot) return;
+          clonedRoot.style.overflow = 'visible';
+          clonedRoot.style.height = 'auto';
+          clonedRoot.style.maxHeight = 'none';
+          clonedRoot.querySelectorAll('.ant-card, .ant-row, .ant-col').forEach((node) => {
+            node.style.overflow = 'visible';
+          });
+        },
+      },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
+
+    try {
+      await html2pdf().set(opt).from(clone).save();
+      message.success('PDF Generated successfully!');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      message.error('Failed to generate PDF.');
+    } finally {
+      document.body.removeChild(container);
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    }
+  };
 
   // --- Inputs ---
   const [plotArea, setPlotArea] = useState(241.84);
@@ -145,15 +221,23 @@ export default function JantriCalculator({ currentAccentColor }) {
         </div>
         <Button 
           type="primary" 
-          icon={<PrinterOutlined />} 
-          onClick={doPrint}
+          icon={<FilePdfOutlined />} 
+          onClick={handleGeneratePDF}
           style={{ backgroundColor: currentAccentColor, height: '32px' }}
         >
-          Generate PDF / Print
+          Generate PDF
         </Button>
       </div>
 
-      <div ref={componentRef} style={{ padding: '0px' }}>
+      <div ref={componentRef} className="pdf-container" style={{ padding: '0px' }}>
+        {/* PDF Only Header */}
+        <div className="pdf-header">
+          <img src="/logo.png" alt="Company Logo" style={{ height: 50, marginBottom: 12 }} />
+          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Jikadara & Pandav Associates</Title>
+          <Text type="secondary" style={{ fontSize: 12 }}>Jantri & Stamp Duty Calculation</Text>
+          <Divider style={{ margin: '12px 0 20px' }} />
+        </div>
+
         <Row gutter={[12, 12]} className="main-print-row">
         {/* Left Column: Inputs */}
         <Col xs={24} lg={16} className="main-print-col-left">
@@ -162,7 +246,8 @@ export default function JantriCalculator({ currentAccentColor }) {
             {/* Section 0: Buyer Details */}
             <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખરીદનાર ની વિગત (Buyer Details)</span>} style={{ position: 'relative', zIndex: 100 }}>
               <Row gutter={[8, 8]} align="middle">
-                <Col xs={24} sm={8}>
+                {/* First Row */}
+                <Col xs={24} sm={12}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ખરીદનાર નું નામ (Name)</Text>
                   <IndicTransliterate
                     renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter name" style={{ padding: '2px 8px', height: '28px' }} />}
@@ -171,7 +256,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     lang="gu"
                   />
                 </Col>
-                <Col xs={24} sm={6}>
+                <Col xs={24} sm={12}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની વિગત (Property Details)</Text>
                   <IndicTransliterate
                     renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter details" style={{ padding: '2px 8px', height: '28px' }} />}
@@ -180,7 +265,9 @@ export default function JantriCalculator({ currentAccentColor }) {
                     lang="gu"
                   />
                 </Col>
-                <Col xs={12} sm={3}>
+                
+                {/* Second Row */}
+                <Col xs={12} sm={6}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>TP</Text>
                   <Input
                     value={tp}
@@ -189,7 +276,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     style={{ height: '28px' }}
                   />
                 </Col>
-                <Col xs={12} sm={3}>
+                <Col xs={12} sm={6}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>FP</Text>
                   <Input
                     value={fp}
@@ -198,7 +285,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     style={{ height: '28px' }}
                   />
                 </Col>
-                <Col xs={24} sm={4}>
+                <Col xs={24} sm={6}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત નો પ્રકાર</Text>
                   <Select
                     value={propertyType}
@@ -212,7 +299,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     ]}
                   />
                 </Col>
-                <Col xs={24} sm={4}>
+                <Col xs={24} sm={6}>
                   <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>લિંગ (Gender)</Text>
                   <Select
                     value={gender}
@@ -431,7 +518,7 @@ export default function JantriCalculator({ currentAccentColor }) {
 
         {/* Right Column: Final Calculation Summary */}
         <Col xs={24} lg={8} className="main-print-col-right">
-          <Card size="small" className="glass-panel" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
+          <Card size="small" className="glass-panel pdf-final-calculation" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
             <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14 }}>Final Calculation</Title>
 
             <Space direction="vertical" style={{ width: '100%' }} size="small">
@@ -470,7 +557,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                 <Text style={{ fontSize: 13 }}>{formatMoney(vakilFee)}</Text>
               </div>
 
-              <div style={{
+              <div className="pdf-total-cost-box" style={{
                 marginTop: 8,
                 padding: '8px',
                 backgroundColor: 'rgba(0,0,0,0.04)',
@@ -486,6 +573,15 @@ export default function JantriCalculator({ currentAccentColor }) {
           </Card>
         </Col>
       </Row>
+        
+        {/* PDF Only Footer */}
+        <div className="pdf-footer">
+          <div className="pdf-footer-content">
+            <span style={{ fontStyle: 'italic' }}>Generated on: {new Date().toLocaleDateString('en-GB')}</span>
+            <span style={{ fontWeight: 600 }}>Jikadara & Pandav Associates © 2026</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
