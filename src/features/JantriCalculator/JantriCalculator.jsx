@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message } from 'antd';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import { CalculatorOutlined, FilePdfOutlined } from '@ant-design/icons';
@@ -157,14 +157,20 @@ export default function JantriCalculator({ currentAccentColor }) {
 
   const [buyerName, setBuyerName] = useState(''); // ખરીદનાર નું નામ
   const [propertyDetails, setPropertyDetails] = useState(''); // મિલકત ની વિગત
+  const [village, setVillage] = useState(''); // મોજે. ગામ
   const [tp, setTp] = useState(''); // TP
   const [fp, setFp] = useState(''); // FP
   const [propertyType, setPropertyType] = useState('ખુલ્લો પ્લોટ'); // મિલકત નો પ્રકાર
   const [gunthaSelection, setGunthaSelection] = useState(16); // ગુંઠા પસંદગી
+  const [customFinalValue, setCustomFinalValue] = useState(null); // Custom user-entered final value
+  const [asrDeduction, setAsrDeduction] = useState(10); // ASR Deduction for flats
 
   // --- Calculations ---
   // પ્લોટ નો અવેજ = ખુલ્લો પ્લોટ ક્ષેત્રફળ * ખુલ્લો પ્લોટ જંત્રી ભાવ
-  const plotValue = (plotArea || 0) * (plotRate || 0);
+  let plotValue = (plotArea || 0) * (plotRate || 0);
+  if (propertyType === 'ફ્લેટ' && asrDeduction) {
+    plotValue = plotValue - (plotValue * (asrDeduction / 100));
+  }
 
   // બાંધકામ નો અવેજ = બાંધકામ ક્ષેત્રફળ ચો.મી * બાંધકામ જંત્રી ભાવ
   const buildValue = (propertyType === 'ફ્લેટ' || propertyType === 'દુકાન' || propertyType === 'ખેતી ની જમીન') ? 0 : ((buildArea || 0) * (buildRate || 0));
@@ -198,7 +204,13 @@ export default function JantriCalculator({ currentAccentColor }) {
   const depAmount = propertyType === 'ખેતી ની જમીન' ? 0 : (((depAge || 0) * depBaseValue * 1.2) / 100);
 
   // ઘસારા બાદ અવેજ = ટોટલ અવેજ - ઘસારાની રકમ
-  const finalValue = totalValue - depAmount;
+  const calculatedFinalValue = totalValue - depAmount;
+
+  useEffect(() => {
+    setCustomFinalValue(null);
+  }, [calculatedFinalValue]);
+
+  const finalValue = customFinalValue !== null ? customFinalValue : calculatedFinalValue;
 
   // સ્ટેમ્પ ડયુટી = ઘસારા બાદ અવેજ * 4.9 / 100
   const stampDuty = (finalValue * 4.9) / 100;
@@ -244,7 +256,7 @@ export default function JantriCalculator({ currentAccentColor }) {
         {/* PDF Only Header */}
         <div className="pdf-header">
           <img src="/logo.png" alt="Company Logo" style={{ height: 50, marginBottom: 12 }} />
-          {/* <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Jikadara & Pandav Associates</Title> */}
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Advocate and Legal Consultants</Title>
           <Divider style={{ margin: '12px 0 20px' }} />
           <Text type="secondary" style={{ fontSize: 16, fontWeight: 'bold' }}>Jantri & Stamp Duty Calculation</Text>
           <Divider style={{ margin: '12px 0 20px' }} />
@@ -279,7 +291,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                   </Col>
 
                   {/* Second Row */}
-                  <Col xs={12} sm={6}>
+                  <Col xs={12} sm={4}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>TP</Text>
                     <Input
                       value={tp}
@@ -288,7 +300,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       style={{ height: '28px' }}
                     />
                   </Col>
-                  <Col xs={12} sm={6}>
+                  <Col xs={12} sm={4}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>FP</Text>
                     <Input
                       value={fp}
@@ -298,6 +310,15 @@ export default function JantriCalculator({ currentAccentColor }) {
                     />
                   </Col>
                   <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મોજે. ગામ</Text>
+                    <IndicTransliterate
+                      renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter village" style={{ padding: '2px 8px', height: '28px' }} />}
+                      value={village}
+                      onChangeText={(text) => setVillage(text)}
+                      lang="gu"
+                    />
+                  </Col>
+                  <Col xs={24} sm={5}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત નો પ્રકાર</Text>
                     <Select
                       value={propertyType}
@@ -311,7 +332,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       ]}
                     />
                   </Col>
-                  <Col xs={24} sm={6}>
+                  <Col xs={24} sm={5}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>લિંગ (Gender)</Text>
                     <Select
                       value={gender}
@@ -329,7 +350,7 @@ export default function JantriCalculator({ currentAccentColor }) {
               {/* Section 1: Plot Details */}
               <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>}>
                 <Row gutter={[8, 8]} align="middle">
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -338,7 +359,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       min={0}
                     />
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -347,24 +368,30 @@ export default function JantriCalculator({ currentAccentColor }) {
                       min={0}
                     />
                   </Col>
-                  <Col xs={24} sm={8}>
+                  {propertyType === 'ફ્લેટ' && (
+                    <Col xs={24} sm={6}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>એ. એસ. આર. ડિડકશન(%)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={asrDeduction}
+                        onChange={setAsrDeduction}
+                        min={0}
+                        max={100}
+                        formatter={value => `${value}%`}
+                        parser={value => value.replace('%', '')}
+                      />
+                    </Col>
+                  )}
+                  <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
                     <Statistic
                       title={<span style={{ fontSize: 12 }}>{getSection1ValueTitle()}</span>}
-                      value={plotValue}
+                      value={formatMoney(plotValue)}
                       precision={2}
                       valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
                     />
                   </Col>
                   {propertyType === 'ખેતી ની જમીન' && (
                     <>
-                      <Col xs={24} sm={6}>
-                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જમીનનું ક્ષેત્રફળ હે.આ.</Text>
-                        <InputNumber
-                          style={{ width: '100%', height: '28px' }}
-                          value={plotArea ? (plotArea / 100) : 0}
-                          disabled
-                        />
-                      </Col>
                       <Col xs={24} sm={6}>
                         <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા પસંદગી</Text>
                         <Select
@@ -379,10 +406,18 @@ export default function JantriCalculator({ currentAccentColor }) {
                         />
                       </Col>
                       <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>કુલ ગુંઠા</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={plotArea ? (plotArea / 100) : 0}
+                          disabled
+                        />
+                      </Col>
+                      <Col xs={24} sm={6}>
                         <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વીઘા</Text>
                         <InputNumber
                           style={{ width: '100%', height: '28px' }}
-                          value={plotArea ? ((plotArea / 100) / gunthaSelection) : 0}
+                          value={plotArea ? Math.floor((plotArea / 100) / gunthaSelection) : 0}
                           disabled
                         />
                       </Col>
@@ -390,7 +425,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા</Text>
                         <InputNumber
                           style={{ width: '100%', height: '28px' }}
-                          value={plotArea ? (((plotArea / 100) / gunthaSelection) * gunthaSelection) : 0}
+                          value={plotArea ? ((plotArea / 100) % gunthaSelection) : 0}
                           disabled
                         />
                       </Col>
@@ -424,7 +459,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     <Col xs={24} sm={8}>
                       <Statistic
                         title={<span style={{ fontSize: 12 }}>બાંધકામ નો અવેજ (Build Value)</span>}
-                        value={buildValue}
+                        value={formatMoney(buildValue)}
                         precision={2}
                         valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
                       />
@@ -473,14 +508,14 @@ export default function JantriCalculator({ currentAccentColor }) {
                     <Col xs={24} sm={8}>
                       <Statistic
                         title={<span style={{ fontSize: 12 }}>કુલ અવેજ (Total Base Value)</span>}
-                        value={totalValue}
+                        value={formatMoney(totalValue)}
                         precision={2}
                         valueStyle={{ fontSize: 16 }}
                       />
                     </Col>
                   </Row>
                   <Divider style={{ margin: '8px 0' }} />
-                  <Row>
+                  {/* <Row>
                     <Col span={24}>
                       <Statistic
                         title={<span style={{ fontSize: 12 }}>ઘસારા બાદ અવેજ (Value After Depreciation)</span>}
@@ -489,14 +524,33 @@ export default function JantriCalculator({ currentAccentColor }) {
                         valueStyle={{ color: currentAccentColor, fontWeight: 'bold', fontSize: 16 }}
                       />
                     </Col>
-                  </Row>
+                  </Row> */}
                 </Card>
               )}
 
               {/* Section 4: Fees and Expenses Inputs */}
               <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખર્ચની વિગત (Additional Details)</span>}>
                 <Row gutter={[8, 8]}>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>અવેજ (as per જંત્રી)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={formatMoney(calculatedFinalValue)}
+                      // onChange={setCustomFinalValue}
+                      disabled
+                      min={0}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>અવેજ (Final Value)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={finalValue}
+                      onChange={setCustomFinalValue}
+                      min={0}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ટોટલ પેજ (Total Pages)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -505,7 +559,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       min={0}
                     />
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={6}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વહીવટ (Vahiwat Fee)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -514,7 +568,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       min={0}
                     />
                   </Col>
-                  <Col xs={24} sm={8}>
+                  <Col xs={24} sm={6}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વકીલ ફી (Vakil Fee)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -537,6 +591,9 @@ export default function JantriCalculator({ currentAccentColor }) {
               </Title>
 
               <Space direction="vertical" style={{ width: '100%' }} size="small">
+                {/* <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text strong style={{ fontSize: 13 }}>{formatMoney(calculatedFinalValue)}</Text>
+                </div> */}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text type="secondary" style={{ fontSize: 13 }}>અવેજ (Final Value)</Text>
                   <Text strong style={{ fontSize: 13 }}>{formatMoney(finalValue)}</Text>

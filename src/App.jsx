@@ -5,7 +5,6 @@ import {
   Menu,
   Button,
   Typography,
-  Switch,
   Drawer,
   Input,
   Modal,
@@ -13,10 +12,6 @@ import {
   message
 } from 'antd';
 import {
-  HistoryOutlined,
-  SaveOutlined,
-  SunOutlined,
-  MoonOutlined,
   TranslationOutlined,
   BgColorsOutlined,
   CalculatorOutlined,
@@ -71,73 +66,22 @@ const { Title, Paragraph } = Typography;
 
 export default function App() {
   // Global State
-  const [themeMode, setThemeMode] = useState(() => localStorage.getItem('font-conv-theme') || 'dark');
+  const themeMode = 'light';
   const [activeColor, setActiveColor] = useState(() => localStorage.getItem('font-conv-accent') || 'indigo');
   const [mainTab, setMainTab] = useState('studio');
   const [collapsed, setCollapsed] = useState(false);
 
-  // History State
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('font-conv-history');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
-  // FontStudio specific state but lifted up for History Modal
-  const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [newSnippetTitle, setNewSnippetTitle] = useState('');
-
-  // Reference for fetching current text when saving snippet
-  // It's a bit tricky to grab child state cleanly without lifting it, 
-  // but we can pass setSaveModalVisible down. We need a way to pass text up.
-  // Actually, we'll keep `text` in FontStudio, but saving history requires text.
-  // We'll lift `text` and `setText` to App.jsx just for the FontStudio snippet saving, or use an event.
+  // Text state for FontStudio
   const [studioText, setStudioText] = useState('');
 
   const currentAccentColor = COLOR_PALETTES[activeColor].primary;
   const { defaultAlgorithm, darkAlgorithm } = theme;
 
   useEffect(() => {
-    document.body.className = themeMode === 'dark' ? 'dark-theme' : 'light-theme';
+    document.body.className = 'light-theme';
     document.documentElement.style.setProperty('--accent-color', currentAccentColor);
-    localStorage.setItem('font-conv-theme', themeMode);
     localStorage.setItem('font-conv-accent', activeColor);
-  }, [themeMode, activeColor, currentAccentColor]);
-
-  useEffect(() => {
-    localStorage.setItem('font-conv-history', JSON.stringify(history));
-  }, [history]);
-
-  const toggleTheme = (checked) => setThemeMode(checked ? 'dark' : 'light');
-
-  const saveSnippet = () => {
-    if (!newSnippetTitle.trim()) {
-      return message.error('Please provide a title!');
-    }
-    const newSnippet = {
-      id: Date.now().toString(),
-      title: newSnippetTitle,
-      text: studioText,
-      timestamp: new Date().toLocaleString(),
-    };
-    setHistory([newSnippet, ...history]);
-    setSaveModalVisible(false);
-    setNewSnippetTitle('');
-    message.success(`Saved "${newSnippetTitle}" to history!`);
-  };
-
-  const loadSnippet = (snippet) => {
-    if (mainTab !== 'studio') setMainTab('studio');
-    setStudioText(snippet.text);
-    setIsHistoryOpen(false);
-    message.success(`Loaded snippet: ${snippet.title}`);
-  };
-
-  const deleteSnippet = (id, e) => {
-    if (e) e.stopPropagation();
-    setHistory(history.filter(item => item.id !== id));
-    message.info('Snippet deleted from history');
-  };
+  }, [activeColor, currentAccentColor]);
 
   const menuItems = [
     {
@@ -210,20 +154,6 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Button
-              type="text"
-              icon={<HistoryOutlined />}
-              onClick={() => setIsHistoryOpen(true)}
-              className="history-trigger-btn"
-            >
-              Saved History ({history.length})
-            </Button>
-            <Switch
-              checkedChildren={<MoonOutlined />}
-              unCheckedChildren={<SunOutlined />}
-              checked={themeMode === 'dark'}
-              onChange={toggleTheme}
-            />
           </div>
         </Header>
 
@@ -263,18 +193,13 @@ export default function App() {
             display: 'flex',
             flexDirection: 'column'
           }}>
-            <Content style={{ flex: 1 }}>
+            <Content style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {mainTab === 'studio' && (
                 <FontStudio
                   themeMode={themeMode}
                   currentAccentColor={currentAccentColor}
                   activeColor={activeColor}
                   setActiveColor={setActiveColor}
-                  history={history}
-                  setHistory={setHistory}
-                  loadSnippet={loadSnippet}
-                  deleteSnippet={deleteSnippet}
-                  setSaveModalVisible={setSaveModalVisible}
                   text={studioText}
                   setText={setStudioText}
                 />
@@ -304,60 +229,6 @@ export default function App() {
           </Layout>
         </Layout>
       </Layout>
-
-      {/* Modals & Drawers */}
-      <Modal
-        title={<div><SaveOutlined style={{ color: currentAccentColor, marginRight: 8 }} /> Save to History</div>}
-        open={saveModalVisible}
-        onOk={saveSnippet}
-        onCancel={() => {
-          setSaveModalVisible(false);
-          setNewSnippetTitle('');
-        }}
-        okText="Save Snippet"
-        okButtonProps={{ style: { background: currentAccentColor } }}
-      >
-        <Input
-          placeholder="Give this snippet a title (e.g. Wedding Invite Intro)"
-          value={newSnippetTitle}
-          onChange={(e) => setNewSnippetTitle(e.target.value)}
-          onPressEnter={saveSnippet}
-          autoFocus
-        />
-      </Modal>
-
-      <Drawer
-        title="Saved Snippets History"
-        placement="right"
-        onClose={() => setIsHistoryOpen(false)}
-        open={isHistoryOpen}
-        width={400}
-      >
-        <div className="history-drawer-content">
-          {history.length === 0 ? (
-            <div style={{ textAlign: 'center', marginTop: 100, color: 'var(--text-muted)' }}>
-              Your saved history log is empty.
-            </div>
-          ) : (
-            history.map((item) => (
-              <div key={item.id} className="history-card" onClick={() => loadSnippet(item)} style={{ background: themeMode === 'dark' ? 'rgba(20,26,43,0.8)' : 'rgba(255,255,255,0.9)' }}>
-                <div className="history-card-header">
-                  <span>{item.timestamp}</span>
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => deleteSnippet(item.id, e)}
-                  />
-                </div>
-                <div className="history-card-snippet" style={{ fontWeight: 'bold' }}>{item.title}</div>
-                <div className="history-card-translation" style={{ fontSize: 16 }}>{item.text}</div>
-              </div>
-            ))
-          )}
-        </div>
-      </Drawer>
     </ConfigProvider>
   );
 }

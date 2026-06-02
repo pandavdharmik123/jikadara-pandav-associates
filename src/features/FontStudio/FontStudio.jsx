@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Row, Col, Card, Button, Select, Slider, Space, Typography, Tooltip, Badge, Divider, message } from 'antd';
-import { CopyOutlined, DownloadOutlined, ClearOutlined, SoundOutlined, HistoryOutlined, SaveOutlined, SettingOutlined, TranslationOutlined, BgColorsOutlined, FontSizeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { CopyOutlined, DownloadOutlined, ClearOutlined, SoundOutlined, SettingOutlined, TranslationOutlined, BgColorsOutlined, FontSizeOutlined } from '@ant-design/icons';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
 import { transliterateLatinRunsToGujarati } from '../../utils/batchTransliterate';
@@ -13,11 +13,6 @@ export default function FontStudio({
   currentAccentColor, 
   activeColor, 
   setActiveColor, 
-  history, 
-  setHistory, 
-  loadSnippet, 
-  deleteSnippet, 
-  setSaveModalVisible,
   text,
   setText
 }) {
@@ -90,8 +85,8 @@ export default function FontStudio({
   };
 
   return (
-    <div className="dashboard-grid" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="dashboard-grid" style={{ display: 'flex', flexDirection: 'column', gap: 24, flex: 1, height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1, minHeight: 0 }}>
         {/* Theme / Palette Customizer Bar */}
         <div className="controls-panel glass-panel">
           <div className="control-group">
@@ -137,7 +132,7 @@ export default function FontStudio({
         </div>
 
         {/* Pipeline: Roman → Unicode → preview / Ghanshyam legacy */}
-        <div className="editors-container studio-editors-container">
+        <div className="editors-container studio-editors-container" style={{ flex: 1, minHeight: 0 }}>
           {/* Step 1: English / Roman phonetic input */}
           <div className="editor-card glass-panel">
             <div className="editor-header">
@@ -221,15 +216,6 @@ export default function FontStudio({
                 <span>3 · Preview & export</span>
               </div>
               <Space>
-                <Tooltip title="Save Snippet">
-                  <Button
-                    type="text"
-                    shape="circle"
-                    icon={<SaveOutlined />}
-                    onClick={() => setSaveModalVisible(true)}
-                    disabled={!text}
-                  />
-                </Tooltip>
                 <Tooltip title="Read Aloud">
                   <Button
                     type="text"
@@ -349,37 +335,6 @@ export default function FontStudio({
           </div>
         </div>
 
-        <Divider style={{ margin: '12px 0' }} />
-
-        <div style={{ display: 'flex', justifySelf: 'flex-start', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600 }}>
-          <HistoryOutlined /> Recent Workspace Snippets
-        </div>
-
-        <div className="history-list">
-          {history.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)', fontSize: 13 }}>
-              No saved snippets yet. Use the Save button in the editor toolbar!
-            </div>
-          ) : (
-            history.slice(0, 5).map((item) => (
-              <div key={item.id} className="history-card" onClick={() => loadSnippet(item)}>
-                <div className="history-card-header">
-                  <span>{item.timestamp}</span>
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => deleteSnippet(item.id, e)}
-                    style={{ height: 18, width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  />
-                </div>
-                <div className="history-card-snippet">{item.title}</div>
-                <div className="history-card-translation">{item.text}</div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );

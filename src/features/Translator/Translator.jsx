@@ -117,11 +117,11 @@ export default function Translator({ themeMode, currentAccentColor }) {
   }, [enGuEnglish]);
 
   return (
-    <div className="translator-tab-wrap" style={{ padding: '8px 0 20px' }}>
+    <div className="translator-tab-wrap" style={{ padding: '8px 0 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
         Three steps: <Text strong>English</Text> → <Text strong>Unicode Gujarati</Text> (auto) → <Text strong>Harikrishna keystrokes</Text> for <Text code>Ghanshyam.ttf</Text> / Nilkanth (Latin letters that render as Gujarati when the font is applied). Put <Text code>Ghanshyam.ttf</Text> in <Text code>public/</Text> so it loads as <Text code>/Ghanshyam.ttf</Text>. Copy step 3 for Word / PageMaker with the font installed.
       </Paragraph>
-      <div className="editors-container translator-tab-editors">
+      <div className="editors-container translator-tab-editors" style={{ flex: 1, minHeight: 0 }}>
         <div className="editor-card glass-panel">
           <div className="editor-header">
             <div className="editor-title">
@@ -221,12 +221,12 @@ export default function Translator({ themeMode, currentAccentColor }) {
             </Tooltip>
           </div>
           <div className="editor-body">
-            <div className="legacy-alert-banner" style={{ margin: '0 12px 8px', flexShrink: 0 }}>
+            {/* <div className="legacy-alert-banner" style={{ margin: '0 12px 8px', flexShrink: 0 }}>
               <span className="legacy-alert-tag">Encoding</span>
               <span className="legacy-alert-message">
                 This column is <Text strong>ASCII / Latin keystrokes</Text> in the Harikrishna font template (e.g. કેમ → <Text code>k[m</Text>), not Gopika-style bytes. Paste into Word or PageMaker with <Text code>Ghanshyam.ttf</Text> applied so the letters render as Gujarati. If a rare conjunct looks wrong, compare with the same font typed by hand.
               </span>
-            </div>
+            </div> */}
             <textarea
               readOnly
               value={enGuGhanshyamLegacy}

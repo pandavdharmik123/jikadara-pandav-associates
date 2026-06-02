@@ -41,7 +41,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
   }, [uniInput, uniFrom, uniTo]);
 
   return (
-    <div className="universal-tab-wrap" style={{ padding: '8px 0 20px' }}>
+    <div className="universal-tab-wrap" style={{ padding: '8px 0 20px', display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
       <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
         Select your source input format and target font format.
         (Note: Ghanshyam, Nilkanth, and Nil Font all share the same Harikrishna keystroke template).
@@ -66,7 +66,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
         </div>
       </div>
 
-      <Row gutter={24} style={{ display: 'flex', alignItems: 'stretch' }}>
+      <Row gutter={24} style={{ display: 'flex', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
         <Col span={12}>
           <div className="editor-card" style={{ height: '100%', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}` }}>
             <div className="editor-header">
@@ -84,7 +84,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
                 />
               </Tooltip>
             </div>
-            <div className="editor-body" style={{ minHeight: 300 }}>
+            <div className="editor-body" style={{ minHeight: 0, display: 'flex', flex: 1 }}>
               <textarea
                 className="textarea-editor"
                 value={uniInput}
@@ -117,7 +117,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
                 />
               </Tooltip>
             </div>
-            <div className="editor-body" style={{ minHeight: 300 }}>
+            <div className="editor-body" style={{ minHeight: 0, display: 'flex', flex: 1 }}>
               <textarea
                 readOnly
                 value={uniOutput}
