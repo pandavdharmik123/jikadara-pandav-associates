@@ -34,13 +34,24 @@ export default function JantriCalculator({ currentAccentColor }) {
     });
   };
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = async (isSummary = false) => {
     const element = componentRef.current;
     if (!element) return;
 
     const clone = element.cloneNode(true);
     syncCloneFormState(element, clone);
     clone.classList.add('pdf-mode');
+
+    if (isSummary) {
+      const leftCol = clone.querySelector('.main-print-col-left');
+      if (leftCol) leftCol.remove();
+      const rightCol = clone.querySelector('.main-print-col-right');
+      if (rightCol) {
+        rightCol.style.setProperty('width', '100%', 'important');
+        rightCol.style.setProperty('max-width', '100%', 'important');
+        rightCol.style.setProperty('flex', '0 0 100%', 'important');
+      }
+    }
 
     const container = document.createElement('div');
     container.className = 'pdf-export-container';
@@ -219,10 +230,10 @@ export default function JantriCalculator({ currentAccentColor }) {
           <CalculatorOutlined style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Jantri & Stamp Duty Calculator</Title>
         </div>
-        <Button 
-          type="primary" 
-          icon={<FilePdfOutlined />} 
-          onClick={handleGeneratePDF}
+        <Button
+          type="primary"
+          icon={<FilePdfOutlined />}
+          onClick={() => handleGeneratePDF(false)}
           style={{ backgroundColor: currentAccentColor, height: '32px' }}
         >
           Generate PDF
@@ -233,170 +244,97 @@ export default function JantriCalculator({ currentAccentColor }) {
         {/* PDF Only Header */}
         <div className="pdf-header">
           <img src="/logo.png" alt="Company Logo" style={{ height: 50, marginBottom: 12 }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Jikadara & Pandav Associates</Title>
-          <Text type="secondary" style={{ fontSize: 12 }}>Jantri & Stamp Duty Calculation</Text>
+          {/* <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Jikadara & Pandav Associates</Title> */}
+          <Divider style={{ margin: '12px 0 20px' }} />
+          <Text type="secondary" style={{ fontSize: 16, fontWeight: 'bold' }}>Jantri & Stamp Duty Calculation</Text>
           <Divider style={{ margin: '12px 0 20px' }} />
         </div>
 
         <Row gutter={[12, 12]} className="main-print-row">
-        {/* Left Column: Inputs */}
-        <Col xs={24} lg={16} className="main-print-col-left">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Left Column: Inputs */}
+          <Col xs={24} lg={16} className="main-print-col-left">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Section 0: Buyer Details */}
-            <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખરીદનાર ની વિગત (Buyer Details)</span>} style={{ position: 'relative', zIndex: 100 }}>
-              <Row gutter={[8, 8]} align="middle">
-                {/* First Row */}
-                <Col xs={24} sm={12}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ખરીદનાર નું નામ (Name)</Text>
-                  <IndicTransliterate
-                    renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter name" style={{ padding: '2px 8px', height: '28px' }} />}
-                    value={buyerName}
-                    onChangeText={(text) => setBuyerName(text)}
-                    lang="gu"
-                  />
-                </Col>
-                <Col xs={24} sm={12}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની વિગત (Property Details)</Text>
-                  <IndicTransliterate
-                    renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter details" style={{ padding: '2px 8px', height: '28px' }} />}
-                    value={propertyDetails}
-                    onChangeText={(text) => setPropertyDetails(text)}
-                    lang="gu"
-                  />
-                </Col>
-                
-                {/* Second Row */}
-                <Col xs={12} sm={6}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>TP</Text>
-                  <Input
-                    value={tp}
-                    onChange={(e) => setTp(e.target.value)}
-                    placeholder="Enter TP"
-                    style={{ height: '28px' }}
-                  />
-                </Col>
-                <Col xs={12} sm={6}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>FP</Text>
-                  <Input
-                    value={fp}
-                    onChange={(e) => setFp(e.target.value)}
-                    placeholder="Enter FP"
-                    style={{ height: '28px' }}
-                  />
-                </Col>
-                <Col xs={24} sm={6}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત નો પ્રકાર</Text>
-                  <Select
-                    value={propertyType}
-                    onChange={setPropertyType}
-                    style={{ width: '100%', height: '28px' }}
-                    options={[
-                      { value: 'ખુલ્લો પ્લોટ', label: 'ખુલ્લો પ્લોટ' },
-                      { value: 'ફ્લેટ', label: 'ફ્લેટ' },
-                      { value: 'દુકાન', label: 'દુકાન' },
-                      { value: 'ખેતી ની જમીન', label: 'ખેતી ની જમીન' },
-                    ]}
-                  />
-                </Col>
-                <Col xs={24} sm={6}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>લિંગ (Gender)</Text>
-                  <Select
-                    value={gender}
-                    onChange={setGender}
-                    style={{ width: '100%', height: '28px' }}
-                    options={[
-                      { value: 'male', label: 'પુરુષ (Male)' },
-                      { value: 'female', label: 'સ્ત્રી (Female)' },
-                    ]}
-                  />
-                </Col>
-              </Row>
-            </Card>
+              {/* Section 0: Buyer Details */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખરીદનાર ની વિગત (Buyer Details)</span>} style={{ position: 'relative', zIndex: 100 }}>
+                <Row gutter={[8, 8]} align="middle">
+                  {/* First Row */}
+                  <Col xs={24} sm={12}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ખરીદનાર નું નામ (Name)</Text>
+                    <IndicTransliterate
+                      renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter name" style={{ padding: '2px 8px', height: '28px' }} />}
+                      value={buyerName}
+                      onChangeText={(text) => setBuyerName(text)}
+                      lang="gu"
+                    />
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની વિગત (Property Details)</Text>
+                    <IndicTransliterate
+                      renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter details" style={{ padding: '2px 8px', height: '28px' }} />}
+                      value={propertyDetails}
+                      onChangeText={(text) => setPropertyDetails(text)}
+                      lang="gu"
+                    />
+                  </Col>
 
-            {/* Section 1: Plot Details */}
-            <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>}>
-              <Row gutter={[8, 8]} align="middle">
-                <Col xs={24} sm={8}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
-                  <InputNumber
-                    style={{ width: '100%', height: '28px' }}
-                    value={plotArea}
-                    onChange={setPlotArea}
-                    min={0}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
-                  <InputNumber
-                    style={{ width: '100%', height: '28px' }}
-                    value={plotRate}
-                    onChange={setPlotRate}
-                    min={0}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Statistic
-                    title={<span style={{ fontSize: 12 }}>{getSection1ValueTitle()}</span>}
-                    value={plotValue}
-                    precision={2}
-                    valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
-                  />
-                </Col>
-                {propertyType === 'ખેતી ની જમીન' && (
-                  <>
-                    <Col xs={24} sm={6}>
-                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જમીનનું ક્ષેત્રફળ હે.આ.</Text>
-                      <InputNumber
-                        style={{ width: '100%', height: '28px' }}
-                        value={plotArea ? (plotArea / 100) : 0}
-                        disabled
-                      />
-                    </Col>
-                    <Col xs={24} sm={6}>
-                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા પસંદગી</Text>
-                      <Select
-                        value={gunthaSelection}
-                        onChange={setGunthaSelection}
-                        style={{ width: '100%', height: '28px' }}
-                        options={[
-                          { value: 16, label: '16' },
-                          { value: 18, label: '18' },
-                          { value: 23.78, label: '23.78' },
-                        ]}
-                      />
-                    </Col>
-                    <Col xs={24} sm={6}>
-                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વીઘા</Text>
-                      <InputNumber
-                        style={{ width: '100%', height: '28px' }}
-                        value={plotArea ? ((plotArea / 100) / gunthaSelection) : 0}
-                        disabled
-                      />
-                    </Col>
-                    <Col xs={24} sm={6}>
-                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા</Text>
-                      <InputNumber
-                        style={{ width: '100%', height: '28px' }}
-                        value={plotArea ? (((plotArea / 100) / gunthaSelection) * gunthaSelection) : 0}
-                        disabled
-                      />
-                    </Col>
-                  </>
-                )}
-              </Row>
-            </Card>
+                  {/* Second Row */}
+                  <Col xs={12} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>TP</Text>
+                    <Input
+                      value={tp}
+                      onChange={(e) => setTp(e.target.value)}
+                      placeholder="Enter TP"
+                      style={{ height: '28px' }}
+                    />
+                  </Col>
+                  <Col xs={12} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>FP</Text>
+                    <Input
+                      value={fp}
+                      onChange={(e) => setFp(e.target.value)}
+                      placeholder="Enter FP"
+                      style={{ height: '28px' }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત નો પ્રકાર</Text>
+                    <Select
+                      value={propertyType}
+                      onChange={setPropertyType}
+                      style={{ width: '100%', height: '28px' }}
+                      options={[
+                        { value: 'ખુલ્લો પ્લોટ', label: 'ખુલ્લો પ્લોટ' },
+                        { value: 'ફ્લેટ', label: 'ફ્લેટ' },
+                        { value: 'દુકાન', label: 'દુકાન' },
+                        { value: 'ખેતી ની જમીન', label: 'ખેતી ની જમીન' },
+                      ]}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>લિંગ (Gender)</Text>
+                    <Select
+                      value={gender}
+                      onChange={setGender}
+                      style={{ width: '100%', height: '28px' }}
+                      options={[
+                        { value: 'male', label: 'પુરુષ (Male)' },
+                        { value: 'female', label: 'સ્ત્રી (Female)' },
+                      ]}
+                    />
+                  </Col>
+                </Row>
+              </Card>
 
-            {/* Section 2: Construction Details */}
-            {propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
-              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>}>
+              {/* Section 1: Plot Details */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>}>
                 <Row gutter={[8, 8]} align="middle">
                   <Col xs={24} sm={8}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
-                      value={buildArea}
-                      onChange={setBuildArea}
+                      value={plotArea}
+                      onChange={setPlotArea}
                       min={0}
                     />
                   </Col>
@@ -404,183 +342,260 @@ export default function JantriCalculator({ currentAccentColor }) {
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
-                      value={buildRate}
-                      onChange={setBuildRate}
+                      value={plotRate}
+                      onChange={setPlotRate}
                       min={0}
                     />
                   </Col>
                   <Col xs={24} sm={8}>
                     <Statistic
-                      title={<span style={{ fontSize: 12 }}>બાંધકામ નો અવેજ (Build Value)</span>}
-                      value={buildValue}
+                      title={<span style={{ fontSize: 12 }}>{getSection1ValueTitle()}</span>}
+                      value={plotValue}
                       precision={2}
                       valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
                     />
                   </Col>
+                  {propertyType === 'ખેતી ની જમીન' && (
+                    <>
+                      <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જમીનનું ક્ષેત્રફળ હે.આ.</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={plotArea ? (plotArea / 100) : 0}
+                          disabled
+                        />
+                      </Col>
+                      <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા પસંદગી</Text>
+                        <Select
+                          value={gunthaSelection}
+                          onChange={setGunthaSelection}
+                          style={{ width: '100%', height: '28px' }}
+                          options={[
+                            { value: 16, label: '16' },
+                            { value: 18, label: '18' },
+                            { value: 23.78, label: '23.78' },
+                          ]}
+                        />
+                      </Col>
+                      <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વીઘા</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={plotArea ? ((plotArea / 100) / gunthaSelection) : 0}
+                          disabled
+                        />
+                      </Col>
+                      <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={plotArea ? (((plotArea / 100) / gunthaSelection) * gunthaSelection) : 0}
+                          disabled
+                        />
+                      </Col>
+                    </>
+                  )}
                 </Row>
               </Card>
-            )}
 
-            {/* Section: Parking (Conditional) */}
-            {(propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') && (
-              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>પાર્કિંગ (Parking)</span>}>
-                <Row gutter={[8, 8]} align="middle">
+              {/* Section 2: Construction Details */}
+              {propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>}>
+                  <Row gutter={[8, 8]} align="middle">
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={buildArea}
+                        onChange={setBuildArea}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={buildRate}
+                        onChange={setBuildRate}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Statistic
+                        title={<span style={{ fontSize: 12 }}>બાંધકામ નો અવેજ (Build Value)</span>}
+                        value={buildValue}
+                        precision={2}
+                        valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+              )}
+
+              {/* Section: Parking (Conditional) */}
+              {(propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') && (
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>પાર્કિંગ (Parking)</span>}>
+                  <Row gutter={[8, 8]} align="middle">
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Calculated Rate)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={parkingValue}
+                        disabled
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+              )}
+
+              {/* Section 3: Depreciation */}
+              {propertyType !== 'ખેતી ની જમીન' && (
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ઘસારો (Depreciation)</span>}>
+                  <Row gutter={[8, 8]} align="middle">
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર (Age in Years)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={depAge}
+                        onChange={setDepAge}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Statistic
+                        title={<span style={{ fontSize: 12 }}>ઘસારાની રકમ (Depreciation Amount)</span>}
+                        value={depAmount}
+                        precision={2}
+                        valueStyle={{ color: 'var(--text-secondary)', fontSize: 16 }}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Statistic
+                        title={<span style={{ fontSize: 12 }}>કુલ અવેજ (Total Base Value)</span>}
+                        value={totalValue}
+                        precision={2}
+                        valueStyle={{ fontSize: 16 }}
+                      />
+                    </Col>
+                  </Row>
+                  <Divider style={{ margin: '8px 0' }} />
+                  <Row>
+                    <Col span={24}>
+                      <Statistic
+                        title={<span style={{ fontSize: 12 }}>ઘસારા બાદ અવેજ (Value After Depreciation)</span>}
+                        value={finalValue}
+                        precision={2}
+                        valueStyle={{ color: currentAccentColor, fontWeight: 'bold', fontSize: 16 }}
+                      />
+                    </Col>
+                  </Row>
+                </Card>
+              )}
+
+              {/* Section 4: Fees and Expenses Inputs */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખર્ચની વિગત (Additional Details)</span>}>
+                <Row gutter={[8, 8]}>
                   <Col xs={24} sm={8}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Calculated Rate)</Text>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ટોટલ પેજ (Total Pages)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
-                      value={parkingValue}
-                      disabled
-                    />
-                  </Col>
-                </Row>
-              </Card>
-            )}
-
-            {/* Section 3: Depreciation */}
-            {propertyType !== 'ખેતી ની જમીન' && (
-              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ઘસારો (Depreciation)</span>}>
-                <Row gutter={[8, 8]} align="middle">
-                  <Col xs={24} sm={8}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર (Age in Years)</Text>
-                    <InputNumber
-                      style={{ width: '100%', height: '28px' }}
-                      value={depAge}
-                      onChange={setDepAge}
+                      value={totalPages}
+                      onChange={setTotalPages}
                       min={0}
                     />
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Statistic
-                      title={<span style={{ fontSize: 12 }}>ઘસારાની રકમ (Depreciation Amount)</span>}
-                      value={depAmount}
-                      precision={2}
-                      valueStyle={{ color: 'var(--text-secondary)', fontSize: 16 }}
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વહીવટ (Vahiwat Fee)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={vahiwatFee}
+                      onChange={setVahiwatFee}
+                      min={0}
                     />
                   </Col>
                   <Col xs={24} sm={8}>
-                    <Statistic
-                      title={<span style={{ fontSize: 12 }}>કુલ અવેજ (Total Base Value)</span>}
-                      value={totalValue}
-                      precision={2}
-                      valueStyle={{ fontSize: 16 }}
-                    />
-                  </Col>
-                </Row>
-                <Divider style={{ margin: '8px 0' }} />
-                <Row>
-                  <Col span={24}>
-                    <Statistic
-                      title={<span style={{ fontSize: 12 }}>ઘસારા બાદ અવેજ (Value After Depreciation)</span>}
-                      value={finalValue}
-                      precision={2}
-                      valueStyle={{ color: currentAccentColor, fontWeight: 'bold', fontSize: 16 }}
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વકીલ ફી (Vakil Fee)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={vakilFee}
+                      onChange={setVakilFee}
+                      min={0}
                     />
                   </Col>
                 </Row>
               </Card>
-            )}
+            </div>
+          </Col>
 
-            {/* Section 4: Fees and Expenses Inputs */}
-            <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખર્ચની વિગત (Additional Details)</span>}>
-              <Row gutter={[8, 8]}>
-                <Col xs={24} sm={8}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ટોટલ પેજ (Total Pages)</Text>
-                  <InputNumber
-                    style={{ width: '100%', height: '28px' }}
-                    value={totalPages}
-                    onChange={setTotalPages}
-                    min={0}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વહીવટ (Vahiwat Fee)</Text>
-                  <InputNumber
-                    style={{ width: '100%', height: '28px' }}
-                    value={vahiwatFee}
-                    onChange={setVahiwatFee}
-                    min={0}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વકીલ ફી (Vakil Fee)</Text>
-                  <InputNumber
-                    style={{ width: '100%', height: '28px' }}
-                    value={vakilFee}
-                    onChange={setVakilFee}
-                    min={0}
-                  />
-                </Col>
-              </Row>
+          {/* Right Column: Final Calculation Summary */}
+          <Col xs={24} lg={8} className="main-print-col-right">
+            <Card size="small" className="glass-panel pdf-final-calculation" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
+              <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Final Calculation</span>
+                <Button type="primary" size="small" icon={<FilePdfOutlined />} className="no-print" onClick={() => handleGeneratePDF(true)} style={{ backgroundColor: currentAccentColor }}>Print</Button>
+              </Title>
+
+              <Space direction="vertical" style={{ width: '100%' }} size="small">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>અવેજ (Final Value)</Text>
+                  <Text strong style={{ fontSize: 13 }}>{formatMoney(finalValue)}</Text>
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>સ્ટેમ્પ ડયુટી (Stamp Duty)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(stampDuty)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>રજી. ફી (Reg. Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(regFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>પેજ ફી (Page Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(pageFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>ઇન્ડેક્ષ ફી (Index Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(indexFee)}</Text>
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>વહીવટ (Vahiwat)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(vahiwatFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>વકીલ ફી (Vakil Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(vakilFee)}</Text>
+                </div>
+
+                <div className="pdf-total-cost-box" style={{
+                  marginTop: 8,
+                  padding: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  borderRadius: 8,
+                  textAlign: 'center'
+                }}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>કુલ ખર્ચ (Total Cost)</Text>
+                  <Text strong style={{ fontSize: 22, color: currentAccentColor }}>
+                    ₹ {formatMoney(totalFee)}
+                  </Text>
+                </div>
+              </Space>
             </Card>
-          </div>
-        </Col>
+          </Col>
+        </Row>
 
-        {/* Right Column: Final Calculation Summary */}
-        <Col xs={24} lg={8} className="main-print-col-right">
-          <Card size="small" className="glass-panel pdf-final-calculation" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14 }}>Final Calculation</Title>
-
-            <Space direction="vertical" style={{ width: '100%' }} size="small">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>અવેજ (Final Value)</Text>
-                <Text strong style={{ fontSize: 13 }}>{formatMoney(finalValue)}</Text>
-              </div>
-
-              <Divider style={{ margin: '4px 0' }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>સ્ટેમ્પ ડયુટી (Stamp Duty)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(stampDuty)}</Text>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>રજી. ફી (Reg. Fee)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(regFee)}</Text>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>પેજ ફી (Page Fee)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(pageFee)}</Text>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>ઇન્ડેક્ષ ફી (Index Fee)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(indexFee)}</Text>
-              </div>
-
-              <Divider style={{ margin: '4px 0' }} />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>વહીવટ (Vahiwat)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(vahiwatFee)}</Text>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Text type="secondary" style={{ fontSize: 13 }}>વકીલ ફી (Vakil Fee)</Text>
-                <Text style={{ fontSize: 13 }}>{formatMoney(vakilFee)}</Text>
-              </div>
-
-              <div className="pdf-total-cost-box" style={{
-                marginTop: 8,
-                padding: '8px',
-                backgroundColor: 'rgba(0,0,0,0.04)',
-                borderRadius: 8,
-                textAlign: 'center'
-              }}>
-                <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>કુલ ખર્ચ (Total Cost)</Text>
-                <Text strong style={{ fontSize: 22, color: currentAccentColor }}>
-                  ₹ {formatMoney(totalFee)}
-                </Text>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-        
-        {/* PDF Only Footer */}
+        {/* PDF Only Footer
         <div className="pdf-footer">
           <div className="pdf-footer-content">
             <span style={{ fontStyle: 'italic' }}>Generated on: {new Date().toLocaleDateString('en-GB')}</span>
             <span style={{ fontWeight: 600 }}>Jikadara & Pandav Associates © 2026</span>
           </div>
-        </div>
+        </div> */}
 
       </div>
     </div>

@@ -293,14 +293,14 @@ export default function App() {
               )}
             </Content>
 
-            <Footer style={{ textAlign: 'center', padding: '24px 50px', background: 'transparent' }}>
+            {/* <Footer style={{ textAlign: 'center', padding: '24px 50px', background: 'transparent' }}>
               <Paragraph style={{ margin: 0, color: 'var(--text-secondary)' }}>
                 Jikadara & Pandav Associates © {new Date().getFullYear()} — Indic Type & Conversion Suite
               </Paragraph>
               <Paragraph style={{ margin: 0, fontSize: 12, opacity: 0.6 }}>
                 Transliteration powered by AI4Bharat API
               </Paragraph>
-            </Footer>
+            </Footer> */}
           </Layout>
         </Layout>
       </Layout>
