@@ -23,6 +23,7 @@ import FontStudio from './features/FontStudio/FontStudio';
 import Translator from './features/Translator/Translator';
 import UniversalConverter from './features/UniversalConverter/UniversalConverter';
 import JantriCalculator from './features/JantriCalculator/JantriCalculator';
+import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgreementCalculator';
 
 import './styles/main.scss';
 
@@ -68,7 +69,7 @@ export default function App() {
   // Global State
   const themeMode = 'light';
   const [activeColor, setActiveColor] = useState(() => localStorage.getItem('font-conv-accent') || 'indigo');
-  const [mainTab, setMainTab] = useState('studio');
+  const [mainTab, setMainTab] = useState('translator');
   const [collapsed, setCollapsed] = useState(false);
 
   // Text state for FontStudio
@@ -85,11 +86,6 @@ export default function App() {
 
   const menuItems = [
     {
-      key: 'studio',
-      icon: <FormatPainterOutlined style={{ fontSize: 18 }} />,
-      label: 'Font Studio',
-    },
-    {
       key: 'translator',
       icon: <TranslationOutlined style={{ fontSize: 18 }} />,
       label: 'Eng to Guj',
@@ -103,6 +99,11 @@ export default function App() {
       key: 'jantri',
       icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
       label: 'Jantri Calculator',
+    },
+    {
+      key: 'rent-agreement',
+      icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
+      label: 'Rent Agreement Calculator',
     }
   ];
 
@@ -188,7 +189,7 @@ export default function App() {
           <Layout style={{
             marginLeft: collapsed ? 80 : 260,
             transition: 'all 0.2s',
-            padding: '24px',
+            padding: '8px 24px',
             minHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column'
@@ -215,6 +216,10 @@ export default function App() {
 
               {mainTab === 'jantri' && (
                 <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />
+              )}
+
+              {mainTab === 'rent-agreement' && (
+                <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />
               )}
             </Content>
 

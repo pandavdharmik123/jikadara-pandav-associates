@@ -292,20 +292,24 @@ export default function JantriCalculator({ currentAccentColor }) {
 
                   {/* Second Row */}
                   <Col xs={12} sm={4}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>TP</Text>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
+                      {propertyType === 'ખેતી ની જમીન' ? 'સર્વે નંબર (Survey No)' : 'TP'}
+                    </Text>
                     <Input
                       value={tp}
                       onChange={(e) => setTp(e.target.value)}
-                      placeholder="Enter TP"
+                      placeholder={propertyType === 'ખેતી ની જમીન' ? 'Enter Survey No' : 'Enter TP'}
                       style={{ height: '28px' }}
                     />
                   </Col>
                   <Col xs={12} sm={4}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>FP</Text>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
+                      {propertyType === 'ખેતી ની જમીન' ? 'બ્લોક નંબર (Block No)' : 'FP'}
+                    </Text>
                     <Input
                       value={fp}
                       onChange={(e) => setFp(e.target.value)}
-                      placeholder="Enter FP"
+                      placeholder={propertyType === 'ખેતી ની જમીન' ? 'Enter Block No' : 'Enter FP'}
                       style={{ height: '28px' }}
                     />
                   </Col>
@@ -560,7 +564,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     />
                   </Col>
                   <Col xs={24} sm={6}>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વહીવટ (Vahiwat Fee)</Text>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>સબ-રજિસ્ટ્રાર(Administrative Fee)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
                       value={vahiwatFee}
@@ -621,7 +625,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                 <Divider style={{ margin: '4px 0' }} />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text type="secondary" style={{ fontSize: 13 }}>વહીવટ (Vahiwat)</Text>
+                  <Text type="secondary" style={{ fontSize: 13 }}>સબ-રજિસ્ટ્રાર(Administrative Fee)</Text>
                   <Text style={{ fontSize: 13 }}>{formatMoney(vahiwatFee)}</Text>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
