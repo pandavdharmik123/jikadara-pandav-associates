@@ -113,7 +113,7 @@ export default function App() {
         algorithm: themeMode === 'dark' ? darkAlgorithm : defaultAlgorithm,
         token: {
           colorPrimary: currentAccentColor,
-          fontFamily: 'Inter, system-ui, sans-serif',
+          fontFamily: '"Anek Gujarati", Inter, system-ui, sans-serif',
           colorBgContainer: themeMode === 'dark' ? '#141414' : '#ffffff',
           colorBgElevated: themeMode === 'dark' ? '#1f1f1f' : '#ffffff',
           borderRadius: 8,
@@ -149,9 +149,12 @@ export default function App() {
         }}>
           <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <img src="/logo.png" alt="Logo" style={{ height: 40, width: 'auto' }} />
-            <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
-              Jikadara & Pandav Associates
-            </Title>
+            <div className='d-flex flex-column'>
+              <h2 style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                JIKADARA & PANDAV ASSOCIATES
+              </h2>
+              <span>Advocate and Legal Consultants</span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
