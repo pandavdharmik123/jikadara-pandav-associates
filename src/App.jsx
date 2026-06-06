@@ -9,13 +9,15 @@ import {
   Input,
   Modal,
   theme,
-  message
+  message,
+  Grid
 } from 'antd';
 import {
   TranslationOutlined,
   BgColorsOutlined,
   CalculatorOutlined,
-  FormatPainterOutlined
+  FormatPainterOutlined,
+  MenuOutlined
 } from '@ant-design/icons';
 import { COLOR_PALETTES } from './utils/constants';
 
@@ -70,7 +72,10 @@ export default function App() {
   const themeMode = 'light';
   const [activeColor, setActiveColor] = useState(() => localStorage.getItem('font-conv-accent') || 'indigo');
   const [mainTab, setMainTab] = useState('translator');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
+
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
 
   // Text state for FontStudio
   const [studioText, setStudioText] = useState('');
@@ -138,22 +143,26 @@ export default function App() {
           position: 'fixed',
           zIndex: 100,
           width: '100%',
-          padding: '0 24px',
+          padding: isMobile ? '0 16px' : '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
           height: 64,
-          zIndex: 999,
           top: 0
         }}>
-          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img src="/logo.png" alt="Logo" style={{ height: 40, width: 'auto' }} />
-            <div className='d-flex flex-column'>
-              <h2 style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
+          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
+            {isMobile && (
+              <Button type="text" icon={<MenuOutlined style={{ fontSize: 20 }} />} onClick={() => setCollapsed(!collapsed)} style={{ padding: '0 8px', marginLeft: -8, marginRight: 4 }} />
+            )}
+            <img src="/logo.png" alt="Logo" style={{ height: isMobile ? 32 : 40, width: 'auto' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '13px' : '18px', fontWeight: 700, lineHeight: 1.2 }}>
                 JIKADARA & PANDAV ASSOCIATES
               </h2>
-              <span>Advocate and Legal Consultants</span>
+              <span style={{ fontSize: isMobile ? '10px' : '13px', opacity: 0.8, marginTop: '2px', lineHeight: 1.2 }}>
+                Advocate and Legal Consultants
+              </span>
             </div>
           </div>
 
@@ -162,37 +171,60 @@ export default function App() {
         </Header>
 
         <Layout style={{ marginTop: 64 }}>
-          <Sider
-            width={260}
-            theme={themeMode}
-            collapsible
-            collapsed={collapsed}
-            onCollapse={(value) => setCollapsed(value)}
-            style={{
-              overflow: 'auto',
-              height: 'calc(100vh - 64px)',
-              position: 'fixed',
-              left: 0,
-              top: 64,
-              bottom: 0,
-              borderRight: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
-              zIndex: 90
-            }}
-          >
-            <Menu
+          {isMobile ? (
+            <Drawer
+              placement="left"
+              closable={false}
+              onClose={() => setCollapsed(true)}
+              open={!collapsed}
+              width={260}
+              styles={{ body: { padding: 0 } }}
+            >
+              <div style={{ padding: '16px 24px', fontWeight: 'bold', borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`, fontSize: 16 }}>
+                Menu
+              </div>
+              <Menu
+                theme={themeMode}
+                mode="inline"
+                selectedKeys={[mainTab]}
+                onClick={(e) => { setMainTab(e.key); setCollapsed(true); }}
+                items={menuItems}
+                style={{ padding: '8px 0', borderRight: 0 }}
+              />
+            </Drawer>
+          ) : (
+            <Sider
+              width={260}
               theme={themeMode}
-              mode="inline"
-              selectedKeys={[mainTab]}
-              onClick={(e) => setMainTab(e.key)}
-              items={menuItems}
-              style={{ padding: '16px 8px', borderRight: 0 }}
-            />
-          </Sider>
+              collapsible
+              collapsed={collapsed}
+              onCollapse={(value) => setCollapsed(value)}
+              style={{
+                overflow: 'auto',
+                height: 'calc(100vh - 64px)',
+                position: 'fixed',
+                left: 0,
+                top: 64,
+                bottom: 0,
+                borderRight: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
+                zIndex: 90
+              }}
+            >
+              <Menu
+                theme={themeMode}
+                mode="inline"
+                selectedKeys={[mainTab]}
+                onClick={(e) => setMainTab(e.key)}
+                items={menuItems}
+                style={{ padding: '16px 8px', borderRight: 0 }}
+              />
+            </Sider>
+          )}
 
           <Layout style={{
-            marginLeft: collapsed ? 80 : 260,
+            marginLeft: isMobile ? 0 : (collapsed ? 80 : 260),
             transition: 'all 0.2s',
-            padding: '8px 24px',
+            padding: isMobile ? '12px 8px' : '16px 24px',
             minHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column'

@@ -44,7 +44,8 @@ body {
 }
 
 /* Hide or remove old ambient glows */
-.radial-glow-1, .radial-glow-2 {
+.radial-glow-1,
+.radial-glow-2 {
   display: none;
 }
 
@@ -262,12 +263,29 @@ body {
 }
 
 /* Font Classes */
-.font-noto-sans { font-family: 'Noto Sans Gujarati', sans-serif; }
-.font-noto-serif { font-family: 'Noto Serif Gujarati', serif; }
-.font-baloo { font-family: 'Baloo Bhai 2', cursive; }
-.font-mogra { font-family: 'Mogra', cursive; }
-.font-farsan { font-family: 'Farsan', cursive; }
-.font-ghanshyam { font-family: 'Ghanshyam', sans-serif; }
+.font-noto-sans {
+  font-family: 'Noto Sans Gujarati', sans-serif;
+}
+
+.font-noto-serif {
+  font-family: 'Noto Serif Gujarati', serif;
+}
+
+.font-baloo {
+  font-family: 'Baloo Bhai 2', cursive;
+}
+
+.font-mogra {
+  font-family: 'Mogra', cursive;
+}
+
+.font-farsan {
+  font-family: 'Farsan', cursive;
+}
+
+.font-ghanshyam {
+  font-family: 'Ghanshyam', sans-serif;
+}
 
 .legacy-alert-banner {
   background: rgba(250, 173, 20, 0.1);
@@ -373,7 +391,8 @@ body {
 }
 
 /* PDF Generation Styles */
-.pdf-header, .pdf-footer {
+.pdf-header,
+.pdf-footer {
   display: none;
 }
 
@@ -425,9 +444,11 @@ body {
   .pdf-footer {
     display: flex;
     justify-content: center;
-    margin-top: auto !important; /* Pushes the footer to the bottom of the flex container */
+    margin-top: auto !important;
+    /* Pushes the footer to the bottom of the flex container */
     padding-top: 6px !important;
     border-top: 1px solid #ccc;
+
     .pdf-footer-content {
       width: 100%;
       display: flex;
@@ -440,45 +461,130 @@ body {
     display: none !important;
   }
 
-  .main-print-col-left > div {
+  .main-print-col-left>div {
     gap: 8px !important;
   }
 
-  .ant-card { position: static !important; border: 1px solid #333 !important; margin-bottom: 0 !important; box-shadow: none !important; }
-  .ant-card-head { min-height: 30px !important; padding: 6px 12px !important; border-bottom: 1px solid #333 !important; }
-  .ant-card-head-title { padding: 4px 0 !important; font-size: 14px !important; color: black !important; font-weight: bold !important; line-height: 1.4 !important; }
-  .ant-card-head-title span { color: black !important; }
-  .ant-card-body { padding: 12px 14px !important; }
-  .ant-row { row-gap: 6px !important; margin: 0 !important; }
-  .ant-col { padding-top: 2px !important; padding-bottom: 2px !important; }
+  .ant-card {
+    position: static !important;
+    border: 1px solid #333 !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .ant-card-head {
+    min-height: 30px !important;
+    padding: 6px 12px !important;
+    border-bottom: 1px solid #333 !important;
+  }
+
+  .ant-card-head-title {
+    padding: 4px 0 !important;
+    font-size: 14px !important;
+    color: black !important;
+    font-weight: bold !important;
+    line-height: 1.4 !important;
+  }
+
+  .ant-card-head-title span {
+    color: black !important;
+  }
+
+  .ant-card-body {
+    padding: 12px 14px !important;
+  }
+
+  .ant-row {
+    row-gap: 6px !important;
+    margin: 0 !important;
+  }
+
+  .ant-col {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
 
   /* Label → field spacing */
-  .ant-col > .ant-typography:first-child {
+  .ant-col>.ant-typography:first-child {
     margin-bottom: 4px !important;
     display: block !important;
   }
 
-  .ant-typography { font-size: 12px !important; margin-bottom: 4px !important; color: black !important; line-height: 1.4 !important; }
-  .ant-typography span, .ant-typography strong { color: black !important; }
-  .ant-statistic { margin-bottom: 4px !important; }
-  .ant-statistic-title { font-size: 12px !important; margin-bottom: 3px !important; color: black !important; }
-  .ant-statistic-title span { color: black !important; }
-  .ant-statistic-content { font-size: 15px !important; }
-  .ant-statistic-content-value { font-size: 15px !important; color: black !important; }
-  .ant-input-number, .ant-select-selector, .ant-input, .custom-transliterate-input { 
-    height: 30px !important; 
-    min-height: 30px !important; 
-    font-size: 13px !important; 
-    color: black !important; 
-    padding: 0 8px !important; 
-    line-height: 28px !important; 
+  .ant-typography {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+    color: black !important;
+    line-height: 1.4 !important;
+  }
+
+  .ant-typography span,
+  .ant-typography strong {
+    color: black !important;
+  }
+
+  .ant-statistic {
+    margin-bottom: 4px !important;
+  }
+
+  .ant-statistic-title {
+    font-size: 12px !important;
+    margin-bottom: 3px !important;
+    color: black !important;
+  }
+
+  .ant-statistic-title span {
+    color: black !important;
+  }
+
+  .ant-statistic-content {
+    font-size: 15px !important;
+  }
+
+  .ant-statistic-content-value {
+    font-size: 15px !important;
+    color: black !important;
+  }
+
+  .ant-input-number,
+  .ant-select-selector,
+  .ant-input,
+  .custom-transliterate-input {
+    height: 30px !important;
+    min-height: 30px !important;
+    font-size: 13px !important;
+    color: black !important;
+    padding: 0 8px !important;
+    line-height: 28px !important;
     box-sizing: border-box !important;
   }
-  .ant-input-number-input { height: 28px !important; padding: 0 8px !important; color: black !important; line-height: 28px !important; }
-  .ant-select-selection-item { line-height: 28px !important; color: black !important; padding: 0 !important; }
-  .ant-divider { margin: 8px 0 !important; border-color: #333 !important; }
-  .ant-space { gap: 6px !important; }
-  .glass-panel { background: white !important; color: black !important; border-color: #333 !important; }
+
+  .ant-input-number-input {
+    height: 28px !important;
+    padding: 0 8px !important;
+    color: black !important;
+    line-height: 28px !important;
+  }
+
+  .ant-select-selection-item {
+    line-height: 28px !important;
+    color: black !important;
+    padding: 0 !important;
+  }
+
+  .ant-divider {
+    margin: 8px 0 !important;
+    border-color: #333 !important;
+  }
+
+  .ant-space {
+    gap: 6px !important;
+  }
+
+  .glass-panel {
+    background: white !important;
+    color: black !important;
+    border-color: #333 !important;
+  }
 
   /* Side-by-side: inputs left, final calculation right — saves vertical space */
   .main-print-row {
@@ -488,6 +594,7 @@ body {
     overflow: visible !important;
     row-gap: 0 !important;
   }
+
   .main-print-col-left {
     width: 64% !important;
     max-width: 64% !important;
@@ -495,12 +602,14 @@ body {
     padding-right: 4px !important;
     overflow: visible !important;
   }
+
   .main-print-col-right {
     width: 36% !important;
     max-width: 36% !important;
     flex: 0 0 36% !important;
     overflow: visible !important;
   }
+
   .pdf-final-calculation {
     position: static !important;
     top: auto !important;
@@ -513,7 +622,9 @@ body {
       font-weight: bold !important;
     }
 
-    .ant-card-body { padding: 14px 16px !important; }
+    .ant-card-body {
+      padding: 14px 16px !important;
+    }
 
     .ant-space-item {
       padding: 3px 0 !important;
@@ -524,7 +635,8 @@ body {
     margin-top: 12px !important;
     padding: 12px !important;
     border-radius: 6px !important;
-    background-color: #d1d1d1 !important; /* Visible dark gray for print */
+    background-color: #d1d1d1 !important;
+    /* Visible dark gray for print */
 
     .ant-typography {
       font-size: 13px !important;
@@ -533,6 +645,46 @@ body {
 
     .ant-typography strong {
       font-size: 24px !important;
+    }
+  }
+
+  /* --- Mobile Responsiveness Enhancements --- */
+  @media (max-width: 768px) {
+    .editor-header {
+      padding: 10px 12px;
+    }
+
+    .editor-title {
+      font-size: 13px;
+    }
+
+    .editor-footer {
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+
+    .textarea-editor {
+      padding: 12px 14px;
+      font-size: 16px;
+    }
+
+    .controls-panel {
+      padding: 12px 14px;
+      gap: 12px;
+    }
+
+    .ant-card-body {
+      padding: 12px 14px !important;
+    }
+
+    .sidebar-panel {
+      padding: 12px 14px;
+    }
+
+    .dashboard-grid,
+    .translator-tab-editors,
+    .studio-editors-container {
+      gap: 12px;
     }
   }
 }
