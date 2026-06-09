@@ -256,7 +256,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 minHeight: '1120px',
                 backgroundColor: '#fff',
                 color: '#333',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Anek Gujarati', sans-serif",
                 position: 'relative',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                 margin: '0 auto',
