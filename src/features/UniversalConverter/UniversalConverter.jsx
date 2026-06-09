@@ -47,16 +47,16 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
         (Note: Ghanshyam, Nilkanth, and Nil Font all share the same Harikrishna keystroke template).
       </Paragraph>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center' }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 600 }}>From:</span>
           <Select value={uniFrom} onChange={setUniFrom} style={{ width: '100%' }}>
             <Select.Option value="english">English (Phonetic)</Select.Option>
             <Select.Option value="unicode">Gujarati Unicode</Select.Option>
           </Select>
         </div>
-        <SwapRightOutlined style={{ fontSize: 24, color: 'var(--text-secondary)' }} />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <SwapRightOutlined style={{ fontSize: 24, color: 'var(--text-secondary)', display: window.innerWidth < 768 ? 'none' : 'block' }} />
+        <div style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 600 }}>To:</span>
           <Select value={uniTo} onChange={setUniTo} style={{ width: '100%' }}>
             <Select.Option value="ghanshyam">Ghanshyam</Select.Option>
@@ -66,9 +66,9 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
         </div>
       </div>
 
-      <Row gutter={24} style={{ display: 'flex', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
-        <Col span={12}>
-          <div className="editor-card" style={{ height: '100%', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}` }}>
+      <Row gutter={[24, 24]} style={{ display: 'flex', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+        <Col xs={24} md={12}>
+          <div className="editor-card" style={{ height: '100%', minHeight: '300px', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}` }}>
             <div className="editor-header">
               <div className="editor-title">
                 <Badge color={currentAccentColor} status={isUniConverting ? "processing" : "default"} />
@@ -97,8 +97,8 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
           </div>
         </Col>
 
-        <Col span={12}>
-          <div className="editor-card" style={{ height: '100%', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`, borderLeft: `4px solid ${currentAccentColor}` }}>
+        <Col xs={24} md={12}>
+          <div className="editor-card" style={{ height: '100%', minHeight: '300px', border: `1px solid ${themeMode === 'dark' ? '#303030' : '#f0f0f0'}`, borderLeft: `4px solid ${currentAccentColor}` }}>
             <div className="editor-header">
               <div className="editor-title">
                 <span style={{ color: currentAccentColor }}>●</span>

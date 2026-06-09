@@ -138,6 +138,12 @@ body {
   background-color: var(--panel-bg) !important;
 }
 
+/* Transliterate Container Override */
+.transliterate-wrapper {
+  position: relative !important;
+  z-index: 999999 !important;
+}
+
 .react-transliterate-dropdown-item {
   padding: 8px 12px !important;
   cursor: pointer !important;
@@ -687,4 +693,8 @@ body {
       gap: 12px;
     }
   }
+}
+
+ul {
+  z-index: 9999 !important;
 }

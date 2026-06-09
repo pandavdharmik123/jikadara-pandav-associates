@@ -17,7 +17,9 @@ import {
   BgColorsOutlined,
   CalculatorOutlined,
   FormatPainterOutlined,
-  MenuOutlined
+  MenuOutlined,
+  ContainerOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 import { COLOR_PALETTES } from './utils/constants';
 
@@ -26,6 +28,7 @@ import Translator from './features/Translator/Translator';
 import UniversalConverter from './features/UniversalConverter/UniversalConverter';
 import JantriCalculator from './features/JantriCalculator/JantriCalculator';
 import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgreementCalculator';
+import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
 
 import './styles/main.scss';
 
@@ -106,9 +109,14 @@ export default function App() {
       label: 'Jantri Calculator',
     },
     {
-      key: 'rent-agreement',
-      icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
+      key: 'rent_agreement',
+      icon: <FormOutlined style={{ fontSize: 18 }} />,
       label: 'Rent Agreement Calculator',
+    },
+    {
+      key: 'invoice',
+      icon: <ContainerOutlined style={{ fontSize: 18 }} />,
+      label: 'Invoice Generator',
     }
   ];
 
@@ -149,7 +157,8 @@ export default function App() {
           justifyContent: 'space-between',
           borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
           height: 64,
-          top: 0
+          top: 0,
+          zIndex: 9999
         }}>
           <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
             {isMobile && (
@@ -249,13 +258,9 @@ export default function App() {
                 <UniversalConverter themeMode={themeMode} currentAccentColor={currentAccentColor} />
               )}
 
-              {mainTab === 'jantri' && (
-                <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />
-              )}
-
-              {mainTab === 'rent-agreement' && (
-                <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />
-              )}
+              {mainTab === 'jantri' && <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+              {mainTab === 'rent_agreement' && <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+              {mainTab === 'invoice' && <InvoiceGenerator currentAccentColor={currentAccentColor} />}
             </Content>
 
             {/* <Footer style={{ textAlign: 'center', padding: '24px 50px', background: 'transparent' }}>

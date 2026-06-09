@@ -88,10 +88,10 @@ const tabInsert = `
               ),
               children: (
                 <div className="universal-tab-wrap" style={{ padding: '8px 0 20px' }}>
-                  <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
-                    Select your source input format and target font format. 
-                    (Note: Ghanshyam, Nilkanth, and Nil Font all share the same Harikrishna keystroke template).
-                  </Paragraph>
+                  // <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
+                  //   Select your source input format and target font format. 
+                  //   (Note: Ghanshyam, Nilkanth, and Nil Font all share the same Harikrishna keystroke template).
+                  // </Paragraph>
                   
                   <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center' }}>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -12,7 +12,7 @@ import {
   Form,
   message
 } from 'antd';
-import { DownloadOutlined, ReloadOutlined, CalculatorOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ReloadOutlined, CalculatorOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import html2pdf from 'html2pdf.js';
 
@@ -33,6 +33,12 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
   const [noOfPages, setNoOfPages] = useState(0);
   const [advocateFee, setAdvocateFee] = useState(5000);
   const [partyName, setPartyName] = useState('');
+
+  const [customFields, setCustomFields] = useState([]);
+
+  const addCustomField = () => setCustomFields([...customFields, { id: Date.now(), name: '', value: '' }]);
+  const updateCustomField = (id, key, val) => setCustomFields(customFields.map(f => f.id === id ? { ...f, [key]: val } : f));
+  const removeCustomField = (id) => setCustomFields(customFields.filter(f => f.id !== id));
 
   useEffect(() => {
     form.setFieldsValue({
@@ -125,13 +131,14 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
   const calculatedStampDutyRent = (avgNYear + gstInput + taxInput) * (stampDutyRentPercent / 100);
   const finalStampDutyRent = Math.max(calculatedStampDutyRent, minStampDuty);
 
-  const gstAbove20Lakh = totalRentForDeedAvej > 2000000 ? totalRentForDeedAvej * 0.18 : 0;
+  // const gstAbove20Lakh = totalRentForDeedAvej > 2000000 ? totalRentForDeedAvej * 0.18 : 0;
 
   const totalStampDuty = finalStampDutyRent + stampDutyDeposit;
   const pageFeeAmount = noOfPages * 20;
   const indexCopy = 600;
   const administrativeExp = 1000;
-  const totalCost = totalStampDuty + regFee + pageFeeAmount + indexCopy + administrativeExp + advocateFee;
+  const customFieldsTotal = customFields.reduce((sum, f) => sum + (Number(f.value) || 0), 0);
+  const totalCost = totalStampDuty + regFee + pageFeeAmount + indexCopy + administrativeExp + advocateFee + customFieldsTotal;
 
   const handleGeneratePDF = async () => {
     const element = componentRef.current;
@@ -279,7 +286,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
         </div>
       </div>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]} style={{ position: 'relative', zIndex: 10 }}>
         <Col xs={24} lg={12}>
           <Card
             size="small"
@@ -301,6 +308,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                 <Col xs={24} sm={12}>
                   <Form.Item label="પાર્ટીનું નામ (Party Name)" style={{ marginBottom: 8 }}>
                     <IndicTransliterate
+                      containerClassName="transliterate-wrapper"
                       renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter party name" style={{ width: '100%', padding: '4px 11px', height: '32px', borderRadius: '8px', border: '1px solid #d9d9d9' }} />}
                       value={partyName}
                       onChangeText={(text) => setPartyName(text)}
@@ -369,6 +377,35 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                     <Input type="number" placeholder="Enter advocate fee" />
                   </Form.Item>
                 </Col>
+
+                <Col span={24}>
+                  <Divider style={{ margin: '8px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
+                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                      Add Field
+                    </Button>
+                  </div>
+                  {customFields.map((field) => (
+                    <Row gutter={8} key={field.id} style={{ marginBottom: 8 }} align="middle">
+                      <Col xs={11}>
+                        <IndicTransliterate
+                          containerClassName="transliterate-wrapper"
+                          renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Field Name (e.g. Other Exp)" style={{ width: '100%', padding: '4px 11px', height: '32px', borderRadius: '8px', border: '1px solid #d9d9d9' }} />}
+                          value={field.name}
+                          onChangeText={(text) => updateCustomField(field.id, 'name', text)}
+                          lang="gu"
+                        />
+                      </Col>
+                      <Col xs={11}>
+                        <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
+                      </Col>
+                      <Col xs={2}>
+                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                      </Col>
+                    </Row>
+                  ))}
+                </Col>
               </Row>
             </Form>
           </Card>
@@ -425,6 +462,12 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                       <td style={tdStyle}>વકીલ ફી (Advocate Fee)</td>
                       <td style={tdRightStyle}>{formatCurrency(advocateFee)}</td>
                     </tr>
+                    {customFields.map((field) => field.name ? (
+                      <tr key={field.id}>
+                        <td style={tdStyle}>{field.name}</td>
+                        <td style={tdRightStyle}>{formatCurrency(Number(field.value) || 0)}</td>
+                      </tr>
+                    ) : null)}
                     <tr>
                       <td style={{ ...thStyle, backgroundColor: currentAccentColor, color: '#fff' }}>કુલ ખર્ચ (Total Cost)</td>
                       <td style={{ ...thStyle, backgroundColor: currentAccentColor, color: '#fff', textAlign: 'right' }}>{formatCurrency(totalCost)}</td>
@@ -437,7 +480,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 16, position: 'relative', zIndex: 5 }}>
         <Col xs={24} lg={24}>
           <Card
             size="small"
@@ -531,13 +574,13 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                       <td style={tdStyle}>Stamp Duty For Avg. {years} Year Rent + Tax + Gst Amount = {stampDutyRentPercent} % {minStampDuty > 0 ? `(Min ${minStampDuty})` : ''}</td>
                       <td style={tdRightStyle}><strong>{formatCurrency(finalStampDutyRent)}</strong></td>
                     </tr>
-                    {totalRentForDeedAvej > 2000000 && (
+                    {/* {totalRentForDeedAvej > 2000000 && (
                       <tr>
                         <td style={tdStyle}>4</td>
                         <td style={tdStyle}>GST For Total Rent Above 20 Lakh = 18 % For Total Rent For Deed Avej</td>
                         <td style={tdRightStyle}><strong>{formatCurrency(gstAbove20Lakh)}</strong></td>
                       </tr>
-                    )}
+                    )} */}
                   </tbody>
                 </table>
               </div>

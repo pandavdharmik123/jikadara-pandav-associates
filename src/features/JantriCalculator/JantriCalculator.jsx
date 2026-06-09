@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message } from 'antd';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
-import { CalculatorOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { CalculatorOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import html2pdf from 'html2pdf.js';
 
 const { Title, Text } = Typography;
@@ -103,9 +103,9 @@ export default function JantriCalculator({ currentAccentColor }) {
     const opt = {
       margin: [PDF_MARGIN_IN, 0.2, PDF_MARGIN_IN, 0.2],
       filename,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 1.0 },
       html2canvas: {
-        scale: 2,
+        scale: 4,
         useCORS: true,
         scrollX: 0,
         scrollY: 0,
@@ -163,7 +163,14 @@ export default function JantriCalculator({ currentAccentColor }) {
   const [propertyType, setPropertyType] = useState('ખુલ્લો પ્લોટ'); // મિલકત નો પ્રકાર
   const [gunthaSelection, setGunthaSelection] = useState(16); // ગુંઠા પસંદગી
   const [customFinalValue, setCustomFinalValue] = useState(null); // Custom user-entered final value
+  const [customRegFee, setCustomRegFee] = useState(null); // Custom user-entered reg fee
   const [asrDeduction, setAsrDeduction] = useState(10); // ASR Deduction for flats
+
+  const [customFields, setCustomFields] = useState([]);
+
+  const addCustomField = () => setCustomFields([...customFields, { id: Date.now(), name: '', value: '' }]);
+  const updateCustomField = (id, key, val) => setCustomFields(customFields.map(f => f.id === id ? { ...f, [key]: val } : f));
+  const removeCustomField = (id) => setCustomFields(customFields.filter(f => f.id !== id));
 
   // --- Calculations ---
   // પ્લોટ નો અવેજ = ખુલ્લો પ્લોટ ક્ષેત્રફળ * ખુલ્લો પ્લોટ જંત્રી ભાવ
@@ -216,7 +223,13 @@ export default function JantriCalculator({ currentAccentColor }) {
   const stampDuty = (finalValue * 4.9) / 100;
 
   // રજી. ફી = ઘસારા બાદ અવેજ / 100 (પુરુષ માટે 1%, સ્ત્રી માટે 0%)
-  const regFee = gender === 'male' ? finalValue / 100 : 0;
+  const calculatedRegFee = gender === 'male' ? finalValue / 100 : 0;
+
+  useEffect(() => {
+    setCustomRegFee(null);
+  }, [calculatedRegFee]);
+
+  const regFee = customRegFee !== null ? customRegFee : calculatedRegFee;
 
   // પેજ ફી = ટોટલ પેજ * 20
   const pageFee = (totalPages || 0) * 20;
@@ -225,7 +238,8 @@ export default function JantriCalculator({ currentAccentColor }) {
   const indexFee = 600;
 
   // ટોટલ ફી = સ્ટેમ્પ ડયુટી + રજી. ફી + પેજ ફી + ઇન્ડેક્ષ ફી + વહીવટ + વકીલ ફી
-  const totalFee = stampDuty + regFee + pageFee + indexFee + (vahiwatFee || 0) + (vakilFee || 0);
+  const customFieldsTotal = customFields.reduce((sum, f) => sum + (Number(f.value) || 0), 0);
+  const totalFee = stampDuty + regFee + pageFee + indexFee + (vahiwatFee || 0) + (vakilFee || 0) + customFieldsTotal;
 
   // Formatter for currency
   const formatMoney = (val) => {
@@ -274,6 +288,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                   <Col xs={24} sm={12}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ખરીદનાર નું નામ (Name)</Text>
                     <IndicTransliterate
+                      containerClassName="transliterate-wrapper"
                       renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter name" style={{ padding: '2px 8px', height: '28px' }} />}
                       value={buyerName}
                       onChangeText={(text) => setBuyerName(text)}
@@ -316,6 +331,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                   <Col xs={24} sm={6}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મોજે. ગામ</Text>
                     <IndicTransliterate
+                      containerClassName="transliterate-wrapper"
                       renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter village" style={{ padding: '2px 8px', height: '28px' }} />}
                       value={village}
                       onChangeText={(text) => setVillage(text)}
@@ -329,7 +345,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                       onChange={setPropertyType}
                       style={{ width: '100%', height: '28px' }}
                       options={[
-                        { value: 'ખુલ્લો પ્લોટ', label: 'ખુલ્લો પ્લોટ' },
+                        { value: 'ખુલ્લો પ્લોટ', label: 'મકાન' },
                         { value: 'ફ્લેટ', label: 'ફ્લેટ' },
                         { value: 'દુકાન', label: 'દુકાન' },
                         { value: 'ખેતી ની જમીન', label: 'ખેતી ની જમીન' },
@@ -352,7 +368,7 @@ export default function JantriCalculator({ currentAccentColor }) {
               </Card>
 
               {/* Section 1: Plot Details */}
-              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>}>
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>} style={{ position: 'relative', zIndex: 99 }}>
                 <Row gutter={[8, 8]} align="middle">
                   <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
@@ -440,7 +456,7 @@ export default function JantriCalculator({ currentAccentColor }) {
 
               {/* Section 2: Construction Details */}
               {propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
-                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>}>
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>} style={{ position: 'relative', zIndex: 98 }}>
                   <Row gutter={[8, 8]} align="middle">
                     <Col xs={24} sm={8}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
@@ -474,7 +490,7 @@ export default function JantriCalculator({ currentAccentColor }) {
 
               {/* Section: Parking (Conditional) */}
               {(propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') && (
-                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>પાર્કિંગ (Parking)</span>}>
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>પાર્કિંગ (Parking)</span>} style={{ position: 'relative', zIndex: 97 }}>
                   <Row gutter={[8, 8]} align="middle">
                     <Col xs={24} sm={8}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Calculated Rate)</Text>
@@ -490,7 +506,7 @@ export default function JantriCalculator({ currentAccentColor }) {
 
               {/* Section 3: Depreciation */}
               {propertyType !== 'ખેતી ની જમીન' && (
-                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ઘસારો (Depreciation)</span>}>
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ઘસારો (Depreciation)</span>} style={{ position: 'relative', zIndex: 96 }}>
                   <Row gutter={[8, 8]} align="middle">
                     <Col xs={24} sm={8}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર (Age in Years)</Text>
@@ -510,12 +526,14 @@ export default function JantriCalculator({ currentAccentColor }) {
                       />
                     </Col>
                     <Col xs={24} sm={8}>
-                      <Statistic
-                        title={<span style={{ fontSize: 12 }}>કુલ અવેજ (Total Base Value)</span>}
-                        value={formatMoney(totalValue)}
-                        precision={2}
-                        valueStyle={{ fontSize: 16 }}
-                      />
+                      <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
+                        <Statistic
+                          title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>કુલ અવેજ (Total Base Value)</span>}
+                          value={formatMoney(totalValue)}
+                          precision={2}
+                          valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
+                        />
+                      </div>
                     </Col>
                   </Row>
                   <Divider style={{ margin: '8px 0' }} />
@@ -555,6 +573,24 @@ export default function JantriCalculator({ currentAccentColor }) {
                     />
                   </Col>
                   <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>રજી. ફી (1%)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={formatMoney(calculatedRegFee)}
+                      disabled
+                      min={0}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>રજી. ફી (Final)</Text>
+                    <InputNumber
+                      style={{ width: '100%', height: '28px' }}
+                      value={regFee}
+                      onChange={setCustomRegFee}
+                      min={0}
+                    />
+                  </Col>
+                  <Col xs={24} sm={6}>
                     <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ટોટલ પેજ (Total Pages)</Text>
                     <InputNumber
                       style={{ width: '100%', height: '28px' }}
@@ -580,6 +616,35 @@ export default function JantriCalculator({ currentAccentColor }) {
                       onChange={setVakilFee}
                       min={0}
                     />
+                  </Col>
+
+                  <Col span={24}>
+                    <Divider style={{ margin: '8px 0' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
+                      <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                        Add Field
+                      </Button>
+                    </div>
+                    {customFields.map((field) => (
+                      <Row gutter={8} key={field.id} style={{ marginBottom: 8 }} align="middle">
+                        <Col xs={11}>
+                          <IndicTransliterate
+                            containerClassName="transliterate-wrapper"
+                            renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Field Name (e.g. Other Exp)" style={{ width: '100%', padding: '2px 8px', height: '28px' }} />}
+                            value={field.name}
+                            onChangeText={(text) => updateCustomField(field.id, 'name', text)}
+                            lang="gu"
+                          />
+                        </Col>
+                        <Col xs={11}>
+                          <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
+                        </Col>
+                        <Col xs={2}>
+                          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                        </Col>
+                      </Row>
+                    ))}
                   </Col>
                 </Row>
               </Card>
@@ -632,6 +697,12 @@ export default function JantriCalculator({ currentAccentColor }) {
                   <Text type="secondary" style={{ fontSize: 13 }}>વકીલ ફી (Vakil Fee)</Text>
                   <Text style={{ fontSize: 13 }}>{formatMoney(vakilFee)}</Text>
                 </div>
+                {customFields.map((field) => field.name ? (
+                  <div key={field.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="secondary" style={{ fontSize: 13 }}>{field.name}</Text>
+                    <Text style={{ fontSize: 13 }}>{formatMoney(Number(field.value) || 0)}</Text>
+                  </div>
+                ) : null)}
 
                 <div className="pdf-total-cost-box" style={{
                   marginTop: 8,
