@@ -19,7 +19,8 @@ import {
   FormatPainterOutlined,
   MenuOutlined,
   ContainerOutlined,
-  FormOutlined
+  FormOutlined,
+  FieldStringOutlined
 } from '@ant-design/icons';
 import { COLOR_PALETTES } from './utils/constants';
 
@@ -29,6 +30,7 @@ import UniversalConverter from './features/UniversalConverter/UniversalConverter
 import JantriCalculator from './features/JantriCalculator/JantriCalculator';
 import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgreementCalculator';
 import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
+import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWordsConverter';
 
 import './styles/main.scss';
 
@@ -117,6 +119,11 @@ export default function App() {
       key: 'invoice',
       icon: <ContainerOutlined style={{ fontSize: 18 }} />,
       label: 'Invoice Generator',
+    },
+    {
+      key: 'number_to_words',
+      icon: <FieldStringOutlined style={{ fontSize: 18 }} />,
+      label: 'Numbers to Words',
     }
   ];
 
@@ -261,6 +268,7 @@ export default function App() {
               {mainTab === 'jantri' && <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
               {mainTab === 'rent_agreement' && <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
               {mainTab === 'invoice' && <InvoiceGenerator currentAccentColor={currentAccentColor} />}
+              {mainTab === 'number_to_words' && <NumberToWordsConverter currentAccentColor={currentAccentColor} />}
             </Content>
 
             {/* <Footer style={{ textAlign: 'center', padding: '24px 50px', background: 'transparent' }}>
