@@ -275,12 +275,12 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 <div style={{ position: 'relative', zIndex: 1, flex: 1, backgroundColor: 'transparent', display: 'flex', flexDirection: 'column' }}>
                   {/* Header Top Bar */}
                   <div style={{ padding: '40px 40px 20px 40px', textAlign: 'center' }}>
-                    <h1 style={{ margin: '0 0 8px 0', color: themeBlue, fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>JIKADARA & PANDAV ASSOCIATES</h1>
+                    <h1 style={{ color: themeBlue, fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>JIKADARA & PANDAV ASSOCIATES</h1>
                     <span style={{ color: '#333', fontSize: 18, fontWeight: 700 }}>Advocate and Legal Consultants</span>
                   </div>
 
                   {/* Solid Blue Bar */}
-                  <div style={{ textAlign: 'center', width: '100%', height: 24, color: 'white', backgroundColor: themeBlue }}>ઓફિસ :- બી-૨૯ બીજો માળ, દાનેવ આશિષ સોસાયટી,ચીકુવાડી રોડ, કતારગામ, સુરત - ૩૯૫૦૦૪.</div>
+                  <div style={{ textAlign: 'center', width: '100%', height: 24, color: 'white', backgroundColor: themeBlue, alignContent: 'center' }}>ઓફિસ :- બી-૨૯ બીજો માળ, દાનેવ આશિષ સોસાયટી,ચીકુવાડી રોડ, કતારગામ, સુરત - ૩૯૫૦૦૪.</div>
 
                   {/* Info Block */}
                   <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', borderBottom: '3px solid #333333' }}>
