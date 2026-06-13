@@ -118,9 +118,9 @@ export default function Translator({ themeMode, currentAccentColor }) {
 
   return (
     <div className="translator-tab-wrap" style={{ padding: '8px 0 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
-        Three steps: <Text strong>English</Text> → <Text strong>Unicode Gujarati</Text> (auto) → <Text strong>Harikrishna keystrokes</Text> for <Text code>Ghanshyam.ttf</Text> / Nilkanth (Latin letters that render as Gujarati when the font is applied). Put <Text code>Ghanshyam.ttf</Text> in <Text code>public/</Text> so it loads as <Text code>/Ghanshyam.ttf</Text>. Copy step 3 for Word / PageMaker with the font installed.
-      </Paragraph>
+      {/* <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
+        Three steps: <Text strong>English</Text> → <Text strong>Unicode Gujarati</Text> (auto) → <Text strong>Harikrishna keystrokes</Text> for <Text code>Ghanshyam.ttf</Text> / Nilkanth (Latin letters that render as Gujarati when the font is applied). Put <Text code>Ghanshyam.ttf</Text> in <Text code>public/</Text> so it loads as <Text code>/Ghanshyam.ttf</Text>. Copy step 3 for Word / PageMaker with the font installed. */}
+      {/* </Paragraph> */}
       <div className="editors-container translator-tab-editors" style={{ flex: 1, minHeight: 0 }}>
         <div className="editor-card glass-panel">
           <div className="editor-header">
@@ -245,6 +245,6 @@ export default function Translator({ themeMode, currentAccentColor }) {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

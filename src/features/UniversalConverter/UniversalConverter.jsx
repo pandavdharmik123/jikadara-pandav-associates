@@ -3,6 +3,8 @@ import { Row, Col, Select, Typography, Button, Tooltip, message, Badge } from 'a
 import { SwapRightOutlined, ClearOutlined, CopyOutlined } from '@ant-design/icons';
 import { transliterateLatinRunsToGujarati } from '../../utils/batchTransliterate';
 import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
+import { convertHarikrishnaTemplateToUnicode } from '../../utils/reverseHarikrishnaTemplate';
+import { convertUnicodeToPhonetic } from '../../utils/gujaratiToPhonetic';
 
 const { Paragraph } = Typography;
 
@@ -22,14 +24,44 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
       setIsUniConverting(true);
       try {
         let finalOutput = uniInput;
-        // 1) If input is English/Latin, first convert to Unicode
-        if (uniFrom === 'english') {
-          finalOutput = await transliterateLatinRunsToGujarati(finalOutput);
+
+        const isFromLegacy = uniFrom === 'ghanshyam' || uniFrom === 'nilkanth' || uniFrom === 'nil_font';
+        const isToLegacy = uniTo === 'ghanshyam' || uniTo === 'nilkanth' || uniTo === 'nil_font';
+
+        if (isFromLegacy) {
+          // Convert legacy to Unicode first
+          finalOutput = convertHarikrishnaTemplateToUnicode(finalOutput);
+          
+          if (uniTo === 'english') {
+            finalOutput = convertUnicodeToPhonetic(finalOutput);
+          } else if (uniTo === 'unicode') {
+            // Already converted to Unicode, do nothing more
+          } else if (isToLegacy) {
+            // Legacy to Legacy (noop)
+            finalOutput = uniInput;
+          }
+        } else {
+          // From English or Unicode
+          if (uniFrom === 'english') {
+            // English to Unicode
+            finalOutput = await transliterateLatinRunsToGujarati(finalOutput);
+          }
+
+          if (isToLegacy) {
+            // Unicode to Legacy
+            finalOutput = convertUnicodeToGhanshyamLegacy(finalOutput);
+          } else if (uniTo === 'english' && uniFrom === 'unicode') {
+            // Unicode to English
+            finalOutput = convertUnicodeToPhonetic(finalOutput);
+          } else if (uniFrom === 'english' && uniTo === 'english') {
+            // English to English (noop)
+            finalOutput = uniInput;
+          } else if (uniFrom === 'unicode' && uniTo === 'unicode') {
+            // Unicode to Unicode (noop)
+            finalOutput = uniInput;
+          }
         }
-        // 2) Now we have Unicode. Convert to target legacy format if needed
-        if (uniTo === 'ghanshyam' || uniTo === 'nilkanth' || uniTo === 'nil_font') {
-          finalOutput = convertUnicodeToGhanshyamLegacy(finalOutput);
-        }
+
         setUniOutput(finalOutput);
       } catch (err) {
         console.error('Universal Converter error:', err);
@@ -53,6 +85,9 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
           <Select value={uniFrom} onChange={setUniFrom} style={{ width: '100%' }}>
             <Select.Option value="english">English (Phonetic)</Select.Option>
             <Select.Option value="unicode">Gujarati Unicode</Select.Option>
+            <Select.Option value="ghanshyam">Ghanshyam</Select.Option>
+            <Select.Option value="nilkanth">Nilkanth</Select.Option>
+            <Select.Option value="nil_font">Nil Font</Select.Option>
           </Select>
         </div>
         <SwapRightOutlined style={{ fontSize: 24, color: 'var(--text-secondary)', display: window.innerWidth < 768 ? 'none' : 'block' }} />
@@ -62,6 +97,8 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
             <Select.Option value="ghanshyam">Ghanshyam</Select.Option>
             <Select.Option value="nilkanth">Nilkanth</Select.Option>
             <Select.Option value="nil_font">Nil Font</Select.Option>
+            <Select.Option value="english">English (Phonetic)</Select.Option>
+            <Select.Option value="unicode">Gujarati Unicode</Select.Option>
           </Select>
         </div>
       </div>
@@ -72,7 +109,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
             <div className="editor-header">
               <div className="editor-title">
                 <Badge color={currentAccentColor} status={isUniConverting ? "processing" : "default"} />
-                <span>Input ({uniFrom === 'english' ? 'English' : 'Unicode'})</span>
+                <span>Input ({uniFrom.replace('_', ' ')})</span>
               </div>
               <Tooltip title="Clear Input">
                 <Button
@@ -86,12 +123,12 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
             </div>
             <div className="editor-body" style={{ minHeight: 0, display: 'flex', flex: 1 }}>
               <textarea
-                className="textarea-editor"
+                className={`textarea-editor ${['ghanshyam', 'nilkanth', 'nil_font'].includes(uniFrom) ? 'font-ghanshyam' : ''}`}
                 value={uniInput}
                 onChange={(e) => setUniInput(e.target.value)}
-                placeholder={uniFrom === 'english' ? "Type english phonetics e.g. kem cho" : "Type/paste Gujarati Unicode e.g. કેમ છો"}
+                placeholder={uniFrom === 'english' ? "Type english phonetics e.g. kem cho" : (uniFrom === 'unicode' ? "Type/paste Gujarati Unicode e.g. કેમ છો" : "Paste legacy font text here...")}
                 spellCheck={uniFrom === 'english'}
-                style={{ height: '100%' }}
+                style={{ height: '100%', fontSize: ['ghanshyam', 'nilkanth', 'nil_font'].includes(uniFrom) ? 20 : 'inherit' }}
               />
             </div>
           </div>
@@ -121,9 +158,9 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
               <textarea
                 readOnly
                 value={uniOutput}
-                className="textarea-editor font-ghanshyam"
+                className={`textarea-editor ${['ghanshyam', 'nilkanth', 'nil_font'].includes(uniTo) ? 'font-ghanshyam' : ''}`}
                 placeholder="Converted text will appear here..."
-                style={{ opacity: isUniConverting ? 0.55 : 1, fontSize: 20, height: '100%' }}
+                style={{ opacity: isUniConverting ? 0.55 : 1, fontSize: ['ghanshyam', 'nilkanth', 'nil_font'].includes(uniTo) ? 20 : 'inherit', height: '100%' }}
               />
             </div>
           </div>
