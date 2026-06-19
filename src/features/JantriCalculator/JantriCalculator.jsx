@@ -42,6 +42,9 @@ export default function JantriCalculator({ currentAccentColor }) {
     syncCloneFormState(element, clone);
     clone.classList.add('pdf-mode');
 
+    // Remove elements that shouldn't be printed
+    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
     if (isSummary) {
       const leftCol = clone.querySelector('.main-print-col-left');
       if (leftCol) leftCol.remove();
@@ -83,15 +86,21 @@ export default function JantriCalculator({ currentAccentColor }) {
     const maxContentHeightPx = (A4_HEIGHT_IN - PDF_MARGIN_IN * 2) * 96 * 0.97;
 
     let captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+    let captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
+
     if (captureHeight > maxContentHeightPx) {
-      clone.style.zoom = String(maxContentHeightPx / captureHeight);
+      const scale = maxContentHeightPx / captureHeight;
+      clone.style.transform = `scale(${scale})`;
+      clone.style.transformOrigin = 'top center';
+
       await new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(resolve));
       });
-      captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+      // Keeping captureHeight unscaled ensures html2canvas captures the full bounding box of the unscaled original
+      // Since it's scaled down visually, it will fit into the original captureHeight with empty space at the bottom
+      // But we want the canvas to be cropped at the scaled height so it doesn't leave huge blank space at the bottom on the PDF!
+      captureHeight = maxContentHeightPx;
     }
-
-    const captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
 
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -622,7 +631,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     <Divider style={{ margin: '8px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
-                      <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                      <Button className="no-print" type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
                         Add Field
                       </Button>
                     </div>
@@ -641,7 +650,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                           <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
                         </Col>
                         <Col xs={2}>
-                          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                          <Button className="no-print" type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
                         </Col>
                       </Row>
                     ))}

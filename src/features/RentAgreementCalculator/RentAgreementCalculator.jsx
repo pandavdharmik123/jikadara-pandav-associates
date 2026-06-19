@@ -181,17 +181,19 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     const maxContentHeightPx = (A4_HEIGHT_IN - PDF_MARGIN_IN * 2) * 96 * 0.97;
 
     let captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+    let captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
 
     // Only shrink if it's less than 2 pages worth of content. If it's a huge 30-year lease, we let it span multiple pages.
     if (captureHeight > maxContentHeightPx && captureHeight < maxContentHeightPx * 1.5) {
-      clone.style.zoom = String(maxContentHeightPx / captureHeight);
+      const scale = maxContentHeightPx / captureHeight;
+      clone.style.transform = `scale(${scale})`;
+      clone.style.transformOrigin = 'top center';
+
       await new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(resolve));
       });
-      captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+      captureHeight = maxContentHeightPx;
     }
-
-    const captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
 
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -382,7 +384,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                   <Divider style={{ margin: '8px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
-                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                    <Button className="no-print" type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
                       Add Field
                     </Button>
                   </div>
@@ -401,7 +403,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                         <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
                       </Col>
                       <Col xs={2}>
-                        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                        <Button className="no-print" type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
                       </Col>
                     </Row>
                   ))}

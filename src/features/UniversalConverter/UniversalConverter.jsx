@@ -31,7 +31,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
         if (isFromLegacy) {
           // Convert legacy to Unicode first
           finalOutput = convertHarikrishnaTemplateToUnicode(finalOutput);
-          
+
           if (uniTo === 'english') {
             finalOutput = convertUnicodeToPhonetic(finalOutput);
           } else if (uniTo === 'unicode') {
@@ -74,10 +74,10 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
 
   return (
     <div className="universal-tab-wrap" style={{ padding: '8px 0 20px', display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
-      <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
+      {/* <Paragraph style={{ marginBottom: 16, color: 'var(--text-secondary)', maxWidth: 900 }}>
         Select your source input format and target font format.
         (Note: Ghanshyam, Nilkanth, and Nil Font all share the same Harikrishna keystroke template).
-      </Paragraph>
+      </Paragraph> */}
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 8 }}>
