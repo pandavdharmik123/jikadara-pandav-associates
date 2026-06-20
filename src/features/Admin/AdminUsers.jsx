@@ -1,0 +1,238 @@
+import React, { useState } from 'react';
+import { Typography, Table, Button, Space, Modal, Form, Input, Select, Switch, message, Tag, Card } from 'antd';
+import { UserAddOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../hooks/useUsers';
+import useAuthStore from '../../store/authStore';
+import dayjs from 'dayjs';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+
+export default function AdminUsers() {
+  const { user: currentUser } = useAuthStore();
+  const { data: users, isLoading } = useUsers();
+  
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [form] = Form.useForm();
+
+  const handleOpenModal = (user = null) => {
+    setEditingUser(user);
+    if (user) {
+      form.setFieldsValue({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      });
+    } else {
+      form.resetFields();
+      form.setFieldsValue({ role: 'JUNIOR', isActive: true });
+    }
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setEditingUser(null);
+    form.resetFields();
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingUser) {
+        await updateUserMutation.mutateAsync({ id: editingUser.id, ...values });
+        message.success('User updated successfully');
+      } else {
+        await createUserMutation.mutateAsync(values);
+        message.success('User created successfully');
+      }
+      handleCloseModal();
+    } catch (error) {
+      if (error.name !== 'ValidationError') {
+        message.error(error.response?.data?.error || 'Operation failed');
+      }
+    }
+  };
+
+  const handleDelete = (id) => {
+    Modal.confirm({
+      title: 'Delete User?',
+      content: 'Are you sure you want to delete this user?',
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          await deleteUserMutation.mutateAsync(id);
+          message.success('User deleted');
+        } catch (error) {
+          message.error(error.response?.data?.error || 'Operation failed');
+        }
+      },
+    });
+  };
+
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role) => (
+        <Tag color={role === 'ADMIN' ? 'red' : role === 'SENIOR' ? 'blue' : 'default'}>
+          {role}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (isActive) => (
+        <Tag color={isActive ? 'success' : 'error'}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Joined',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button 
+            type="text" 
+            icon={<EditOutlined />} 
+            onClick={() => handleOpenModal(record)}
+            disabled={record.id === currentUser?.id && currentUser?.email === 'admin@jikadara.com'}
+          />
+          {record.id !== currentUser?.id && (
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => handleDelete(record.id)}
+            />
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div className="advocate-module">
+      <div className="page-header">
+        <div>
+          <Title level={2}>Admin Panel</Title>
+          <Text type="secondary">Manage system users</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<UserAddOutlined />} 
+          size="large"
+          onClick={() => handleOpenModal()}
+        >
+          Add New User
+        </Button>
+      </div>
+
+      <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={isLoading}
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 800 }}
+        />
+      </Card>
+
+      <Modal
+        title={editingUser ? 'Update User' : 'Create New User'}
+        open={isModalVisible}
+        onOk={handleSubmit}
+        onCancel={handleCloseModal}
+        confirmLoading={createUserMutation.isPending || updateUserMutation.isPending}
+        okText="Save"
+        cancelText="Cancel"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: 'Enter Name' }]}
+          >
+            <Input placeholder="Enter Name" size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Enter Email' },
+              { type: 'email', message: 'Enter valid email' }
+            ]}
+          >
+            <Input placeholder="email@example.com" size="large" disabled={!!editingUser} />
+          </Form.Item>
+
+          {!editingUser && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[{ required: true, message: 'Enter Password' }]}
+            >
+              <Input.Password placeholder="Enter Password" size="large" />
+            </Form.Item>
+          )}
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: 'Select Role' }]}
+          >
+            <Select size="large">
+              <Option value="JUNIOR">Junior</Option>
+              <Option value="SENIOR">Senior</Option>
+              <Option value="ADMIN">Admin</Option>
+            </Select>
+          </Form.Item>
+
+          {editingUser && (
+            <Form.Item
+              name="isActive"
+              label="Is Active?"
+              valuePropName="checked"
+            >
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
+            </Form.Item>
+          )}
+        </Form>
+      </Modal>
+    </div>
+  );
+}

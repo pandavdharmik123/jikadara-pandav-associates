@@ -1,29 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import {
-  ConfigProvider,
-  Layout,
-  Menu,
-  Button,
-  Typography,
-  Drawer,
-  Input,
-  Modal,
-  theme,
-  message,
-  Grid
-} from 'antd';
-import {
-  TranslationOutlined,
-  BgColorsOutlined,
-  CalculatorOutlined,
-  FormatPainterOutlined,
-  MenuOutlined,
-  ContainerOutlined,
-  FormOutlined,
-  FieldStringOutlined
-} from '@ant-design/icons';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ConfigProvider, theme } from 'antd';
 import { COLOR_PALETTES } from './utils/constants';
 
+// Layouts and Auth
+import MainLayout from './layouts/MainLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './features/Auth/LoginPage';
+
+// Existing Tools
 import FontStudio from './features/FontStudio/FontStudio';
 import Translator from './features/Translator/Translator';
 import UniversalConverter from './features/UniversalConverter/UniversalConverter';
@@ -32,6 +18,7 @@ import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgre
 import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
 import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWordsConverter';
 
+// Styles
 import './styles/main.scss';
 
 // Intercept fetch calls for AI4Bharat API (same as before)
@@ -69,23 +56,25 @@ window.fetch = async function (input, init) {
   return originalFetch.apply(this, arguments);
 };
 
-const { Header, Sider, Content, Footer } = Layout;
-const { Title, Paragraph } = Typography;
+// Temporary placeholders for new modules
+// Module Routes
+import ClientRoutes from './features/Clients';
+import TaskRoutes from './features/Tasks';
+import Dashboard from './features/Dashboard/Dashboard';
+import ExpenseReport from './features/Reports/ExpenseReport';
+import AdminUsers from './features/Admin/AdminUsers';
+
+// Create a client
+const queryClient = new QueryClient();
 
 export default function App() {
   // Global State
-  const themeMode = 'light';
+  const themeMode = 'light'; // Kept light as default per original
   const [activeColor, setActiveColor] = useState(() => localStorage.getItem('font-conv-accent') || 'indigo');
   const [mainTab, setMainTab] = useState('translator');
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
-
-  const screens = Grid.useBreakpoint();
-  const isMobile = screens.md === false;
-
-  // Text state for FontStudio
   const [studioText, setStudioText] = useState('');
 
-  const currentAccentColor = COLOR_PALETTES[activeColor].primary;
+  const currentAccentColor = COLOR_PALETTES[activeColor]?.primary || '#6366f1';
   const { defaultAlgorithm, darkAlgorithm } = theme;
 
   useEffect(() => {
@@ -94,194 +83,89 @@ export default function App() {
     localStorage.setItem('font-conv-accent', activeColor);
   }, [activeColor, currentAccentColor]);
 
-  const menuItems = [
-    {
-      key: 'translator',
-      icon: <TranslationOutlined style={{ fontSize: 18 }} />,
-      label: 'Eng to Guj',
-    },
-    {
-      key: 'universal',
-      icon: <BgColorsOutlined style={{ fontSize: 18 }} />,
-      label: 'Universal Converter',
-    },
-    {
-      key: 'jantri',
-      icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
-      label: 'Jantri Calculator',
-    },
-    {
-      key: 'rent_agreement',
-      icon: <FormOutlined style={{ fontSize: 18 }} />,
-      label: 'Rent Agreement Calculator',
-    },
-    {
-      key: 'invoice',
-      icon: <ContainerOutlined style={{ fontSize: 18 }} />,
-      label: 'Invoice Generator',
-    },
-    {
-      key: 'number_to_words',
-      icon: <FieldStringOutlined style={{ fontSize: 18 }} />,
-      label: 'Numbers to Words',
-    }
-  ];
+  // A wrapper component to render the appropriate tool based on mainTab
+  const ToolsRenderer = () => {
+    return (
+      <>
+        {mainTab === 'studio' && (
+          <FontStudio
+            themeMode={themeMode}
+            currentAccentColor={currentAccentColor}
+            activeColor={activeColor}
+            setActiveColor={setActiveColor}
+            text={studioText}
+            setText={setStudioText}
+          />
+        )}
+        {mainTab === 'translator' && <Translator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+        {mainTab === 'universal' && <UniversalConverter themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+        {mainTab === 'jantri' && <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+        {mainTab === 'rent_agreement' && <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
+        {mainTab === 'invoice' && <InvoiceGenerator currentAccentColor={currentAccentColor} />}
+        {mainTab === 'number_to_words' && <NumberToWordsConverter currentAccentColor={currentAccentColor} />}
+      </>
+    );
+  };
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: themeMode === 'dark' ? darkAlgorithm : defaultAlgorithm,
-        token: {
-          colorPrimary: currentAccentColor,
-          fontFamily: '"Anek Gujarati", Inter, system-ui, sans-serif',
-          colorBgContainer: themeMode === 'dark' ? '#141414' : '#ffffff',
-          colorBgElevated: themeMode === 'dark' ? '#1f1f1f' : '#ffffff',
-          borderRadius: 8,
-          boxShadowSecondary: themeMode === 'dark'
-            ? '0 6px 16px 0 rgba(0, 0, 0, 0.4), 0 3px 6px -4px rgba(0, 0, 0, 0.2), 0 9px 28px 8px rgba(0, 0, 0, 0.3)'
-            : '0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
-        },
-        components: {
-          Layout: {
-            headerBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
-            bodyBg: themeMode === 'dark' ? '#000000' : '#f5f7fa',
-            siderBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
+    <QueryClientProvider client={queryClient}>
+      <ConfigProvider
+        theme={{
+          algorithm: themeMode === 'dark' ? darkAlgorithm : defaultAlgorithm,
+          token: {
+            colorPrimary: currentAccentColor,
+            fontFamily: '"Anek Gujarati", Inter, system-ui, sans-serif',
+            colorBgContainer: themeMode === 'dark' ? '#141414' : '#ffffff',
+            colorBgElevated: themeMode === 'dark' ? '#1f1f1f' : '#ffffff',
+            borderRadius: 8,
+            boxShadowSecondary: themeMode === 'dark'
+              ? '0 6px 16px 0 rgba(0, 0, 0, 0.4), 0 3px 6px -4px rgba(0, 0, 0, 0.2), 0 9px 28px 8px rgba(0, 0, 0, 0.3)'
+              : '0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
           },
-          Card: {
-            headerBg: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+          components: {
+            Layout: {
+              headerBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
+              bodyBg: themeMode === 'dark' ? '#000000' : '#f5f7fa',
+              siderBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
+            },
+            Card: {
+              headerBg: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+            }
           }
-        }
-      }}
-    >
-      <Layout style={{ minHeight: '100vh', display: 'flex' }}>
-        <Header className={`app-header ${themeMode === 'dark' ? 'dark' : 'light'}`} style={{
-          position: 'fixed',
-          zIndex: 100,
-          width: '100%',
-          padding: isMobile ? '0 16px' : '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
-          height: 64,
-          top: 0,
-          zIndex: 9999
-        }}>
-          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
-            {isMobile && (
-              <Button type="text" icon={<MenuOutlined style={{ fontSize: 20 }} />} onClick={() => setCollapsed(!collapsed)} style={{ padding: '0 8px', marginLeft: -8, marginRight: 4 }} />
-            )}
-            <img src="/logo.png" alt="Logo" style={{ height: isMobile ? 32 : 40, width: 'auto' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? '13px' : '18px', fontWeight: 700, lineHeight: 1.2 }}>
-                JIKADARA & PANDAV ASSOCIATES
-              </h2>
-              <span style={{ fontSize: isMobile ? '10px' : '13px', opacity: 0.8, marginTop: '2px', lineHeight: 1.2 }}>
-                Advocate and Legal Consultants
-              </span>
-            </div>
-          </div>
+        }}
+      >
+        <BrowserRouter>
+          <Routes>
+            {/* Public Route */}
+            <Route path="/login" element={<LoginPage />} />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          </div>
-        </Header>
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/app" element={<MainLayout themeMode={themeMode} currentAccentColor={currentAccentColor} setMainTab={setMainTab} />}>
+                {/* Redirect /app to dashboard */}
+                <Route index element={<Navigate to="dashboard" replace />} />
+                
+                {/* New Advocate Modules */}
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="clients/*" element={<ClientRoutes />} />
+                <Route path="tasks/*" element={<TaskRoutes />} />
+                <Route path="reports" element={<ExpenseReport />} />
+                
+                {/* Admin Only Route */}
+                <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+                  <Route path="admin/users" element={<AdminUsers />} />
+                </Route>
 
-        <Layout style={{ marginTop: 64 }}>
-          {isMobile ? (
-            <Drawer
-              placement="left"
-              closable={false}
-              onClose={() => setCollapsed(true)}
-              open={!collapsed}
-              width={260}
-              styles={{ body: { padding: 0 } }}
-            >
-              <div style={{ padding: '16px 24px', fontWeight: 'bold', borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`, fontSize: 16 }}>
-                Menu
-              </div>
-              <Menu
-                theme={themeMode}
-                mode="inline"
-                selectedKeys={[mainTab]}
-                onClick={(e) => { setMainTab(e.key); setCollapsed(true); }}
-                items={menuItems}
-                style={{ padding: '8px 0', borderRight: 0 }}
-              />
-            </Drawer>
-          ) : (
-            <Sider
-              width={260}
-              theme={themeMode}
-              collapsible
-              collapsed={collapsed}
-              onCollapse={(value) => setCollapsed(value)}
-              style={{
-                overflow: 'auto',
-                height: 'calc(100vh - 64px)',
-                position: 'fixed',
-                left: 0,
-                top: 64,
-                bottom: 0,
-                borderRight: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
-                zIndex: 90
-              }}
-            >
-              <Menu
-                theme={themeMode}
-                mode="inline"
-                selectedKeys={[mainTab]}
-                onClick={(e) => setMainTab(e.key)}
-                items={menuItems}
-                style={{ padding: '16px 8px', borderRight: 0 }}
-              />
-            </Sider>
-          )}
+                {/* Legacy Tools */}
+                <Route path="tools" element={<ToolsRenderer />} />
+              </Route>
+            </Route>
 
-          <Layout style={{
-            marginLeft: isMobile ? 0 : (collapsed ? 80 : 260),
-            transition: 'all 0.2s',
-            padding: isMobile ? '12px 8px' : '16px 24px',
-            minHeight: 'calc(100vh - 64px)',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            <Content style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              {mainTab === 'studio' && (
-                <FontStudio
-                  themeMode={themeMode}
-                  currentAccentColor={currentAccentColor}
-                  activeColor={activeColor}
-                  setActiveColor={setActiveColor}
-                  text={studioText}
-                  setText={setStudioText}
-                />
-              )}
-
-              {mainTab === 'translator' && (
-                <Translator themeMode={themeMode} currentAccentColor={currentAccentColor} />
-              )}
-
-              {mainTab === 'universal' && (
-                <UniversalConverter themeMode={themeMode} currentAccentColor={currentAccentColor} />
-              )}
-
-              {mainTab === 'jantri' && <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-              {mainTab === 'rent_agreement' && <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-              {mainTab === 'invoice' && <InvoiceGenerator currentAccentColor={currentAccentColor} />}
-              {mainTab === 'number_to_words' && <NumberToWordsConverter currentAccentColor={currentAccentColor} />}
-            </Content>
-
-            {/* <Footer style={{ textAlign: 'center', padding: '24px 50px', background: 'transparent' }}>
-              <Paragraph style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                Jikadara & Pandav Associates © {new Date().getFullYear()} — Indic Type & Conversion Suite
-              </Paragraph>
-              <Paragraph style={{ margin: 0, fontSize: 12, opacity: 0.6 }}>
-                Transliteration powered by AI4Bharat API
-              </Paragraph>
-            </Footer> */}
-          </Layout>
-        </Layout>
-      </Layout>
-    </ConfigProvider>
+            {/* Default Redirect */}
+            <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ConfigProvider>
+    </QueryClientProvider>
   );
 }
