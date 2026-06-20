@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert } from 'antd';
-import { ArrowLeftOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar } from 'lucide-react';
 import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
 import EditableTransactionTable from './EditableTransactionTable';
 import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
+import { formatCurrency } from '../../utils/currency';
 
 const { Title, Text } = Typography;
 
@@ -78,21 +79,17 @@ export default function TaskDetail() {
 
   return (
     <div className="advocate-module">
-      <div className="page-header" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
         <Space align="center" size="middle">
           <Button
             type="text"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/app/tasks')}
-            style={{ fontSize: 16 }}
+            icon={<ArrowLeft size={18} />}
+            onClick={() => navigate(-1)}
           />
-          <div>
-            <Title level={3} style={{ margin: 0 }}>{task.documentType}</Title>
-            <Text type="secondary">
-              Client: <a onClick={() => navigate(`/app/clients/${task.client?.id}`)}>{task.client?.name}</a>
-              {task.referenceName && ` | Reference: ${task.referenceName}`}
-            </Text>
+          <div style={{ width: 44, height: 44, borderRadius: '12px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+             <NotebookText size={20} />
           </div>
+          <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>{task.documentType}</Title>
         </Space>
 
         <Space>
@@ -100,9 +97,10 @@ export default function TaskDetail() {
             <Button
               type={isTaskDone ? "default" : "primary"}
               danger={isTaskDone}
-              icon={isTaskDone ? <SyncOutlined /> : <CheckCircleOutlined />}
+              icon={isTaskDone ? <RefreshCw size={16} /> : <CheckCircle size={16} />}
               onClick={handleToggleStatus}
               loading={markDoneMutation.isPending || reopenMutation.isPending}
+              style={{ borderRadius: '8px', height: 40, boxShadow: 'none' }}
             >
               {isTaskDone ? 'Reopen' : 'Mark Done'}
             </Button>
@@ -110,74 +108,102 @@ export default function TaskDetail() {
         </Space>
       </div>
 
-      {/* {isTaskDone && (
-        <Alert
-          message="This task is marked as DONE"
-          description="No more transactions can be added. Only Senior or Admin can reopen this."
-          type="info"
-          showIcon
-          style={{ marginBottom: 24 }}
-        />
-      )} */}
-
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false}>
-            <div className="stat-icon" style={{ background: 'rgba(82, 196, 26, 0.1)', color: '#52c41a' }}>₹</div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: '#52c41a' }}>₹{displayIncome.toFixed(2)}</div>
-              <div className="stat-label">Total Income</div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <User size={16} />
             </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false}>
-            <div className="stat-icon" style={{ background: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f' }}>₹</div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: '#ff4d4f' }}>₹{displayExpense.toFixed(2)}</div>
-              <div className="stat-label">Total Expense</div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Client</Text>
+              <a onClick={() => navigate(`/app/clients/${task.client?.id}`)} style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5' }}>{task.client?.name}</a>
             </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false}>
-            <div className="stat-icon" style={{ background: displayNet >= 0 ? 'rgba(24, 144, 255, 0.1)' : 'rgba(255, 77, 79, 0.1)', color: displayNet >= 0 ? '#1890ff' : '#ff4d4f' }}>₹</div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: displayNet >= 0 ? '#1890ff' : '#ff4d4f' }}>
-                ₹{displayNet.toFixed(2)}
-              </div>
-              <div className="stat-label">Net Amount</div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <EditableTransactionTable 
-            taskId={task.id} 
-            type="INCOME" 
-            transactions={task.transactions?.filter(t => t.type === 'INCOME') || []} 
-            isTaskDone={isTaskDone} 
-          />
-        </Col>
+          </Space>
+        </Card>
         
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Bookmark size={16} />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Reference</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.referenceName || 'N/A'}</Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Calendar size={16} />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Start Date</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{dayjs(task.startDate).format('DD MMM YYYY')}</Text>
+            </div>
+          </Space>
+        </Card>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Income</Text>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>{formatCurrency(displayIncome)}</div>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Expense</Text>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626' }}>{formatCurrency(displayExpense)}</div>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: displayNet >= 0 ? '#eff6ff' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: displayNet >= 0 ? '#2563eb' : '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Amount</Text>
+              <div style={{ fontSize: 16, fontWeight: 700, color: displayNet >= 0 ? '#2563eb' : '#dc2626' }}>{formatCurrency(displayNet)}</div>
+            </div>
+          </Space>
+        </Card>
+      </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
-          <EditableTransactionTable 
-            taskId={task.id} 
-            type="EXPENSE" 
-            transactions={task.transactions?.filter(t => t.type === 'EXPENSE') || []} 
-            isTaskDone={isTaskDone} 
+          <EditableTransactionTable
+            taskId={task.id}
+            type="INCOME"
+            transactions={task.transactions?.filter(t => t.type === 'INCOME') || []}
+            isTaskDone={isTaskDone}
+          />
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <EditableTransactionTable
+            taskId={task.id}
+            type="EXPENSE"
+            transactions={task.transactions?.filter(t => t.type === 'EXPENSE') || []}
+            isTaskDone={isTaskDone}
           />
         </Col>
       </Row>
 
-      <Card className="glass-panel" bordered={false} styles={{ body: { padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}>
+      {/* <Card className="glass-panel" bordered={false} styles={{ body: { padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}>
         <Title level={4} style={{ margin: 0 }}>Net Amount (Total Profit)</Title>
         <Title level={4} style={{ margin: 0, color: displayNet >= 0 ? '#1890ff' : '#ff4d4f' }}>
           ₹{displayNet.toFixed(2)}
         </Title>
-      </Card>
+      </Card> */}
     </div>
   );
 }

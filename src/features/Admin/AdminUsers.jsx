@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Typography, Table, Button, Space, Modal, Form, Input, Select, Switch, message, Tag, Card } from 'antd';
-import { UserAddOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserPlus, Edit, Trash2 } from 'lucide-react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
 import Loader from '../../components/Loader';
@@ -124,7 +124,7 @@ export default function AdminUsers() {
         <Space size="middle">
           <Button
             type="text"
-            icon={<EditOutlined />}
+            icon={<Edit size={16} />}
             onClick={() => handleOpenModal(record)}
             disabled={record.id === currentUser?.id && currentUser?.email === 'admin@jikadara.com'}
           />
@@ -132,7 +132,7 @@ export default function AdminUsers() {
             <Button
               type="text"
               danger
-              icon={<DeleteOutlined />}
+              icon={<Trash2 size={16} />}
               onClick={() => handleDelete(record.id)}
             />
           )}
@@ -150,7 +150,7 @@ export default function AdminUsers() {
         </div>
         <Button
           type="primary"
-          icon={<UserAddOutlined />}
+          icon={<UserPlus size={16} />}
           size="large"
           onClick={() => handleOpenModal()}
         >

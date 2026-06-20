@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Button, Space, Tooltip, Badge, Typography, message } from 'antd';
-import { CopyOutlined, ClearOutlined } from '@ant-design/icons';
+import { Copy, XCircle } from 'lucide-react';
 import { transliterateLatinRunsToGujarati } from '../../utils/batchTransliterate';
 import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
 
@@ -144,7 +144,7 @@ export default function Translator({ themeMode, currentAccentColor }) {
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<ClearOutlined />}
+                  icon={<XCircle size={16} />}
                   onClick={clearEnGuTab}
                   disabled={!enGuEnglish && !enGuGujarati && !enGuGhanshyamLegacy}
                 />
@@ -177,7 +177,7 @@ export default function Translator({ themeMode, currentAccentColor }) {
               <Button
                 type="text"
                 shape="circle"
-                icon={<CopyOutlined />}
+                icon={<Copy size={16} />}
                 onClick={copyEnGuUnicode}
                 disabled={!enGuGujarati.trim()}
               />
@@ -214,7 +214,7 @@ export default function Translator({ themeMode, currentAccentColor }) {
               <Button
                 type="text"
                 shape="circle"
-                icon={<CopyOutlined />}
+                icon={<Copy size={16} />}
                 onClick={copyEnGuGhanshyam}
                 disabled={!enGuGhanshyamLegacy.trim()}
               />

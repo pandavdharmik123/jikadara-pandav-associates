@@ -1,13 +1,10 @@
 import React from 'react';
 import { Row, Col, Card, Typography, Table, Tag, Empty, Button } from 'antd';
-import {
-  UsergroupAddOutlined,
-  CheckSquareOutlined,
-  CheckCircleOutlined,
-  ArrowRightOutlined
-} from '@ant-design/icons';
+import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen } from 'lucide-react';
+import { formatCurrency } from '../../utils/currency';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../components/Loader';
+import EmptyState from '../../components/EmptyState';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
 import useAuthStore from '../../store/authStore';
 import dayjs from 'dayjs';
@@ -20,35 +17,32 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentData();
 
-  const getGreeting = () => {
-    const hour = dayjs().hour();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
   if (statsLoading || recentLoading) {
     return <Loader />;
   }
 
   const recentTasksColumns = [
     {
-      title: 'Client',
+      title: 'CLIENT',
       dataIndex: ['client', 'name'],
       key: 'client',
+      render: (text) => <Text style={{ fontWeight: 600, color: '#1f2937', fontSize: '13px' }}>{text}</Text>
     },
     {
-      title: 'Document',
+      title: 'DOCUMENT',
       dataIndex: 'documentType',
       key: 'documentType',
-      render: (text, record) => <a onClick={() => navigate(`/app/tasks/${record.id}`)}>{text}</a>
+      render: (text, record) => (
+        <a style={{ color: '#2563eb', fontSize: '13px' }} onClick={() => navigate(`/app/tasks/${record.id}`)}>{text}</a>
+      )
     },
     {
-      title: 'Status',
+      title: 'STATUS',
       dataIndex: 'status',
       key: 'status',
+      align: 'right',
       render: (status) => (
-        <Tag color={status === 'ACTIVE' ? 'processing' : 'success'}>
+        <Tag color={status === 'ACTIVE' ? 'processing' : '#d1fae5'} style={{ color: status === 'ACTIVE' ? undefined : '#047857', border: 'none', borderRadius: '12px', padding: '0 10px', fontWeight: 600, fontSize: '12px' }}>
           {status === 'ACTIVE' ? 'Active' : 'Done'}
         </Tag>
       ),
@@ -57,90 +51,99 @@ export default function Dashboard() {
 
   const recentClientsColumns = [
     {
-      title: 'Name',
+      title: 'NAME',
       dataIndex: 'name',
       key: 'name',
-      render: (text, record) => <a onClick={() => navigate(`/app/clients/${record.id}`)}>{text}</a>
+      render: (text, record) => (
+        <a style={{ color: '#2563eb', fontWeight: 500, fontSize: '13px' }} onClick={() => navigate(`/app/clients/${record.id}`)}>{text}</a>
+      )
     },
     {
-      title: 'Mobile',
+      title: 'MOBILE',
       dataIndex: 'mobileNumber',
       key: 'mobileNumber',
+      render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text}</Text>
     },
     {
-      title: 'Date',
+      title: 'DATE',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      align: 'right',
+      render: (date) => <Text style={{ color: '#6b7280', fontSize: '13px' }}>{dayjs(date).format('DD/MM/YYYY')}</Text>,
     }
   ];
 
   return (
-    <div className="advocate-module">
-      <div className="page-header">
-        <div>
-          <Title level={2}>{getGreeting()}, {user?.name || 'User'}!</Title>
-          {/* <Text type="secondary">Summary of your tasks and clients</Text> */}
-        </div>
+    <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+      <div style={{ marginBottom: 20 }}>
+        <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>
+          Dashboard
+        </Title>
       </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false} style={{ cursor: 'pointer' }} onClick={() => navigate('/app/clients')}>
-            <div className="stat-icon" style={{ background: 'rgba(24, 144, 255, 0.1)', color: '#1890ff' }}>
-              <UsergroupAddOutlined />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: '#1890ff' }}>{stats?.totalClients || 0}</div>
-              <div className="stat-label">Total Clients</div>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', cursor: 'pointer' }} styles={{ body: { padding: '16px 20px' } }} onClick={() => navigate('/app/clients')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={20} color="#3b82f6" />
+              </div>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>{stats?.totalClients || 0}</div>
+                <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 500 }}>Total Clients</div>
+              </div>
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false} style={{ cursor: 'pointer' }} onClick={() => navigate('/app/tasks')}>
-            <div className="stat-icon" style={{ background: 'rgba(250, 173, 20, 0.1)', color: '#faad14' }}>
-              <CheckSquareOutlined />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: '#faad14' }}>{stats?.activeTasks || 0}</div>
-              <div className="stat-label">Active Tasks</div>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', cursor: 'pointer' }} styles={{ body: { padding: '16px 20px' } }} onClick={() => navigate('/app/tasks')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckSquare size={20} color="#d97706" />
+              </div>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>{stats?.activeTasks || 0}</div>
+                <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 500 }}>Active Tasks</div>
+              </div>
             </div>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card className="glass-panel stat-card" bordered={false} style={{ cursor: 'pointer' }} onClick={() => navigate('/app/tasks')}>
-            <div className="stat-icon" style={{ background: 'rgba(82, 196, 26, 0.1)', color: '#52c41a' }}>
-              <CheckCircleOutlined />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value" style={{ color: '#52c41a' }}>{stats?.completedTasks || 0}</div>
-              <div className="stat-label">Completed Tasks</div>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', cursor: 'pointer' }} styles={{ body: { padding: '16px 20px' } }} onClick={() => navigate('/app/tasks')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle size={20} color="#16a34a" />
+              </div>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>{stats?.completedTasks || 0}</div>
+                <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 500 }}>Completed Tasks</div>
+              </div>
             </div>
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col span={24}>
-          <Card className="glass-panel" bordered={false}>
-            <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>This Month's Completed Financials</Title>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '20px' } }}>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>This Month's Completed Financials</Title>
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: 'rgba(82, 196, 26, 0.05)', borderRadius: 8, borderLeft: '4px solid #52c41a' }}>
-                  <Text type="secondary">Income</Text>
-                  <Title level={3} style={{ margin: 0, color: '#52c41a' }}>₹{stats?.monthlyIncome?.toFixed(2) || '0.00'}</Title>
+                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981' }}>
+                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Income</Text>
+                  <Title level={3} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.monthlyIncome || 0)}</Title>
                 </div>
               </Col>
               <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: 'rgba(255, 77, 79, 0.05)', borderRadius: 8, borderLeft: '4px solid #ff4d4f' }}>
-                  <Text type="secondary">Expense</Text>
-                  <Title level={3} style={{ margin: 0, color: '#ff4d4f' }}>₹{stats?.monthlyExpense?.toFixed(2) || '0.00'}</Title>
+                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444' }}>
+                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Expense</Text>
+                  <Title level={3} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.monthlyExpense || 0)}</Title>
                 </div>
               </Col>
               <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: 'rgba(24, 144, 255, 0.05)', borderRadius: 8, borderLeft: '4px solid #1890ff' }}>
-                  <Text type="secondary">Net Profit</Text>
-                  <Title level={3} style={{ margin: 0, color: '#1890ff' }}>₹{stats?.monthlyNet?.toFixed(2) || '0.00'}</Title>
+                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6' }}>
+                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Net Profit</Text>
+                  <Title level={3} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.monthlyNet || 0)}</Title>
                 </div>
               </Col>
             </Row>
@@ -151,43 +154,51 @@ export default function Dashboard() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Card
-            className="glass-panel"
             bordered={false}
-            title="Recent Tasks"
-            extra={<Button type="link" onClick={() => navigate('/app/tasks')}>View All <ArrowRightOutlined /></Button>}
+            title={<span style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>Recent Tasks</span>}
+            extra={<a onClick={() => navigate('/app/tasks')} style={{ color: '#2563eb', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>View All <ArrowRight size={14} /></a>}
+            style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)' }}
             styles={{ body: { padding: 0 } }}
           >
             {recent?.recentTasks?.length > 0 ? (
               <Table
+                className="modern-dashboard-table"
                 columns={recentTasksColumns}
                 dataSource={recent.recentTasks}
                 rowKey="id"
                 pagination={false}
-                size="small"
               />
             ) : (
-              <Empty description="No tasks found" style={{ margin: '20px 0' }} />
+              <EmptyState 
+                icon={ClipboardList} 
+                title="No tasks found" 
+                description="There are no recent tasks to display."
+              />
             )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card
-            className="glass-panel"
             bordered={false}
-            title="New Clients"
-            extra={<Button type="link" onClick={() => navigate('/app/clients')}>View All <ArrowRightOutlined /></Button>}
+            title={<span style={{ fontWeight: 700, color: '#1e293b', fontSize: '14px' }}>New Clients</span>}
+            extra={<a onClick={() => navigate('/app/clients')} style={{ color: '#2563eb', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>View All <ArrowRight size={14} /></a>}
+            style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)' }}
             styles={{ body: { padding: 0 } }}
           >
             {recent?.recentClients?.length > 0 ? (
               <Table
+                className="modern-dashboard-table"
                 columns={recentClientsColumns}
                 dataSource={recent.recentClients}
                 rowKey="id"
                 pagination={false}
-                size="small"
               />
             ) : (
-              <Empty description="No clients found" style={{ margin: '20px 0' }} />
+              <EmptyState 
+                icon={FolderOpen} 
+                title="No clients found" 
+                description="There are no recent clients to display."
+              />
             )}
           </Card>
         </Col>

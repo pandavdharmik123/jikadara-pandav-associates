@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Typography, Avatar, Descriptions, Tag, Row, Col, Space } from 'antd';
-import { UserOutlined, MailOutlined, SafetyCertificateOutlined, CalendarOutlined } from '@ant-design/icons';
+import { User, Mail, ShieldCheck, Calendar } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import dayjs from 'dayjs';
 
@@ -41,18 +41,18 @@ export default function UserProfile() {
         <Col xs={24} md={16}>
           <Card className="glass-panel" bordered={false} title="Account Information">
             <Descriptions column={{ xxl: 2, xl: 2, lg: 1, md: 1, sm: 1, xs: 1 }} layout="vertical" bordered>
-              <Descriptions.Item label={<Space><UserOutlined />Full Name</Space>}>
+              <Descriptions.Item label={<Space><User size={16} />Full Name</Space>}>
                 <Text strong>{user?.name}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><MailOutlined />Email Address</Space>}>
+              <Descriptions.Item label={<Space><Mail size={16} />Email Address</Space>}>
                 <Text>{user?.email}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><SafetyCertificateOutlined />Role / Permissions</Space>}>
+              <Descriptions.Item label={<Space><ShieldCheck size={16} />Role / Permissions</Space>}>
                 <Tag color={user?.role === 'ADMIN' ? 'red' : user?.role === 'SENIOR' ? 'blue' : 'default'}>
                   {user?.role}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label={<Space><CalendarOutlined />Member Since</Space>}>
+              <Descriptions.Item label={<Space><Calendar size={16} />Member Since</Space>}>
                 <Text>{user?.createdAt ? dayjs(user.createdAt).format('MMMM D, YYYY') : 'N/A'}</Text>
               </Descriptions.Item>
             </Descriptions>

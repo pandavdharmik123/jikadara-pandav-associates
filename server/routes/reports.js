@@ -23,7 +23,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       prisma.task.count({ where: { ...userFilter, status: 'DONE' } }),
       prisma.task.aggregate({
         where: {
-          ...userFilter,
+          userId: req.user.id, // Always filter by logged-in user only for this section
           status: 'DONE',
           startDate: { gte: startOfMonth, lte: endOfMonth },
         },

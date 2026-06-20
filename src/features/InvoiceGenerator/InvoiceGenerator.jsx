@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { FilePdfOutlined, PlusOutlined, DeleteOutlined, FormOutlined } from '@ant-design/icons';
+import { FileText, Plus, Trash2, FileSignature } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import html2pdf from 'html2pdf.js';
 
@@ -146,7 +146,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
     <div className="invoice-generator-wrap" style={{ padding: '4px 0 12px' }}>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FormOutlined style={{ fontSize: 20, color: currentAccentColor }} />
+          <FileSignature size={16} style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Invoice Generator</Title>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 <Row gutter={8} key={item.id} style={{ marginBottom: 8 }} align="middle">
                   <Col xs={24} style={{ marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: 12, marginRight: 8 }}>#{index + 1}</Text>
-                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => removeItem(item.id)} style={{ float: 'right' }} />
+                    <Button type="text" danger size="small" icon={<Trash2 size={16} />} onClick={() => removeItem(item.id)} style={{ float: 'right' }} />
                   </Col>
                   <Col xs={24}>
                     <IndicTransliterate
@@ -217,7 +217,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                   </Col>
                 </Row>
               ))}
-              <Button type="dashed" block onClick={addItem} icon={<PlusOutlined />}>Add Item</Button>
+              <Button type="dashed" block onClick={addItem} icon={<Plus size={16} />}>Add Item</Button>
             </Card>
 
             <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Calculations & Footer</span>} style={{ position: 'relative', zIndex: 97 }}>
@@ -246,7 +246,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
             className="glass-panel"
             bordered={false}
             title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Preview</span>}
-            extra={<Button type="primary" size="small" icon={<FilePdfOutlined />} onClick={handleGeneratePDF} style={{ backgroundColor: currentAccentColor }}>Print</Button>}
+            extra={<Button type="primary" size="small" icon={<FileText size={16} />} onClick={handleGeneratePDF} style={{ backgroundColor: currentAccentColor }}>Print</Button>}
           >
             <div style={{ overflowX: 'auto', background: '#e0e0e0', padding: 20, borderRadius: 8, display: 'flex', justifyContent: 'center' }}>
 

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty } from 'antd';
-import { BarChartOutlined, PrinterOutlined } from '@ant-design/icons';
+import { BarChart2, FileLineChart } from 'lucide-react';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import useAuthStore from '../../store/authStore';
 import Loader from '../../components/Loader';
+import EmptyState from '../../components/EmptyState';
 import dayjs from 'dayjs';
+import { formatCurrency } from '../../utils/currency';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -40,9 +42,6 @@ export default function ExpenseReport() {
     reportType === 'YEARLY' ? selectedYear : null
   );
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const monthlyColumns = [
     {
@@ -57,18 +56,29 @@ export default function ExpenseReport() {
       key: 'client',
     },
     {
+      title: 'Document Type',
+      dataIndex: 'documentType',
+      key: 'documentType',
+    },
+    {
+      title: 'Reference',
+      dataIndex: 'referenceName',
+      key: 'referenceName',
+      render: (text) => text || '-',
+    },
+    {
       title: 'Income',
       dataIndex: 'totalIncome',
       key: 'totalIncome',
       align: 'right',
-      render: (val) => <Text type="success">₹{Number(val).toFixed(2)}</Text>,
+      render: (val) => <Text type="success">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Expense',
       dataIndex: 'totalExpense',
       key: 'totalExpense',
       align: 'right',
-      render: (val) => <Text type="danger">₹{Number(val).toFixed(2)}</Text>,
+      render: (val) => <Text type="danger">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Net Profit',
@@ -77,7 +87,7 @@ export default function ExpenseReport() {
       align: 'right',
       render: (val) => (
         <Text type={Number(val) >= 0 ? 'success' : 'danger'} strong>
-          ₹{Number(val).toFixed(2)}
+          {formatCurrency(val)}
         </Text>
       ),
     },
@@ -101,14 +111,14 @@ export default function ExpenseReport() {
       dataIndex: 'totalIncome',
       key: 'totalIncome',
       align: 'right',
-      render: (val) => <Text type="success">₹{Number(val).toFixed(2)}</Text>,
+      render: (val) => <Text type="success">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Expense',
       dataIndex: 'totalExpense',
       key: 'totalExpense',
       align: 'right',
-      render: (val) => <Text type="danger">₹{Number(val).toFixed(2)}</Text>,
+      render: (val) => <Text type="danger">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Net Profit',
@@ -117,7 +127,7 @@ export default function ExpenseReport() {
       align: 'right',
       render: (val) => (
         <Text type={Number(val) >= 0 ? 'success' : 'danger'} strong>
-          ₹{Number(val).toFixed(2)}
+          {formatCurrency(val)}
         </Text>
       ),
     },
@@ -128,10 +138,9 @@ export default function ExpenseReport() {
 
   return (
     <div className="advocate-module">
-      <div className="page-header print-hide" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>Financial Reports</Title>
-          {/* <Text type="secondary" style={{ fontSize: '13px' }}>View financials based on completed tasks</Text> */}
+          <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>Financial Reports</Title>
         </div>
         <Space>
           <Select
@@ -168,60 +177,55 @@ export default function ExpenseReport() {
             allowClear={false}
             variant="filled"
           />
-          <Button icon={<PrinterOutlined />} onClick={handlePrint}>Print</Button>
         </Space>
-      </div>
-
-
-
-      <div className="print-only" style={{ display: 'none', marginBottom: 20 }}>
-        <h2>JIKADARA & PANDAV ASSOCIATES - Financial Report</h2>
-        <p>Type: {reportType === 'MONTHLY' ? `Monthly (${dayjs().month(selectedMonth - 1).format('MMMM')})` : 'Yearly'} | Year: {selectedYear}</p>
       </div>
 
       {isLoading ? (
         <Loader />
       ) : hasData ? (
         <>
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col xs={24} sm={8}>
-              <Card className="glass-panel stat-card" bordered={false} size="small">
-                <div className="stat-icon" style={{ background: 'rgba(82, 196, 26, 0.1)', color: '#52c41a' }}>₹</div>
-                <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#52c41a' }}>
-                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalIncome : yearlyData?.yearlyTotals?.totalIncome)?.toFixed(2) || '0.00'}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+              <Space align="center" size="small">
+                <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: 16, fontWeight: 600 }}>₹</div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Income</Text>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>
+                    {formatCurrency(reportType === 'MONTHLY' ? monthlyData?.totals?.totalIncome : yearlyData?.yearlyTotals?.totalIncome)}
                   </div>
-                  <div className="stat-label">Total Income</div>
                 </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card className="glass-panel stat-card" bordered={false} size="small">
-                <div className="stat-icon" style={{ background: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f' }}>₹</div>
-                <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#ff4d4f' }}>
-                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalExpense : yearlyData?.yearlyTotals?.totalExpense)?.toFixed(2) || '0.00'}
-                  </div>
-                  <div className="stat-label">Total Expense</div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Card className="glass-panel stat-card" bordered={false} size="small">
-                <div className="stat-icon" style={{ background: 'rgba(24, 144, 255, 0.1)', color: '#1890ff' }}>₹</div>
-                <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#1890ff' }}>
-                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.netAmount : yearlyData?.yearlyTotals?.netAmount)?.toFixed(2) || '0.00'}
-                  </div>
-                  <div className="stat-label">Net Profit</div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
+              </Space>
+            </Card>
 
-          <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
+            <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+              <Space align="center" size="small">
+                <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Expense</Text>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626' }}>
+                    {formatCurrency(reportType === 'MONTHLY' ? monthlyData?.totals?.totalExpense : yearlyData?.yearlyTotals?.totalExpense)}
+                  </div>
+                </div>
+              </Space>
+            </Card>
+
+            <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+              <Space align="center" size="small">
+                <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontSize: 16, fontWeight: 600 }}>₹</div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#2563eb' }}>
+                    {formatCurrency(reportType === 'MONTHLY' ? monthlyData?.totals?.netAmount : yearlyData?.yearlyTotals?.netAmount)}
+                  </div>
+                </div>
+              </Space>
+            </Card>
+          </div>
+
+          <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
             {reportType === 'MONTHLY' ? (
               <Table
+                className="modern-dashboard-table"
                 columns={monthlyColumns}
                 dataSource={monthlyData.tasks}
                 rowKey="id"
@@ -231,6 +235,7 @@ export default function ExpenseReport() {
               />
             ) : (
               <Table
+                className="modern-dashboard-table"
                 columns={yearlyColumns}
                 dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
                 rowKey="month"
@@ -243,20 +248,15 @@ export default function ExpenseReport() {
         </>
       ) : (
         <Card className="glass-panel" bordered={false}>
-          <Empty description="No data available for selected period" />
+          <EmptyState 
+            icon={FileLineChart} 
+            title="No data available" 
+            description="There are no completed tasks for the selected period."
+          />
         </Card>
       )}
 
-      {/* Basic print styles */}
-      <style>{`
-        @media print {
-          .print-hide { display: none !important; }
-          .print-only { display: block !important; }
-          .ant-layout { background: #fff !important; }
-          .ant-card { box-shadow: none !important; border: none !important; }
-          .advocate-module { padding: 0 !important; }
-        }
-      `}</style>
+
     </div>
   );
 }

@@ -90,6 +90,7 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
             loading={clientsLoading}
             onChange={handleClientChange}
             notFoundContent={clientsLoading ? <Spin size="small" /> : null}
+            disabled={!!initialClientId}
           >
             {clients?.map(client => (
               <Option key={client.id} value={client.id}>

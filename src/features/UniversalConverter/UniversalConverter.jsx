@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Select, Typography, Button, Tooltip, message, Badge } from 'antd';
-import { SwapRightOutlined, ClearOutlined, CopyOutlined } from '@ant-design/icons';
+import { ArrowRight, XCircle, Copy } from 'lucide-react';
 import { transliterateLatinRunsToGujarati } from '../../utils/batchTransliterate';
 import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
 import { convertHarikrishnaTemplateToUnicode } from '../../utils/reverseHarikrishnaTemplate';
@@ -90,7 +90,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
             <Select.Option value="nil_font">Nil Font</Select.Option>
           </Select>
         </div>
-        <SwapRightOutlined style={{ fontSize: 24, color: 'var(--text-secondary)', display: window.innerWidth < 768 ? 'none' : 'block' }} />
+        <ArrowRight size={16} style={{ fontSize: 24, color: 'var(--text-secondary)', display: window.innerWidth < 768 ? 'none' : 'block' }} />
         <div style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontWeight: 600 }}>To:</span>
           <Select value={uniTo} onChange={setUniTo} style={{ width: '100%' }}>
@@ -115,7 +115,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<ClearOutlined />}
+                  icon={<XCircle size={16} />}
                   onClick={() => { setUniInput(''); setUniOutput(''); }}
                   disabled={!uniInput}
                 />
@@ -145,7 +145,7 @@ export default function UniversalConverter({ themeMode, currentAccentColor }) {
                 <Button
                   type="text"
                   shape="circle"
-                  icon={<CopyOutlined />}
+                  icon={<Copy size={16} />}
                   onClick={() => {
                     navigator.clipboard.writeText(uniOutput);
                     message.success('Copied!');

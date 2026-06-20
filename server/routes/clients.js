@@ -25,6 +25,7 @@ router.get('/', requireAuth, async (req, res) => {
       where,
       include: {
         _count: { select: { tasks: true } },
+        tasks: { select: { status: true } },
         user: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },

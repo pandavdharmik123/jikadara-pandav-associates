@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Checkbox, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { User, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
@@ -35,11 +35,11 @@ const LoginPage = () => {
           <div className="float-item doc">📜</div>
           <div className="float-item court">🏛️</div>
         </div>
-        
+
         <div className="hero-content">
-          <h1>JIKADARA & PANDAV<br/>ASSOCIATES</h1>
+          <h1>JIKADARA & PANDAV<br />ASSOCIATES</h1>
           <h3>Advocate and Legal Consultants</h3>
-          
+
           <ul>
             <li>Professional Legal Services</li>
             <li>Case Management</li>
@@ -47,7 +47,7 @@ const LoginPage = () => {
             <li>Document Tracking</li>
             <li>Secure Legal Portal</li>
           </ul>
-          
+
           <div className="trust-badge">
             ✦ Trusted Legal Excellence
           </div>
@@ -74,14 +74,14 @@ const LoginPage = () => {
               name="email"
               rules={[{ required: true, message: 'Please input your email!' }]}
             >
-              <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Email Address" />
+              <Input prefix={<User size={16} style={{ color: '#bfbfbf' }} />} placeholder="Email Address" />
             </Form.Item>
 
             <Form.Item
               name="password"
               rules={[{ required: true, message: 'Please input your password!' }]}
             >
-              <Input.Password prefix={<LockOutlined style={{ color: '#bfbfbf' }} />} placeholder="Password" />
+              <Input.Password prefix={<Lock size={16} style={{ color: '#bfbfbf' }} />} placeholder="Password" />
             </Form.Item>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -97,11 +97,6 @@ const LoginPage = () => {
               </Button>
             </Form.Item>
           </Form>
-
-          <div className="login-footer">
-            <p>Need Assistance?</p>
-            <a href="#">Contact Office</a>
-          </div>
         </div>
       </div>
     </div>

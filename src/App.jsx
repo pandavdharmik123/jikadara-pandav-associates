@@ -90,7 +90,7 @@ export default function App() {
           algorithm: themeMode === 'dark' ? darkAlgorithm : defaultAlgorithm,
           token: {
             colorPrimary: currentAccentColor,
-            fontFamily: '"Anek Gujarati", Inter, system-ui, sans-serif',
+            fontFamily: '"Inter", "Anek Gujarati", system-ui, sans-serif',
             colorBgContainer: themeMode === 'dark' ? '#141414' : '#ffffff',
             colorBgElevated: themeMode === 'dark' ? '#1f1f1f' : '#ffffff',
             borderRadius: 8,
@@ -101,8 +101,8 @@ export default function App() {
           components: {
             Layout: {
               headerBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
-              bodyBg: themeMode === 'dark' ? '#000000' : '#f5f7fa',
-              siderBg: themeMode === 'dark' ? '#0d1117' : '#ffffff',
+              bodyBg: themeMode === 'dark' ? '#000000' : '#f8fafc',
+              siderBg: themeMode === 'dark' ? '#0d1117' : '#f8fafc',
             },
             Card: {
               headerBg: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',

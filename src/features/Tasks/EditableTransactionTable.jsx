@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Input, InputNumber, DatePicker, Button, Popconfirm, Form, Typography, Space, message } from 'antd';
-import { EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { Edit, Trash2, Save, X, Plus, TrendingUp, TrendingDown } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '../../hooks/useTasks';
+import { formatCurrency } from '../../utils/currency';
 
 const { Text } = Typography;
 
@@ -138,7 +139,7 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      width: '20%',
+      width: 110,
       editable: true,
       render: (date) => dayjs(date).format('DD/MM/YYYY'),
     },
@@ -146,25 +147,24 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      width: '40%',
       editable: true,
     },
     {
       title: 'Amount',
       dataIndex: 'amount',
       key: 'amount',
-      width: '20%',
+      width: 120,
       editable: true,
       align: 'right',
       render: (amount) => {
         const color = type === 'INCOME' ? 'success' : 'danger';
-        return <Text type={color} strong>₹{Number(amount || 0).toFixed(2)}</Text>;
+        return <Text type={color} strong>{formatCurrency(amount)}</Text>;
       },
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: '20%',
+      width: 90,
       align: 'center',
       render: (_, record) => {
         const editable = isEditing(record);
@@ -174,25 +174,25 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
           <Space>
             <Button 
               type="primary" 
-              icon={<SaveOutlined />} 
+              icon={<Save size={16} />} 
               onClick={() => save(record.id)} 
               size="small"
               loading={createTxMutation.isPending || updateTxMutation.isPending}
             />
             <Popconfirm title="Cancel edit?" onConfirm={cancel}>
-              <Button icon={<CloseOutlined />} size="small" />
+              <Button icon={<X size={16} />} size="small" />
             </Popconfirm>
           </Space>
         ) : (
           <Space>
             <Button 
               type="text" 
-              icon={<EditOutlined />} 
+              icon={<Edit size={16} />} 
               onClick={() => edit(record)} 
               disabled={editingKey !== ''}
             />
             <Popconfirm title="Delete transaction?" onConfirm={() => handleDelete(record.id)}>
-              <Button type="text" danger icon={<DeleteOutlined />} disabled={editingKey !== ''} />
+              <Button type="text" danger icon={<Trash2 size={16} />} disabled={editingKey !== ''} />
             </Popconfirm>
           </Space>
         );
@@ -222,15 +222,21 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Typography.Title level={5} style={{ margin: 0 }}>
-          {type === 'INCOME' ? 'Income' : 'Expense'}
-        </Typography.Title>
+        <Space align="center" size="small">
+          <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: type === 'INCOME' ? '#f0fdf4' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: type === 'INCOME' ? '#16a34a' : '#dc2626' }}>
+            {type === 'INCOME' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+          </div>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
+            {type === 'INCOME' ? 'Income' : 'Expense'}
+          </Typography.Title>
+        </Space>
         {!isTaskDone && (
           <Button 
-            type="dashed" 
-            icon={<PlusOutlined />} 
+            type="primary" 
+            icon={<Plus size={16} />} 
             onClick={handleAdd}
             disabled={editingKey !== ''}
+            style={{ borderRadius: '8px', boxShadow: 'none' }}
           >
             Add {type === 'INCOME' ? 'Income' : 'Expense'}
           </Button>
@@ -238,24 +244,25 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
       </div>
       <Form form={form} component={false}>
         <Table
+          className="modern-dashboard-table"
           components={{
             body: {
               cell: EditableCell,
             },
           }}
-          bordered
+          bordered={false}
           dataSource={data}
           columns={mergedColumns}
           rowClassName="editable-row"
           rowKey="id"
           pagination={false}
           size="small"
-          scroll={{ x: 600 }}
+          scroll={{ x: 450 }}
           summary={() => (
             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
               <Table.Summary.Cell index={0} colSpan={2}>Total {type === 'INCOME' ? 'Income' : 'Expense'}</Table.Summary.Cell>
               <Table.Summary.Cell index={1} align="right">
-                <Text type={color}>₹{totalAmount.toFixed(2)}</Text>
+                <Text type={color}>{formatCurrency(totalAmount)}</Text>
               </Table.Summary.Cell>
               <Table.Summary.Cell index={2}></Table.Summary.Cell>
             </Table.Summary.Row>

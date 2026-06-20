@@ -1,32 +1,37 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Drawer, Grid, Typography, Dropdown, Avatar, Space } from 'antd';
+import dayjs from 'dayjs';
+import { Layout, Menu, Button, Drawer, Grid, Input, Dropdown, Avatar, Badge } from 'antd';
 import {
-  MenuOutlined,
-  LogoutOutlined,
-  DashboardOutlined,
-  UsergroupAddOutlined,
-  CheckSquareOutlined,
-  BarChartOutlined,
-  SettingOutlined,
-  TranslationOutlined,
-  BgColorsOutlined,
-  CalculatorOutlined,
-  FormOutlined,
-  ContainerOutlined,
-  FieldStringOutlined,
-  DownOutlined,
-  UserOutlined
-} from '@ant-design/icons';
+  Menu as MenuIcon,
+  LogOut,
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  BarChart2,
+  Settings,
+  Languages,
+  Palette,
+  Calculator,
+  FileSignature,
+  FileText,
+  Hash,
+  ChevronDown,
+  User,
+  Search,
+  Bell,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 const { Header, Sider, Content } = Layout;
 
-export default function MainLayout({ themeMode, currentAccentColor }) {
+export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
@@ -40,7 +45,7 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
     items: [
       {
         key: 'profile',
-        icon: <UserOutlined style={{ fontSize: 16 }} />,
+        icon: <User size={16} />,
         label: <span style={{ fontSize: 15, fontWeight: 500, marginLeft: 8 }}>My Profile</span>,
         style: { padding: '10px 16px', borderRadius: 8, marginBottom: 4 }
       },
@@ -50,7 +55,7 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
       },
       {
         key: 'logout',
-        icon: <LogoutOutlined style={{ fontSize: 16 }} />,
+        icon: <LogOut size={16} />,
         label: <span style={{ fontSize: 15, fontWeight: 500, marginLeft: 8 }}>Logout</span>,
         danger: true,
         style: { padding: '10px 16px', borderRadius: 8, marginTop: 4 }
@@ -63,11 +68,11 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
         handleLogout();
       }
     },
-    style: { 
-      padding: '8px', 
-      borderRadius: '12px', 
-      minWidth: '200px', 
-      boxShadow: '0 12px 28px rgba(0,0,0,0.12)' 
+    style: {
+      padding: '8px',
+      borderRadius: '12px',
+      minWidth: '200px',
+      boxShadow: '0 12px 28px rgba(0,0,0,0.12)'
     }
   };
 
@@ -81,22 +86,22 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
   const advocateMenuItems = [
     {
       key: '/app/dashboard',
-      icon: <DashboardOutlined style={{ fontSize: 18 }} />,
+      icon: <LayoutDashboard size={20} />,
       label: 'Dashboard',
     },
     {
       key: '/app/clients',
-      icon: <UsergroupAddOutlined style={{ fontSize: 18 }} />,
+      icon: <Users size={20} />,
       label: 'Clients',
     },
     {
       key: '/app/tasks',
-      icon: <CheckSquareOutlined style={{ fontSize: 18 }} />,
+      icon: <CheckSquare size={20} />,
       label: 'Tasks',
     },
     {
       key: '/app/reports',
-      icon: <BarChartOutlined style={{ fontSize: 18 }} />,
+      icon: <BarChart2 size={20} />,
       label: 'Reports',
     },
   ];
@@ -104,7 +109,7 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
   if (user?.role === 'ADMIN') {
     advocateMenuItems.push({
       key: '/app/admin/users',
-      icon: <SettingOutlined style={{ fontSize: 18 }} />,
+      icon: <Settings size={20} />,
       label: 'Admin Panel',
     });
   }
@@ -112,32 +117,32 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
   const existingMenuItems = [
     {
       key: '/app/tools/translator',
-      icon: <TranslationOutlined style={{ fontSize: 18 }} />,
+      icon: <Languages size={20} />,
       label: 'Eng to Guj',
     },
     {
       key: '/app/tools/universal',
-      icon: <BgColorsOutlined style={{ fontSize: 18 }} />,
+      icon: <Palette size={20} />,
       label: 'Universal Converter',
     },
     {
       key: '/app/tools/jantri',
-      icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
+      icon: <Calculator size={20} />,
       label: 'Jantri Calculator',
     },
     {
       key: '/app/tools/rent_agreement',
-      icon: <FormOutlined style={{ fontSize: 18 }} />,
+      icon: <FileSignature size={20} />,
       label: 'Rent Agreement',
     },
     {
       key: '/app/tools/invoice',
-      icon: <ContainerOutlined style={{ fontSize: 18 }} />,
+      icon: <FileText size={20} />,
       label: 'Invoice Generator',
     },
     {
       key: '/app/tools/number_to_words',
-      icon: <FieldStringOutlined style={{ fontSize: 18 }} />,
+      icon: <Hash size={20} />,
       label: 'Numbers to Words',
     }
   ];
@@ -160,134 +165,157 @@ export default function MainLayout({ themeMode, currentAccentColor }) {
     }
   ];
 
-  // Determine selected key based on URL
   let selectedKey = location.pathname;
 
-  return (
-    <Layout style={{ minHeight: '100vh', display: 'flex' }}>
-      <Header className={`app-header ${themeMode === 'dark' ? 'dark' : 'light'}`} style={{
-        position: 'fixed',
-        zIndex: 9999,
-        width: '100%',
-        padding: isMobile ? '0 16px' : '0 24px',
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
+
+  const getGreeting = () => {
+    const hour = dayjs().hour();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const renderSidebarContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{
+        padding: collapsed ? '24px 16px' : '24px 20px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
-        height: 64,
-        top: 0,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: '12px',
+        borderBottom: '1px solid #f1f5f9',
+        height: 89,
+        overflow: 'hidden'
       }}>
-        <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
-          {isMobile && (
-            <Button type="text" icon={<MenuOutlined style={{ fontSize: 20 }} />} onClick={() => setCollapsed(!collapsed)} style={{ padding: '0 8px', marginLeft: -8, marginRight: 4 }} />
-          )}
-          <img src="/logo.png" alt="Logo" style={{ height: isMobile ? 32 : 40, width: 'auto' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: isMobile ? '13px' : '18px', fontWeight: 700, lineHeight: 1.2 }}>
-              JIKADARA & PANDAV ASSOCIATES
+        <img src="/logo.png" alt="Logo" style={{ height: 40, width: 'auto', flexShrink: 0 }} />
+        {!collapsed && (
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              JIKADARA & PANDAV
             </h2>
-            <span style={{ fontSize: isMobile ? '10px' : '13px', opacity: 0.8, marginTop: '2px', lineHeight: 1.2 }}>
-              Advocate and Legal Consultants
+            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              Advocate & Legal Consultants
             </span>
           </div>
-        </div>
-
-        <Dropdown 
-          menu={userMenu} 
-          placement="bottomRight" 
-          trigger={['click']}
-          overlayStyle={{ paddingTop: '16px' }}
-        >
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 12, 
-            cursor: 'pointer', 
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
-          }}>
-            <Avatar 
-              size={38} 
-              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.name || 'User'}&backgroundColor=e6f4ff`} 
-            />
-            {!isMobile && (
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                <span style={{ fontSize: '14px', fontWeight: 600 }}>{user?.name || 'User'}</span>
-                <span style={{ fontSize: '12px', color: '#888', textTransform: 'capitalize' }}>
-                  {user?.role?.toLowerCase() || 'Member'}
-                </span>
-              </div>
-            )}
-            <DownOutlined style={{ fontSize: 12, color: '#888' }} />
-          </div>
-        </Dropdown>
-      </Header>
-
-      <Layout style={{ marginTop: 64 }}>
-        {isMobile ? (
-          <Drawer
-            placement="left"
-            closable={false}
-            onClose={() => setCollapsed(true)}
-            open={!collapsed}
-            width={260}
-            styles={{ body: { padding: 0 } }}
-          >
-            <div style={{ padding: '16px 24px', fontWeight: 'bold', borderBottom: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`, fontSize: 16 }}>
-              Menu
-            </div>
-            <Menu
-              theme={themeMode}
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              onClick={handleMenuClick}
-              items={menuItems}
-              style={{ padding: '8px 0', borderRight: 0 }}
-            />
-          </Drawer>
-        ) : (
-          <Sider
-            width={260}
-            theme={themeMode}
-            collapsible
-            collapsed={collapsed}
-            onCollapse={(value) => setCollapsed(value)}
-            style={{
-              overflow: 'auto',
-              height: 'calc(100vh - 64px)',
-              position: 'fixed',
-              left: 0,
-              top: 64,
-              bottom: 0,
-              borderRight: `1px solid ${themeMode === 'dark' ? '#30363d' : '#e1e4e8'}`,
-              zIndex: 90
-            }}
-          >
-            <Menu
-              theme={themeMode}
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              onClick={handleMenuClick}
-              items={menuItems}
-              style={{ padding: '16px 8px', borderRight: 0 }}
-            />
-          </Sider>
         )}
+      </div>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <Menu
+          theme="light"
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          onClick={handleMenuClick}
+          items={menuItems}
+          style={{ padding: '0 12px', borderRight: 0 }}
+          className="sidebar-custom-menu"
+        />
+      </div>
+      {!isMobile && (
+        <div style={{ padding: '8px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
+          <Button
+            type="text"
+            onClick={() => setCollapsed(!collapsed)}
+            icon={collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            style={{ color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          />
+        </div>
+      )}
+    </div>
+  );
 
-        <Layout style={{
-          marginLeft: isMobile ? 0 : (collapsed ? 80 : 260),
-          transition: 'all 0.2s',
-          padding: isMobile ? '12px 8px' : '16px 24px',
-          minHeight: 'calc(100vh - 64px)',
+  return (
+    <Layout style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
+      {isMobile ? (
+        <Drawer
+          placement="left"
+          closable={false}
+          onClose={() => setCollapsed(true)}
+          open={!collapsed}
+          width={280}
+          styles={{ body: { padding: 0 } }}
+        >
+          {renderSidebarContent()}
+        </Drawer>
+      ) : (
+        <Sider
+          width={280}
+          collapsedWidth={80}
+          theme="light"
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          style={{
+            height: '100vh',
+            position: 'sticky',
+            top: 0,
+            left: 0,
+            borderRight: '1px solid #e2e8f0',
+            backgroundColor: '#ffffff',
+            zIndex: 100
+          }}
+        >
+          {renderSidebarContent()}
+        </Sider>
+      )}
+
+      <Layout style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+        <Header style={{
+          padding: isMobile ? '12px 16px' : '0 24px',
+          background: '#ffffff',
           display: 'flex',
-          flexDirection: 'column'
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #e2e8f0',
+          height: 'auto',
+          minHeight: 72,
+          lineHeight: 'normal',
+          position: 'sticky',
+          top: 0,
+          zIndex: 99
         }}>
-          <Content style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {/* The Outlet renders the matched child route */}
-            <Outlet />
-          </Content>
-        </Layout>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16, flex: 1, height: '100%' }}>
+            {isMobile && (
+              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setCollapsed(!collapsed)} style={{ padding: '0 4px', marginLeft: -4 }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
+                {getGreeting()},{!isMobile && ' '}{isMobile && <br />}{user?.name || 'User'}!
+              </div>
+              {!isMobile && (
+                <div style={{ color: '#64748b', fontSize: '13px', marginTop: 4, lineHeight: 1.2 }}>
+                  Here's what's happening with your practice today. • {dayjs().format('dddd, MMMM D, YYYY')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24 }}>
+            <Badge dot color="red">
+              <Bell size={20} color="#64748b" style={{ cursor: 'pointer' }} />
+            </Badge>
+
+            <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600 }}>
+                  {getInitials(user?.name)}
+                </Avatar>
+                {!isMobile && (
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+                    {user?.name || 'User'}
+                  </span>
+                )}
+              </div>
+            </Dropdown>
+          </div>
+        </Header>
+
+        <Content style={{ padding: isMobile ? '16px' : '32px 32px 32px 32px', overflow: 'initial' }}>
+          <Outlet />
+        </Content>
       </Layout>
     </Layout>
   );

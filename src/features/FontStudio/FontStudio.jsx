@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Row, Col, Card, Button, Select, Slider, Space, Typography, Tooltip, Badge, Divider, message } from 'antd';
-import { CopyOutlined, DownloadOutlined, ClearOutlined, SoundOutlined, SettingOutlined, TranslationOutlined, BgColorsOutlined, FontSizeOutlined } from '@ant-design/icons';
+import { Copy, Download, XCircle, Volume2, Settings, Languages, Palette, Type } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
 import { transliterateLatinRunsToGujarati } from '../../utils/batchTransliterate';
@@ -91,7 +91,7 @@ export default function FontStudio({
         <div className="controls-panel glass-panel">
           <div className="control-group">
             <span className="control-label">
-              <BgColorsOutlined style={{ marginRight: 6 }} />
+              <Palette size={16} style={{ marginRight: 6 }} />
               Accent Aura:
             </span>
             <Space size="small">
@@ -118,7 +118,7 @@ export default function FontStudio({
 
           <div className="control-group">
             <span className="control-label">
-              <FontSizeOutlined style={{ marginRight: 6 }} />
+              <Type size={16} style={{ marginRight: 6 }} />
               Font Style Preview:
             </span>
             <Select
@@ -156,7 +156,7 @@ export default function FontStudio({
                   <Button
                     type="text"
                     shape="circle"
-                    icon={<ClearOutlined />}
+                    icon={<XCircle size={16} />}
                     onClick={clearWorkspace}
                     disabled={!text}
                   />
@@ -220,7 +220,7 @@ export default function FontStudio({
                   <Button
                     type="text"
                     shape="circle"
-                    icon={<SoundOutlined />}
+                    icon={<Volume2 size={16} />}
                     onClick={handleSpeak}
                     disabled={!text}
                   />
@@ -229,7 +229,7 @@ export default function FontStudio({
                   <Button
                     type="text"
                     shape="circle"
-                    icon={<CopyOutlined />}
+                    icon={<Copy size={16} />}
                     onClick={copyToClipboard}
                     disabled={!text}
                   />
@@ -238,7 +238,7 @@ export default function FontStudio({
                   <Button
                     type="text"
                     shape="circle"
-                    icon={<DownloadOutlined />}
+                    icon={<Download size={16} />}
                     onClick={downloadTextFile}
                     disabled={!text}
                   />
@@ -276,7 +276,7 @@ export default function FontStudio({
         </div>
 
         {/* Typography Detailed Controllers */}
-        <Card className="glass-panel" title={<div style={{ fontSize: 14, fontWeight: 600 }}><SettingOutlined /> Fine-Tune Typography Metrics</div>} bordered={false}>
+        <Card className="glass-panel" title={<div style={{ fontSize: 14, fontWeight: 600 }}><Settings size={16} /> Fine-Tune Typography Metrics</div>} bordered={false}>
           <Row gutter={[24, 16]}>
             <Col xs={24} sm={8}>
               <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Font Size ({fontSize}px)</Text>
@@ -316,7 +316,7 @@ export default function FontStudio({
       <div className="sidebar-panel glass-panel">
         <div className="sidebar-header">
           <span className="sidebar-title">
-            <TranslationOutlined style={{ color: currentAccentColor }} /> Quick Ref Sheets
+            <Languages size={16} style={{ color: currentAccentColor }} /> Quick Ref Sheets
           </span>
         </div>
 
