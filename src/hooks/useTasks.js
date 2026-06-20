@@ -123,6 +123,21 @@ export const useCreateTransaction = () => {
   });
 };
 
+// Update a transaction
+export const useUpdateTransaction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...transactionData }) => {
+      const { data } = await api.put(`/transactions/${id}`, transactionData);
+      return data.transaction;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+};
+
 // Delete a transaction
 export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();

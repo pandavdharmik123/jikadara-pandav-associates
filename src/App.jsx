@@ -9,6 +9,13 @@ import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './features/Auth/LoginPage';
 
+import Dashboard from './features/Dashboard/Dashboard';
+import ClientRoutes from './features/Clients';
+import TaskRoutes from './features/Tasks';
+import ExpenseReport from './features/Reports/ExpenseReport';
+import AdminUsers from './features/Admin/AdminUsers';
+import UserProfile from './features/Profile/UserProfile';
+
 // Existing Tools
 import FontStudio from './features/FontStudio/FontStudio';
 import Translator from './features/Translator/Translator';
@@ -56,14 +63,6 @@ window.fetch = async function (input, init) {
   return originalFetch.apply(this, arguments);
 };
 
-// Temporary placeholders for new modules
-// Module Routes
-import ClientRoutes from './features/Clients';
-import TaskRoutes from './features/Tasks';
-import Dashboard from './features/Dashboard/Dashboard';
-import ExpenseReport from './features/Reports/ExpenseReport';
-import AdminUsers from './features/Admin/AdminUsers';
-
 // Create a client
 const queryClient = new QueryClient();
 
@@ -71,7 +70,6 @@ export default function App() {
   // Global State
   const themeMode = 'light'; // Kept light as default per original
   const [activeColor, setActiveColor] = useState(() => localStorage.getItem('font-conv-accent') || 'indigo');
-  const [mainTab, setMainTab] = useState('translator');
   const [studioText, setStudioText] = useState('');
 
   const currentAccentColor = COLOR_PALETTES[activeColor]?.primary || '#6366f1';
@@ -83,29 +81,7 @@ export default function App() {
     localStorage.setItem('font-conv-accent', activeColor);
   }, [activeColor, currentAccentColor]);
 
-  // A wrapper component to render the appropriate tool based on mainTab
-  const ToolsRenderer = () => {
-    return (
-      <>
-        {mainTab === 'studio' && (
-          <FontStudio
-            themeMode={themeMode}
-            currentAccentColor={currentAccentColor}
-            activeColor={activeColor}
-            setActiveColor={setActiveColor}
-            text={studioText}
-            setText={setStudioText}
-          />
-        )}
-        {mainTab === 'translator' && <Translator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-        {mainTab === 'universal' && <UniversalConverter themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-        {mainTab === 'jantri' && <JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-        {mainTab === 'rent_agreement' && <RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />}
-        {mainTab === 'invoice' && <InvoiceGenerator currentAccentColor={currentAccentColor} />}
-        {mainTab === 'number_to_words' && <NumberToWordsConverter currentAccentColor={currentAccentColor} />}
-      </>
-    );
-  };
+  // Tools are now individually routed
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -141,7 +117,7 @@ export default function App() {
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/app" element={<MainLayout themeMode={themeMode} currentAccentColor={currentAccentColor} setMainTab={setMainTab} />}>
+              <Route path="/app" element={<MainLayout themeMode={themeMode} currentAccentColor={currentAccentColor} />}>
                 {/* Redirect /app to dashboard */}
                 <Route index element={<Navigate to="dashboard" replace />} />
                 
@@ -150,6 +126,7 @@ export default function App() {
                 <Route path="clients/*" element={<ClientRoutes />} />
                 <Route path="tasks/*" element={<TaskRoutes />} />
                 <Route path="reports" element={<ExpenseReport />} />
+                <Route path="profile" element={<UserProfile />} />
                 
                 {/* Admin Only Route */}
                 <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
@@ -157,7 +134,25 @@ export default function App() {
                 </Route>
 
                 {/* Legacy Tools */}
-                <Route path="tools" element={<ToolsRenderer />} />
+                <Route path="tools">
+                  <Route path="studio" element={
+                    <FontStudio
+                      themeMode={themeMode}
+                      currentAccentColor={currentAccentColor}
+                      activeColor={activeColor}
+                      setActiveColor={setActiveColor}
+                      text={studioText}
+                      setText={setStudioText}
+                    />
+                  } />
+                  <Route path="translator" element={<Translator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  <Route path="universal" element={<UniversalConverter themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  <Route path="jantri" element={<JantriCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  <Route path="rent_agreement" element={<RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  <Route path="invoice" element={<InvoiceGenerator currentAccentColor={currentAccentColor} />} />
+                  <Route path="number_to_words" element={<NumberToWordsConverter currentAccentColor={currentAccentColor} />} />
+                  <Route index element={<Navigate to="translator" replace />} />
+                </Route>
               </Route>
             </Route>
 

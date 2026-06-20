@@ -6,6 +6,8 @@ import { useClients, useDeleteClient } from '../../hooks/useClients';
 import useAuthStore from '../../store/authStore';
 import AddClientModal from './AddClientModal';
 import EditClientModal from './EditClientModal';
+import useDebounce from '../../hooks/useDebounce';
+import Loader from '../../components/Loader';
 
 const { Title, Text } = Typography;
 
@@ -13,11 +15,12 @@ export default function ClientList() {
   const [searchText, setSearchText] = useState('');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  
+
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  
-  const { data: clients, isLoading } = useClients(searchText);
+
+  const debouncedSearchText = useDebounce(searchText, 500);
+  const { data: clients, isLoading } = useClients(debouncedSearchText);
   const deleteClientMutation = useDeleteClient();
 
   const handleDelete = (id) => {
@@ -71,22 +74,22 @@ export default function ClientList() {
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button 
-            type="text" 
-            icon={<FolderOpenOutlined />} 
+          <Button
+            type="text"
+            icon={<FolderOpenOutlined />}
             onClick={() => navigate(`/app/clients/${record.id}`)}
             title="View Tasks"
           />
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
+          <Button
+            type="text"
+            icon={<EditOutlined />}
             onClick={() => setEditingClient(record)}
             title="Edit"
           />
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
             title="Delete"
           />
@@ -107,53 +110,55 @@ export default function ClientList() {
 
   return (
     <div className="advocate-module">
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: 16 }}>
         <div>
-          <Title level={2}>Clients</Title>
-          <Text type="secondary">Manage all your clients and their tasks</Text>
+          <Title level={3} style={{ margin: 0 }}>Clients</Title>
+          {/* <Text type="secondary" style={{ fontSize: '13px' }}>Manage all your clients and their tasks</Text> */}
         </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={() => setIsAddModalVisible(true)}
-        >
-          Add New Client
-        </Button>
+        <Space>
+          <Input
+            placeholder="Search by name, mobile, or reference"
+            prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
+            size="middle"
+            allowClear
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 300 }}
+            variant="filled"
+          />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="middle"
+            onClick={() => setIsAddModalVisible(true)}
+          >
+            Add New Client
+          </Button>
+        </Space>
       </div>
-
-      <Card className="glass-panel" bordered={false} style={{ marginBottom: 24 }}>
-        <Input
-          placeholder="Search by name, mobile, or reference"
-          prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
-          size="large"
-          allowClear
-          onChange={(e) => setSearchText(e.target.value)}
-          style={{ maxWidth: 500 }}
-        />
-      </Card>
 
       <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
         <Table
+          className="full-height-table"
           columns={columns}
           dataSource={clients}
           rowKey="id"
-          loading={isLoading}
+          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 800, y: 'calc(100vh - 270px)' }}
+          size="small"
         />
       </Card>
 
-      <AddClientModal 
-        visible={isAddModalVisible} 
-        onClose={() => setIsAddModalVisible(false)} 
+      <AddClientModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
       />
-      
+
       {editingClient && (
-        <EditClientModal 
-          visible={!!editingClient} 
+        <EditClientModal
+          visible={!!editingClient}
           client={editingClient}
-          onClose={() => setEditingClient(null)} 
+          onClose={() => setEditingClient(null)}
         />
       )}
     </div>

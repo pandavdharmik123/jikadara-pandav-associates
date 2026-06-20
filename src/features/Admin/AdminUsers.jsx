@@ -3,6 +3,7 @@ import { Typography, Table, Button, Space, Modal, Form, Input, Select, Switch, m
 import { UserAddOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
+import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -11,7 +12,7 @@ const { Option } = Select;
 export default function AdminUsers() {
   const { user: currentUser } = useAuthStore();
   const { data: users, isLoading } = useUsers();
-  
+
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
@@ -121,17 +122,17 @@ export default function AdminUsers() {
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
+          <Button
+            type="text"
+            icon={<EditOutlined />}
             onClick={() => handleOpenModal(record)}
             disabled={record.id === currentUser?.id && currentUser?.email === 'admin@jikadara.com'}
           />
           {record.id !== currentUser?.id && (
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.id)}
             />
           )}
@@ -147,9 +148,9 @@ export default function AdminUsers() {
           <Title level={2}>Admin Panel</Title>
           <Text type="secondary">Manage system users</Text>
         </div>
-        <Button 
-          type="primary" 
-          icon={<UserAddOutlined />} 
+        <Button
+          type="primary"
+          icon={<UserAddOutlined />}
           size="large"
           onClick={() => handleOpenModal()}
         >
@@ -159,12 +160,14 @@ export default function AdminUsers() {
 
       <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
         <Table
+          className="full-height-table"
           columns={columns}
           dataSource={users}
           rowKey="id"
-          loading={isLoading}
+          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 800, y: 'calc(100vh - 270px)' }}
+          size="small"
         />
       </Card>
 

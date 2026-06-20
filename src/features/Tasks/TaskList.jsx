@@ -6,6 +6,7 @@ import { useTasks, useDeleteTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
 import AddTaskModal from './AddTaskModal';
 import EditTaskModal from './EditTaskModal';
+import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -15,11 +16,11 @@ export default function TaskList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
-  
+
   // Check if we came here from ClientDetail with a pre-selected client
   const searchParams = new URLSearchParams(location.search);
   const initialAddClient = searchParams.get('addClient');
@@ -101,24 +102,24 @@ export default function TaskList() {
       key: 'actions',
       render: (_, record) => (
         <Space size="middle">
-          <Button 
-            type="text" 
-            icon={<FileTextOutlined />} 
+          <Button
+            type="text"
+            icon={<FileTextOutlined />}
             onClick={() => navigate(`/app/tasks/${record.id}`)}
             title="View Details"
           />
           {record.status === 'ACTIVE' && (
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
+            <Button
+              type="text"
+              icon={<EditOutlined />}
               onClick={() => setEditingTask(record)}
               title="Edit"
             />
           )}
-          <Button 
-            type="text" 
-            danger 
-            icon={<DeleteOutlined />} 
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
             title="Delete"
           />
@@ -129,56 +130,58 @@ export default function TaskList() {
 
   return (
     <div className="advocate-module">
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: 16 }}>
         <div>
-          <Title level={2}>Tasks</Title>
-          <Text type="secondary">Manage all tasks for your clients</Text>
+          <Title level={3} style={{ margin: 0 }}>Tasks</Title>
+          {/* <Text type="secondary" style={{ fontSize: '13px' }}>Manage all tasks for your clients</Text> */}
         </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={() => setIsAddModalVisible(true)}
-        >
-          Add New Task
-        </Button>
+        <Space>
+          <Select
+            placeholder="Filter by Status"
+            allowClear
+            style={{ width: 150 }}
+            onChange={(value) => setStatusFilter(value || '')}
+            size="middle"
+            variant="filled"
+          >
+            <Option value="ACTIVE">Active</Option>
+            <Option value="DONE">Done</Option>
+          </Select>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="middle"
+            onClick={() => setIsAddModalVisible(true)}
+          >
+            Add New Task
+          </Button>
+        </Space>
       </div>
-
-      <Card className="glass-panel" bordered={false} style={{ marginBottom: 24 }}>
-        <Select
-          placeholder="Filter by Status"
-          allowClear
-          style={{ width: 200 }}
-          onChange={(value) => setStatusFilter(value || '')}
-          size="large"
-        >
-          <Option value="ACTIVE">Active</Option>
-          <Option value="DONE">Done</Option>
-        </Select>
-      </Card>
 
       <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
         <Table
+          className="full-height-table"
           columns={columns}
           dataSource={tasks}
           rowKey="id"
-          loading={isLoading}
+          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 800, y: 'calc(100vh - 270px)' }}
+          size="small"
         />
       </Card>
 
-      <AddTaskModal 
-        visible={isAddModalVisible} 
-        onClose={() => setIsAddModalVisible(false)} 
+      <AddTaskModal
+        visible={isAddModalVisible}
+        onClose={() => setIsAddModalVisible(false)}
         initialClientId={initialAddClient}
       />
-      
+
       {editingTask && (
-        <EditTaskModal 
-          visible={!!editingTask} 
+        <EditTaskModal
+          visible={!!editingTask}
           task={editingTask}
-          onClose={() => setEditingTask(null)} 
+          onClose={() => setEditingTask(null)}
         />
       )}
     </div>

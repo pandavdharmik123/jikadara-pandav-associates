@@ -1,24 +1,34 @@
 import React from 'react';
-import { Row, Col, Card, Typography, Spin, Table, Tag, Empty, Button } from 'antd';
-import { 
-  UsergroupAddOutlined, 
-  CheckSquareOutlined, 
+import { Row, Col, Card, Typography, Table, Tag, Empty, Button } from 'antd';
+import {
+  UsergroupAddOutlined,
+  CheckSquareOutlined,
   CheckCircleOutlined,
   ArrowRightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import Loader from '../../components/Loader';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
+import useAuthStore from '../../store/authStore';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentData();
 
+  const getGreeting = () => {
+    const hour = dayjs().hour();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   if (statsLoading || recentLoading) {
-    return <div style={{ textAlign: 'center', padding: '100px' }}><Spin size="large" /></div>;
+    return <Loader />;
   }
 
   const recentTasksColumns = [
@@ -69,8 +79,8 @@ export default function Dashboard() {
     <div className="advocate-module">
       <div className="page-header">
         <div>
-          <Title level={2}>Dashboard</Title>
-          <Text type="secondary">Summary of your tasks and clients</Text>
+          <Title level={2}>{getGreeting()}, {user?.name || 'User'}!</Title>
+          {/* <Text type="secondary">Summary of your tasks and clients</Text> */}
         </div>
       </div>
 
@@ -140,19 +150,19 @@ export default function Dashboard() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card 
-            className="glass-panel" 
-            bordered={false} 
+          <Card
+            className="glass-panel"
+            bordered={false}
             title="Recent Tasks"
             extra={<Button type="link" onClick={() => navigate('/app/tasks')}>View All <ArrowRightOutlined /></Button>}
             styles={{ body: { padding: 0 } }}
           >
             {recent?.recentTasks?.length > 0 ? (
-              <Table 
-                columns={recentTasksColumns} 
-                dataSource={recent.recentTasks} 
-                rowKey="id" 
-                pagination={false} 
+              <Table
+                columns={recentTasksColumns}
+                dataSource={recent.recentTasks}
+                rowKey="id"
+                pagination={false}
                 size="small"
               />
             ) : (
@@ -161,19 +171,19 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card 
-            className="glass-panel" 
-            bordered={false} 
+          <Card
+            className="glass-panel"
+            bordered={false}
             title="New Clients"
             extra={<Button type="link" onClick={() => navigate('/app/clients')}>View All <ArrowRightOutlined /></Button>}
             styles={{ body: { padding: 0 } }}
           >
             {recent?.recentClients?.length > 0 ? (
-              <Table 
-                columns={recentClientsColumns} 
-                dataSource={recent.recentClients} 
-                rowKey="id" 
-                pagination={false} 
+              <Table
+                columns={recentClientsColumns}
+                dataSource={recent.recentClients}
+                rowKey="id"
+                pagination={false}
                 size="small"
               />
             ) : (

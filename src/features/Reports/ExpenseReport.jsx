@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty, Spin } from 'antd';
+import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty } from 'antd';
 import { BarChartOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import useAuthStore from '../../store/authStore';
+import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -10,10 +11,10 @@ const { Option } = Select;
 
 export default function ExpenseReport() {
   const { user } = useAuthStore();
-  
+
   const currentYear = dayjs().year();
   const currentMonth = dayjs().month() + 1; // 1-12
-  
+
   const [reportType, setReportType] = useState('MONTHLY'); // MONTHLY or YEARLY
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -127,32 +128,30 @@ export default function ExpenseReport() {
 
   return (
     <div className="advocate-module">
-      <div className="page-header print-hide">
+      <div className="page-header print-hide" style={{ marginBottom: 16 }}>
         <div>
-          <Title level={2}>Financial Reports</Title>
-          <Text type="secondary">View financials based on completed tasks</Text>
+          <Title level={3} style={{ margin: 0 }}>Financial Reports</Title>
+          {/* <Text type="secondary" style={{ fontSize: '13px' }}>View financials based on completed tasks</Text> */}
         </div>
-        <Button icon={<PrinterOutlined />} onClick={handlePrint}>Print</Button>
-      </div>
-
-      <Card className="glass-panel print-hide" bordered={false} style={{ marginBottom: 24 }}>
-        <Space size="middle" wrap>
-          <Select 
-            value={reportType} 
+        <Space>
+          <Select
+            value={reportType}
             onChange={setReportType}
-            size="large"
-            style={{ width: 150 }}
+            size="middle"
+            style={{ width: 120 }}
+            variant="filled"
           >
             <Option value="MONTHLY">Monthly</Option>
             <Option value="YEARLY">Yearly</Option>
           </Select>
 
           {reportType === 'MONTHLY' && (
-            <Select 
-              value={selectedMonth} 
+            <Select
+              value={selectedMonth}
               onChange={setSelectedMonth}
-              size="large"
-              style={{ width: 150 }}
+              size="middle"
+              style={{ width: 120 }}
+              variant="filled"
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <Option key={i + 1} value={i + 1}>{dayjs().month(i).format('MMMM')}</Option>
@@ -160,16 +159,20 @@ export default function ExpenseReport() {
             </Select>
           )}
 
-          <DatePicker 
-            picker="year" 
+          <DatePicker
+            picker="year"
             value={dayjs().year(selectedYear)}
             onChange={(date) => setSelectedYear(date ? date.year() : currentYear)}
-            size="large"
-            style={{ width: 120 }}
+            size="middle"
+            style={{ width: 100 }}
             allowClear={false}
+            variant="filled"
           />
+          <Button icon={<PrinterOutlined />} onClick={handlePrint}>Print</Button>
         </Space>
-      </Card>
+      </div>
+
+
 
       <div className="print-only" style={{ display: 'none', marginBottom: 20 }}>
         <h2>JIKADARA & PANDAV ASSOCIATES - Financial Report</h2>
@@ -177,32 +180,41 @@ export default function ExpenseReport() {
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>
+        <Loader />
       ) : hasData ? (
         <>
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ background: '#f6ffed', borderColor: '#b7eb8f', border: '1px solid' }}>
-                <Text type="secondary">Total Income</Text>
-                <Title level={2} style={{ color: '#52c41a', margin: '8px 0 0 0' }}>
-                  ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalIncome : yearlyData?.yearlyTotals?.totalIncome)?.toFixed(2) || '0.00'}
-                </Title>
+              <Card className="glass-panel stat-card" bordered={false} size="small">
+                <div className="stat-icon" style={{ background: 'rgba(82, 196, 26, 0.1)', color: '#52c41a' }}>₹</div>
+                <div className="stat-content">
+                  <div className="stat-value" style={{ color: '#52c41a' }}>
+                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalIncome : yearlyData?.yearlyTotals?.totalIncome)?.toFixed(2) || '0.00'}
+                  </div>
+                  <div className="stat-label">Total Income</div>
+                </div>
               </Card>
             </Col>
             <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ background: '#fff2f0', borderColor: '#ffccc7', border: '1px solid' }}>
-                <Text type="secondary">Total Expense</Text>
-                <Title level={2} style={{ color: '#ff4d4f', margin: '8px 0 0 0' }}>
-                  ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalExpense : yearlyData?.yearlyTotals?.totalExpense)?.toFixed(2) || '0.00'}
-                </Title>
+              <Card className="glass-panel stat-card" bordered={false} size="small">
+                <div className="stat-icon" style={{ background: 'rgba(255, 77, 79, 0.1)', color: '#ff4d4f' }}>₹</div>
+                <div className="stat-content">
+                  <div className="stat-value" style={{ color: '#ff4d4f' }}>
+                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.totalExpense : yearlyData?.yearlyTotals?.totalExpense)?.toFixed(2) || '0.00'}
+                  </div>
+                  <div className="stat-label">Total Expense</div>
+                </div>
               </Card>
             </Col>
             <Col xs={24} sm={8}>
-              <Card bordered={false} style={{ background: '#e6f7ff', borderColor: '#91caff', border: '1px solid' }}>
-                <Text type="secondary">Net Profit</Text>
-                <Title level={2} style={{ color: '#1890ff', margin: '8px 0 0 0' }}>
-                  ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.netAmount : yearlyData?.yearlyTotals?.netAmount)?.toFixed(2) || '0.00'}
-                </Title>
+              <Card className="glass-panel stat-card" bordered={false} size="small">
+                <div className="stat-icon" style={{ background: 'rgba(24, 144, 255, 0.1)', color: '#1890ff' }}>₹</div>
+                <div className="stat-content">
+                  <div className="stat-value" style={{ color: '#1890ff' }}>
+                    ₹{(reportType === 'MONTHLY' ? monthlyData?.totals?.netAmount : yearlyData?.yearlyTotals?.netAmount)?.toFixed(2) || '0.00'}
+                  </div>
+                  <div className="stat-label">Net Profit</div>
+                </div>
               </Card>
             </Col>
           </Row>
@@ -215,6 +227,7 @@ export default function ExpenseReport() {
                 rowKey="id"
                 pagination={false}
                 scroll={{ x: 600 }}
+                size="small"
               />
             ) : (
               <Table
@@ -223,6 +236,7 @@ export default function ExpenseReport() {
                 rowKey="month"
                 pagination={false}
                 scroll={{ x: 600 }}
+                size="small"
               />
             )}
           </Card>

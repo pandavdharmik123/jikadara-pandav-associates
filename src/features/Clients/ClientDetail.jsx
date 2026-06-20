@@ -1,9 +1,10 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Spin, Tag, Descriptions, Table, Space } from 'antd';
+import { Card, Typography, Button, Tag, Descriptions, Table, Space } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, CalculatorOutlined } from '@ant-design/icons';
 import { useClient } from '../../hooks/useClients';
 import dayjs from 'dayjs';
+import Loader from '../../components/Loader';
 
 const { Title, Text } = Typography;
 
@@ -13,7 +14,7 @@ export default function ClientDetail() {
   const { data: client, isLoading } = useClient(id);
 
   if (isLoading) {
-    return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+    return <Loader />;
   }
 
   if (!client) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Drawer, Grid, Typography } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Typography, Dropdown, Avatar, Space } from 'antd';
 import {
   MenuOutlined,
   LogoutOutlined,
@@ -14,13 +14,15 @@ import {
   CalculatorOutlined,
   FormOutlined,
   ContainerOutlined,
-  FieldStringOutlined
+  FieldStringOutlined,
+  DownOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import useAuthStore from '../store/authStore';
 
 const { Header, Sider, Content } = Layout;
 
-export default function MainLayout({ themeMode, currentAccentColor, setMainTab }) {
+export default function MainLayout({ themeMode, currentAccentColor }) {
   const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
@@ -34,17 +36,43 @@ export default function MainLayout({ themeMode, currentAccentColor, setMainTab }
     navigate('/login');
   };
 
-  const handleMenuClick = (e) => {
-    // If it's an existing tool, we update the mainTab state and navigate to /app/tools
-    const existingTools = ['translator', 'universal', 'jantri', 'rent_agreement', 'invoice', 'number_to_words', 'studio'];
-    
-    if (existingTools.includes(e.key)) {
-      setMainTab(e.key);
-      navigate(`/app/tools`);
-    } else {
-      navigate(e.key);
+  const userMenu = {
+    items: [
+      {
+        key: 'profile',
+        icon: <UserOutlined style={{ fontSize: 16 }} />,
+        label: <span style={{ fontSize: 15, fontWeight: 500, marginLeft: 8 }}>My Profile</span>,
+        style: { padding: '10px 16px', borderRadius: 8, marginBottom: 4 }
+      },
+      {
+        type: 'divider',
+        style: { margin: '4px 0' }
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined style={{ fontSize: 16 }} />,
+        label: <span style={{ fontSize: 15, fontWeight: 500, marginLeft: 8 }}>Logout</span>,
+        danger: true,
+        style: { padding: '10px 16px', borderRadius: 8, marginTop: 4 }
+      },
+    ],
+    onClick: (e) => {
+      if (e.key === 'profile') {
+        navigate('/app/profile');
+      } else if (e.key === 'logout') {
+        handleLogout();
+      }
+    },
+    style: { 
+      padding: '8px', 
+      borderRadius: '12px', 
+      minWidth: '200px', 
+      boxShadow: '0 12px 28px rgba(0,0,0,0.12)' 
     }
-    
+  };
+
+  const handleMenuClick = (e) => {
+    navigate(e.key);
     if (isMobile) {
       setCollapsed(true);
     }
@@ -83,32 +111,32 @@ export default function MainLayout({ themeMode, currentAccentColor, setMainTab }
 
   const existingMenuItems = [
     {
-      key: 'translator',
+      key: '/app/tools/translator',
       icon: <TranslationOutlined style={{ fontSize: 18 }} />,
       label: 'Eng to Guj',
     },
     {
-      key: 'universal',
+      key: '/app/tools/universal',
       icon: <BgColorsOutlined style={{ fontSize: 18 }} />,
       label: 'Universal Converter',
     },
     {
-      key: 'jantri',
+      key: '/app/tools/jantri',
       icon: <CalculatorOutlined style={{ fontSize: 18 }} />,
       label: 'Jantri Calculator',
     },
     {
-      key: 'rent_agreement',
+      key: '/app/tools/rent_agreement',
       icon: <FormOutlined style={{ fontSize: 18 }} />,
       label: 'Rent Agreement',
     },
     {
-      key: 'invoice',
+      key: '/app/tools/invoice',
       icon: <ContainerOutlined style={{ fontSize: 18 }} />,
       label: 'Invoice Generator',
     },
     {
-      key: 'number_to_words',
+      key: '/app/tools/number_to_words',
       icon: <FieldStringOutlined style={{ fontSize: 18 }} />,
       label: 'Numbers to Words',
     }
@@ -132,12 +160,8 @@ export default function MainLayout({ themeMode, currentAccentColor, setMainTab }
     }
   ];
 
-  // Determine selected key based on URL, or fallback to tools
+  // Determine selected key based on URL
   let selectedKey = location.pathname;
-  if (location.pathname === '/app/tools') {
-    // We would ideally read mainTab here, but we'll let it highlight the general section or leave it
-    // For now, we'll just use the pathname for advocate paths
-  }
 
   return (
     <Layout style={{ minHeight: '100vh', display: 'flex' }}>
@@ -168,12 +192,36 @@ export default function MainLayout({ themeMode, currentAccentColor, setMainTab }
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {!isMobile && <Typography.Text>{user?.name}</Typography.Text>}
-          <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout}>
-            Logout
-          </Button>
-        </div>
+        <Dropdown 
+          menu={userMenu} 
+          placement="bottomRight" 
+          trigger={['click']}
+          overlayStyle={{ paddingTop: '16px' }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 12, 
+            cursor: 'pointer', 
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: themeMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+          }}>
+            <Avatar 
+              size={38} 
+              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.name || 'User'}&backgroundColor=e6f4ff`} 
+            />
+            {!isMobile && (
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{user?.name || 'User'}</span>
+                <span style={{ fontSize: '12px', color: '#888', textTransform: 'capitalize' }}>
+                  {user?.role?.toLowerCase() || 'Member'}
+                </span>
+              </div>
+            )}
+            <DownOutlined style={{ fontSize: 12, color: '#888' }} />
+          </div>
+        </Dropdown>
       </Header>
 
       <Layout style={{ marginTop: 64 }}>

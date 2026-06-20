@@ -53,30 +53,46 @@
     .ant-card-body {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      padding: 12px 16px !important;
     }
     
     .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 18px;
     }
     
     .stat-content {
       flex: 1;
       .stat-value {
-        font-size: 24px;
+        font-size: 18px;
         font-weight: 700;
         line-height: 1.2;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
       .stat-label {
-        font-size: 14px;
+        font-size: 12px;
         color: var(--text-secondary);
+      }
+    }
+  }
+
+  .full-height-table {
+    .ant-table-body {
+      height: calc(100vh - 260px) !important;
+    }
+    .ant-table-placeholder {
+      height: calc(100vh - 260px) !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .ant-empty-normal {
+        margin-block: 0;
       }
     }
   }

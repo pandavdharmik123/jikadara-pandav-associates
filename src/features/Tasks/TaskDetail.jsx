@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Spin, Tag, Table, Space, Modal, message, Statistic, Row, Col, Alert } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined, DeleteOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
-import { useTask, useDeleteTransaction, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
+import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert } from 'antd';
+import { ArrowLeftOutlined, CheckCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
-import AddTransactionModal from './AddTransactionModal';
+import EditableTransactionTable from './EditableTransactionTable';
+import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -13,38 +14,20 @@ export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [isAddTxModalVisible, setIsAddTxModalVisible] = useState(false);
 
   const { data: task, isLoading } = useTask(id);
-  const deleteTransactionMutation = useDeleteTransaction();
   const markDoneMutation = useMarkTaskDone();
   const reopenMutation = useReopenTask();
 
   if (isLoading) {
-    return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+    return <Loader />;
   }
 
   if (!task) {
     return <div style={{ textAlign: 'center', padding: '50px' }}>Task not found</div>;
   }
 
-  const handleDeleteTx = (txId) => {
-    Modal.confirm({
-      title: 'Delete Transaction?',
-      content: 'Are you sure you want to delete this transaction?',
-      okText: 'Yes',
-      okType: 'danger',
-      cancelText: 'No',
-      onOk: async () => {
-        try {
-          await deleteTransactionMutation.mutateAsync({ id: txId, taskId: task.id });
-          message.success('Transaction deleted');
-        } catch (error) {
-          message.error('Failed to delete transaction');
-        }
-      },
-    });
-  };
+
 
   const handleToggleStatus = () => {
     const isDone = task.status === 'DONE';
@@ -76,55 +59,7 @@ export default function TaskDetail() {
   const isTaskDone = task.status === 'DONE';
   const canToggleStatus = user?.role === 'ADMIN' || user?.role === 'SENIOR';
 
-  const columns = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type) => (
-        <Tag color={type === 'INCOME' ? 'success' : 'error'}>
-          {type === 'INCOME' ? 'Income' : 'Expense'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      render: (amount, record) => {
-        const color = record.type === 'INCOME' ? 'success' : 'danger';
-        return <Text type={color} strong>₹{Number(amount).toFixed(2)}</Text>;
-      },
-    },
-    {
-      title: '',
-      key: 'actions',
-      align: 'right',
-      render: (_, record) => (
-        !isTaskDone && (
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteTx(record.id)}
-            title="Delete"
-          />
-        )
-      ),
-    },
-  ];
+
 
   // Calculate current totals dynamically if ACTIVE, else use stored totals
   let displayIncome = Number(task.totalIncome) || 0;
@@ -217,43 +152,32 @@ export default function TaskDetail() {
         </Col>
       </Row>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Transactions</Title>
-        {!isTaskDone && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddTxModalVisible(true)}
-          >
-            Add Transaction
-          </Button>
-        )}
-      </div>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={12}>
+          <EditableTransactionTable 
+            taskId={task.id} 
+            type="INCOME" 
+            transactions={task.transactions?.filter(t => t.type === 'INCOME') || []} 
+            isTaskDone={isTaskDone} 
+          />
+        </Col>
+        
+        <Col xs={24} lg={12}>
+          <EditableTransactionTable 
+            taskId={task.id} 
+            type="EXPENSE" 
+            transactions={task.transactions?.filter(t => t.type === 'EXPENSE') || []} 
+            isTaskDone={isTaskDone} 
+          />
+        </Col>
+      </Row>
 
-      <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
-        <Table
-          columns={columns}
-          dataSource={task.transactions || []}
-          rowKey="id"
-          pagination={false}
-          scroll={{ x: 600 }}
-          summary={() => (
-            <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
-              <Table.Summary.Cell index={0} colSpan={3}>Total</Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right">
-                <Text type={displayNet >= 0 ? 'success' : 'danger'}>₹{displayNet.toFixed(2)}</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={2}></Table.Summary.Cell>
-            </Table.Summary.Row>
-          )}
-        />
+      <Card className="glass-panel" bordered={false} styles={{ body: { padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}>
+        <Title level={4} style={{ margin: 0 }}>Net Amount (Total Profit)</Title>
+        <Title level={4} style={{ margin: 0, color: displayNet >= 0 ? '#1890ff' : '#ff4d4f' }}>
+          ₹{displayNet.toFixed(2)}
+        </Title>
       </Card>
-
-      <AddTransactionModal
-        visible={isAddTxModalVisible}
-        taskId={task.id}
-        onClose={() => setIsAddTxModalVisible(false)}
-      />
     </div>
   );
 }
