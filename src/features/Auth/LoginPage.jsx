@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Checkbox, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
-
-const { Title, Text } = Typography;
+import './login.scss'; // Importing specific scoped styles
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -28,54 +27,83 @@ const LoginPage = () => {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      background: '#f5f7fa',
-      padding: '20px'
-    }}>
-      <Card
-        className="glass-panel"
-        style={{ width: 100, maxWidth: 400, width: '100%', borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/logo.png" alt="Logo" style={{ height: 60, marginBottom: 16 }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
-            JIKADARA & PANDAV ASSOCIATES
-          </Title>
-          <Text type="secondary">Advocate and Legal Consultants</Text>
+    <div className="login-container">
+      {/* Left Hero Section (65%) */}
+      <div className="login-hero">
+        <div className="floating-elements">
+          <div className="float-item scales">⚖️</div>
+          <div className="float-item doc">📜</div>
+          <div className="float-item court">🏛️</div>
         </div>
+        
+        <div className="hero-content">
+          <h1>JIKADARA & PANDAV<br/>ASSOCIATES</h1>
+          <h3>Advocate and Legal Consultants</h3>
+          
+          <ul>
+            <li>Professional Legal Services</li>
+            <li>Case Management</li>
+            <li>Client Consultation</li>
+            <li>Document Tracking</li>
+            <li>Secure Legal Portal</li>
+          </ul>
+          
+          <div className="trust-badge">
+            ✦ Trusted Legal Excellence
+          </div>
+        </div>
+      </div>
 
-        <Form
-          name="login"
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          size="large"
-          layout="vertical"
-        >
-          <Form.Item
-            name="email"
-            rules={[{ required: true, message: 'Please input your email!' }]}
+      {/* Right Login Panel (35%) */}
+      <div className="login-panel">
+        <div className="glass-login-card">
+          <div className="login-header">
+            <img src="/logo.png" alt="Logo" />
+            <h2>Welcome Back</h2>
+            <p>Access Your Legal Dashboard</p>
+          </div>
+
+          <Form
+            name="login"
+            initialValues={{ remember: true }}
+            onFinish={onFinish}
+            size="large"
+            layout="vertical"
           >
-            <Input prefix={<UserOutlined />} placeholder="Email" />
-          </Form.Item>
+            <Form.Item
+              name="email"
+              rules={[{ required: true, message: 'Please input your email!' }]}
+            >
+              <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Email Address" />
+            </Form.Item>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Please input your password!' }]}
+            >
+              <Input.Password prefix={<LockOutlined style={{ color: '#bfbfbf' }} />} placeholder="Password" />
+            </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" style={{ width: '100%' }} loading={loading}>
-              Log in
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox>Remember Me</Checkbox>
+              </Form.Item>
+              <a href="#" style={{ color: '#D4AF37', fontWeight: 500 }}>Forgot Password?</a>
+            </div>
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button type="primary" htmlType="submit" style={{ width: '100%' }} loading={loading}>
+                Sign In
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div className="login-footer">
+            <p>Need Assistance?</p>
+            <a href="#">Contact Office</a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
