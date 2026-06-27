@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { Layout, Menu, Button, Drawer, Grid, Input, Dropdown, Avatar, Badge } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Input, Dropdown, Avatar, Badge, Select } from 'antd';
 import {
   Menu as MenuIcon,
   LogOut,
@@ -21,9 +21,11 @@ import {
   Search,
   Bell,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Files
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import { useFinancialYears } from '../hooks/useFinancialYears';
 
 const { Header, Sider, Content } = Layout;
 
@@ -34,12 +36,20 @@ export default function MainLayout() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, activeFinancialYear, setActiveFinancialYear } = useAuthStore();
+  const { data: financialYears, isLoading: fyLoading } = useFinancialYears();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  React.useEffect(() => {
+    if (financialYears && financialYears.length > 0 && !activeFinancialYear) {
+      const defaultFy = financialYears.find(f => f.isDefault) || financialYears[0];
+      setActiveFinancialYear(defaultFy);
+    }
+  }, [financialYears, activeFinancialYear, setActiveFinancialYear]);
 
   const userMenu = {
     items: [
@@ -107,11 +117,18 @@ export default function MainLayout() {
   ];
 
   if (user?.role === 'ADMIN') {
-    advocateMenuItems.push({
-      key: '/app/admin/users',
-      icon: <Settings size={20} />,
-      label: 'Admin Panel',
-    });
+    advocateMenuItems.push(
+      {
+        key: '/app/admin/users',
+        icon: <Settings size={20} />,
+        label: 'Admin Panel',
+      },
+      {
+        key: '/app/admin/document-types',
+        icon: <Files size={20} />,
+        label: 'Document Types',
+      }
+    );
   }
 
   const existingMenuItems = [
@@ -275,7 +292,7 @@ export default function MainLayout() {
           lineHeight: 'normal',
           position: 'sticky',
           top: 0,
-          zIndex: 99
+          zIndex: 999
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16, flex: 1, height: '100%' }}>
             {isMobile && (
@@ -294,6 +311,25 @@ export default function MainLayout() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24 }}>
+            {!isMobile && (
+              <Select
+                placeholder="Select Financial Year"
+                value={activeFinancialYear?.id || undefined}
+                onChange={(id) => {
+                  const fy = financialYears?.find(f => f.id === id);
+                  setActiveFinancialYear(fy);
+                }}
+                style={{ width: 200 }}
+                loading={fyLoading}
+              >
+                {financialYears?.map(fy => (
+                  <Select.Option key={fy.id} value={fy.id}>
+                    {fy.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            )}
+
             <Badge dot color="red">
               <Bell size={20} color="#64748b" style={{ cursor: 'pointer' }} />
             </Badge>
@@ -313,10 +349,11 @@ export default function MainLayout() {
           </div>
         </Header>
 
-        <Content style={{ padding: isMobile ? '16px' : '32px 32px 32px 32px', overflow: 'initial' }}>
+        <Content style={{ padding: '16px', overflow: 'initial' }}>
           <Outlet />
         </Content>
       </Layout>
+
     </Layout>
   );
 }

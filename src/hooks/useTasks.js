@@ -1,14 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
-// Fetch all tasks (with optional clientId and status filters)
-export const useTasks = (clientId = '', status = '') => {
+// Fetch all tasks (with optional filters)
+export const useTasks = (clientId = '', status = '', startDate = '', endDate = '') => {
   return useQuery({
-    queryKey: ['tasks', clientId, status],
+    queryKey: ['tasks', clientId, status, startDate, endDate],
     queryFn: async () => {
       const params = {};
       if (clientId) params.clientId = clientId;
       if (status) params.status = status;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
       const { data } = await api.get('/tasks', { params });
       return data.tasks;
     },

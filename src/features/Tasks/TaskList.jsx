@@ -20,7 +20,7 @@ export default function TaskList() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const { user, activeFinancialYear } = useAuthStore();
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
 
@@ -36,7 +36,12 @@ export default function TaskList() {
     }
   }, [initialAddClient, navigate]);
 
-  const { data: tasks, isLoading } = useTasks('', statusFilter);
+  const { data: tasks, isLoading } = useTasks(
+    '',
+    statusFilter,
+    activeFinancialYear?.startDate,
+    activeFinancialYear?.endDate
+  );
   const deleteTaskMutation = useDeleteTask();
 
   const handleDelete = (id) => {
@@ -59,6 +64,30 @@ export default function TaskList() {
 
   const columns = [
     {
+      title: 'Date',
+      dataIndex: 'startDate',
+      key: 'startDate',
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+    },
+    {
+      title: 'Document Type',
+      dataIndex: 'documentType',
+      key: 'documentType',
+      render: (text, record) => (
+        <Space size="small">
+          <NotebookText size={16} style={{ color: '#64748b' }} />
+          <a onClick={() => navigate(`/app/tasks/${record.id}`)} style={{ fontWeight: 600, color: '#0f172a' }}>{text}</a>
+        </Space>
+      )
+    },
+    {
+      title: 'Place',
+      dataIndex: 'place',
+      key: 'place',
+      align: 'center',
+      render: (text) => text || '-',
+    },
+    {
       title: 'Client',
       dataIndex: ['client', 'name'],
       key: 'client',
@@ -79,26 +108,9 @@ export default function TaskList() {
       },
     },
     {
-      title: 'Document',
-      dataIndex: 'documentType',
-      key: 'documentType',
-      render: (text, record) => (
-        <Space size="small">
-          <NotebookText size={16} style={{ color: '#64748b' }} />
-          <a onClick={() => navigate(`/app/tasks/${record.id}`)} style={{ fontWeight: 600, color: '#0f172a' }}>{text}</a>
-        </Space>
-      )
-    },
-    {
       title: 'Reference',
       dataIndex: 'referenceName',
       key: 'referenceName',
-    },
-    {
-      title: 'Start Date',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
     },
     {
       title: 'Status',
@@ -107,7 +119,7 @@ export default function TaskList() {
       width: 100,
       render: (status) => (
         <Tag style={
-          status === 'ACTIVE' 
+          status === 'ACTIVE'
             ? { backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
             : { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
         }>
@@ -148,13 +160,13 @@ export default function TaskList() {
 
   return (
     <div className="advocate-module">
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        justifyContent: 'space-between', 
-        alignItems: isMobile ? 'stretch' : 'center', 
-        marginBottom: 20, 
-        gap: 16 
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'stretch' : 'center',
+        marginBottom: 16,
+        gap: 16
       }}>
         <div>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Tasks</Title>
@@ -194,10 +206,10 @@ export default function TaskList() {
           size="small"
           locale={{
             emptyText: (
-              <EmptyState 
-                icon={NotebookText} 
-                title="No tasks found" 
-                description="Try adjusting your search or filter criteria." 
+              <EmptyState
+                icon={NotebookText}
+                title="No tasks found"
+                description="Try adjusting your search or filter criteria."
               />
             )
           }}

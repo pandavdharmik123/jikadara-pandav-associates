@@ -21,11 +21,17 @@ router.get('/', requireAuth, async (req, res) => {
       ];
     }
 
+    const { fyStartDate, fyEndDate } = req.query;
+    let fyFilter = {};
+    if (fyStartDate && fyEndDate) {
+      fyFilter = { startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) } };
+    }
+
     const clients = await prisma.client.findMany({
       where,
       include: {
-        _count: { select: { tasks: true } },
-        tasks: { select: { status: true } },
+        _count: { select: { tasks: { where: fyFilter } } },
+        tasks: { where: fyFilter, select: { status: true } },
         user: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -47,10 +53,17 @@ router.get('/:id', requireAuth, async (req, res) => {
     const where = { id: req.params.id };
     if (req.user.role !== 'ADMIN') where.userId = req.user.id;
 
+    const { fyStartDate, fyEndDate } = req.query;
+    let fyFilter = {};
+    if (fyStartDate && fyEndDate) {
+      fyFilter = { startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) } };
+    }
+
     const client = await prisma.client.findFirst({
       where,
       include: {
         tasks: {
+          where: fyFilter,
           orderBy: { createdAt: 'desc' },
           include: { _count: { select: { transactions: true } } },
         },

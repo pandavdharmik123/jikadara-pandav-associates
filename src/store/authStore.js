@@ -7,10 +7,13 @@ const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
+      activeFinancialYear: null,
 
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false, activeFinancialYear: null }),
+      
+      setActiveFinancialYear: (fy) => set({ activeFinancialYear: fy }),
       
       updateUser: (userData) => set((state) => ({ user: { ...state.user, ...userData } })),
     }),

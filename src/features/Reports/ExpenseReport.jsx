@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function ExpenseReport() {
-  const { user } = useAuthStore();
+  const { user, activeFinancialYear } = useAuthStore();
 
   const currentYear = dayjs().year();
   const currentMonth = dayjs().month() + 1; // 1-12
@@ -34,11 +34,15 @@ export default function ExpenseReport() {
   }
 
   const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyReport(
+    reportType === 'MONTHLY' ? activeFinancialYear?.startDate : null,
+    reportType === 'MONTHLY' ? activeFinancialYear?.endDate : null,
     reportType === 'MONTHLY' ? selectedYear : null,
     reportType === 'MONTHLY' ? selectedMonth : null
   );
 
   const { data: yearlyData, isLoading: yearlyLoading } = useYearlyReport(
+    reportType === 'YEARLY' ? activeFinancialYear?.startDate : null,
+    reportType === 'YEARLY' ? activeFinancialYear?.endDate : null,
     reportType === 'YEARLY' ? selectedYear : null
   );
 
@@ -48,12 +52,7 @@ export default function ExpenseReport() {
       title: 'Date',
       dataIndex: 'startDate',
       key: 'startDate',
-      render: (text) => dayjs(text).format('DD/MM/YYYY'),
-    },
-    {
-      title: 'Client',
-      dataIndex: ['client', 'name'],
-      key: 'client',
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
     },
     {
       title: 'Document Type',
@@ -61,24 +60,21 @@ export default function ExpenseReport() {
       key: 'documentType',
     },
     {
+      title: 'Place',
+      dataIndex: 'place',
+      key: 'place',
+      render: (text) => text || '-',
+    },
+    {
+      title: 'Client',
+      dataIndex: ['client', 'name'],
+      key: 'client',
+    },
+    {
       title: 'Reference',
       dataIndex: 'referenceName',
       key: 'referenceName',
       render: (text) => text || '-',
-    },
-    {
-      title: 'Income',
-      dataIndex: 'totalIncome',
-      key: 'totalIncome',
-      align: 'right',
-      render: (val) => <Text type="success">{formatCurrency(val)}</Text>,
-    },
-    {
-      title: 'Expense',
-      dataIndex: 'totalExpense',
-      key: 'totalExpense',
-      align: 'right',
-      render: (val) => <Text type="danger">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Net Profit',
@@ -98,7 +94,7 @@ export default function ExpenseReport() {
       title: 'Month',
       dataIndex: 'month',
       key: 'month',
-      render: (val) => dayjs().month(val - 1).format('MMMM'),
+      render: (val, record) => dayjs().month(val - 1).year(record.year || dayjs().year()).format('MMM YYYY'),
     },
     {
       title: 'Completed Tasks',
@@ -168,15 +164,17 @@ export default function ExpenseReport() {
             </Select>
           )}
 
-          <DatePicker
-            picker="year"
-            value={dayjs().year(selectedYear)}
-            onChange={(date) => setSelectedYear(date ? date.year() : currentYear)}
-            size="middle"
-            style={{ width: 100 }}
-            allowClear={false}
-            variant="filled"
-          />
+          {(reportType === 'MONTHLY' || !activeFinancialYear) && (
+            <DatePicker
+              picker="year"
+              value={dayjs().year(selectedYear)}
+              onChange={(date) => setSelectedYear(date ? date.year() : currentYear)}
+              size="middle"
+              style={{ width: 100 }}
+              allowClear={false}
+              variant="filled"
+            />
+          )}
         </Space>
       </div>
 
@@ -238,7 +236,7 @@ export default function ExpenseReport() {
                 className="modern-dashboard-table"
                 columns={yearlyColumns}
                 dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
-                rowKey="month"
+                rowKey="key"
                 pagination={false}
                 scroll={{ x: 600 }}
                 size="small"
@@ -248,9 +246,9 @@ export default function ExpenseReport() {
         </>
       ) : (
         <Card className="glass-panel" bordered={false}>
-          <EmptyState 
-            icon={FileLineChart} 
-            title="No data available" 
+          <EmptyState
+            icon={FileLineChart}
+            title="No data available"
             description="There are no completed tasks for the selected period."
           />
         </Card>

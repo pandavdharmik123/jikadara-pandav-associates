@@ -2,22 +2,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
 // Fetch all clients (with optional search query)
-export const useClients = (search = '') => {
+export const useClients = (search = '', fyStartDate = '', fyEndDate = '') => {
   return useQuery({
-    queryKey: ['clients', search],
+    queryKey: ['clients', search, fyStartDate, fyEndDate],
     queryFn: async () => {
-      const { data } = await api.get('/clients', { params: { search } });
+      const params = { search };
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      const { data } = await api.get('/clients', { params });
       return data.clients;
     },
   });
 };
 
 // Fetch a single client by ID
-export const useClient = (id) => {
+export const useClient = (id, fyStartDate = '', fyEndDate = '') => {
   return useQuery({
-    queryKey: ['client', id],
+    queryKey: ['client', id, fyStartDate, fyEndDate],
     queryFn: async () => {
-      const { data } = await api.get(`/clients/${id}`);
+      const params = {};
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      const { data } = await api.get(`/clients/${id}`, { params });
       return data.client;
     },
     enabled: !!id,

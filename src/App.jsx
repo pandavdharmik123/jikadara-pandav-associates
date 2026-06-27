@@ -14,6 +14,7 @@ import ClientRoutes from './features/Clients';
 import TaskRoutes from './features/Tasks';
 import ExpenseReport from './features/Reports/ExpenseReport';
 import AdminUsers from './features/Admin/AdminUsers';
+import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
 import UserProfile from './features/Profile/UserProfile';
 
 // Existing Tools
@@ -131,6 +132,7 @@ export default function App() {
                 {/* Admin Only Route */}
                 <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                   <Route path="admin/users" element={<AdminUsers />} />
+                  <Route path="admin/document-types" element={<DocumentTypesAdmin />} />
                 </Route>
 
                 {/* Legacy Tools */}

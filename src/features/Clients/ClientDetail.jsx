@@ -8,13 +8,15 @@ import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import AddTaskModal from '../Tasks/AddTaskModal';
 import { formatCurrency } from '../../utils/currency';
+import useAuthStore from '../../store/authStore';
 
 const { Title, Text } = Typography;
 
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: client, isLoading } = useClient(id);
+  const { user, activeFinancialYear } = useAuthStore();
+  const { data: client, isLoading } = useClient(id, activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
   if (isLoading) {
@@ -29,6 +31,12 @@ export default function ClientDetail() {
 
   const columns = [
     {
+      title: 'Start Date',
+      dataIndex: 'startDate',
+      key: 'startDate',
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+    },
+    {
       title: 'Document Type',
       dataIndex: 'documentType',
       key: 'documentType',
@@ -38,12 +46,6 @@ export default function ClientDetail() {
           <a onClick={() => navigate(`/app/tasks/${record.id}`)} style={{ fontWeight: 600, color: '#0f172a' }}>{text}</a>
         </Space>
       ),
-    },
-    {
-      title: 'Start Date',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
     },
     {
       title: 'Status',
@@ -108,7 +110,7 @@ export default function ClientDetail() {
         </Button>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
           <Space align="center" size="middle">
             <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -160,10 +162,10 @@ export default function ClientDetail() {
           scroll={{ x: 800 }}
           locale={{
             emptyText: (
-              <EmptyState 
-                icon={NotebookText} 
-                title="No tasks yet" 
-                description="Add a task for this client to get started." 
+              <EmptyState
+                icon={NotebookText}
+                title="No tasks yet"
+                description="Add a task for this client to get started."
               />
             )
           }}

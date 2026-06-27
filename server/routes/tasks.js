@@ -14,6 +14,13 @@ router.get('/', requireAuth, async (req, res) => {
     const where = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
     if (req.query.clientId) where.clientId = req.query.clientId;
     if (req.query.status) where.status = req.query.status;
+    
+    if (req.query.startDate && req.query.endDate) {
+      where.startDate = {
+        gte: new Date(req.query.startDate),
+        lte: new Date(req.query.endDate),
+      };
+    }
 
     const tasks = await prisma.task.findMany({
       where,
@@ -65,7 +72,7 @@ router.get('/:id', requireAuth, async (req, res) => {
  */
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { clientId, documentType, referenceName, startDate } = req.body;
+    const { clientId, documentType, referenceName, startDate, place } = req.body;
 
     if (!clientId || !documentType) {
       return res.status(400).json({ error: 'clientId and documentType are required' });
@@ -86,6 +93,7 @@ router.post('/', requireAuth, async (req, res) => {
         userId: req.user.id,
         documentType,
         referenceName: referenceName || client.referenceName || '',
+        place: place || '',
         startDate: startDate ? new Date(startDate) : new Date(),
       },
       include: {
@@ -118,13 +126,14 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Cannot edit a completed task' });
     }
 
-    const { documentType, referenceName, startDate } = req.body;
+    const { documentType, referenceName, startDate, place } = req.body;
 
     const task = await prisma.task.update({
       where: { id: req.params.id },
       data: {
         ...(documentType !== undefined && { documentType }),
         ...(referenceName !== undefined && { referenceName }),
+        ...(place !== undefined && { place }),
         ...(startDate !== undefined && { startDate: new Date(startDate) }),
       },
     });

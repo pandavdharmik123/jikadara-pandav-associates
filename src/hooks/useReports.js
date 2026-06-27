@@ -1,44 +1,57 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (fyStartDate, fyEndDate) => {
   return useQuery({
-    queryKey: ['dashboard', 'stats'],
+    queryKey: ['dashboard', 'stats', fyStartDate, fyEndDate],
     queryFn: async () => {
-      const { data } = await api.get('/reports/dashboard');
+      const params = {};
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      const { data } = await api.get('/reports/dashboard', { params });
       return data.stats;
     },
   });
 };
 
-export const useRecentData = () => {
+export const useRecentData = (fyStartDate, fyEndDate) => {
   return useQuery({
-    queryKey: ['dashboard', 'recent'],
+    queryKey: ['dashboard', 'recent', fyStartDate, fyEndDate],
     queryFn: async () => {
-      const { data } = await api.get('/reports/recent');
+      const params = {};
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      const { data } = await api.get('/reports/recent', { params });
       return data;
     },
   });
 };
 
-export const useMonthlyReport = (year, month) => {
+export const useMonthlyReport = (fyStartDate, fyEndDate, year, month) => {
   return useQuery({
-    queryKey: ['report', 'monthly', year, month],
+    queryKey: ['report', 'monthly', fyStartDate, fyEndDate, year, month],
     queryFn: async () => {
-      const { data } = await api.get('/reports/monthly', { params: { year, month } });
+      const params = { year, month };
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      const { data } = await api.get('/reports/monthly', { params });
       return data;
     },
     enabled: !!year && !!month,
   });
 };
 
-export const useYearlyReport = (year) => {
+export const useYearlyReport = (fyStartDate, fyEndDate, year) => {
   return useQuery({
-    queryKey: ['report', 'yearly', year],
+    queryKey: ['report', 'yearly', fyStartDate, fyEndDate, year],
     queryFn: async () => {
-      const { data } = await api.get('/reports/yearly', { params: { year } });
+      const params = {};
+      if (fyStartDate) params.fyStartDate = fyStartDate;
+      if (fyEndDate) params.fyEndDate = fyEndDate;
+      if (year) params.year = year;
+      const { data } = await api.get('/reports/yearly', { params });
       return data;
     },
-    enabled: !!year,
+    enabled: !!fyStartDate || !!year,
   });
 };

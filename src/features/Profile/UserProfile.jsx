@@ -3,6 +3,7 @@ import { Card, Typography, Avatar, Descriptions, Tag, Row, Col, Space } from 'an
 import { User, Mail, ShieldCheck, Calendar } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import dayjs from 'dayjs';
+import FinancialYearManager from '../../components/FinancialYearManager';
 
 const { Title, Text } = Typography;
 
@@ -57,6 +58,12 @@ export default function UserProfile() {
               </Descriptions.Item>
             </Descriptions>
           </Card>
+        </Col>
+      </Row>
+
+      <Row>
+        <Col span={24}>
+          <FinancialYearManager />
         </Col>
       </Row>
     </div>

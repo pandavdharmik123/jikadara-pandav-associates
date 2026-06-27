@@ -1,30 +1,24 @@
-import React, { useEffect } from 'react';
-import { Modal, Form, Input, Select, DatePicker, message, Spin } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Modal, Form, Input, Select, DatePicker, message, Spin, Space } from 'antd';
 import { useCreateTask } from '../../hooks/useTasks';
 import { useClients } from '../../hooks/useClients';
+import { useDocumentTypes, useCreateDocumentType } from '../../hooks/useDocumentTypes';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 
-// Pre-defined document types
-const DOCUMENT_TYPES = [
-  'Sale Deed',
-  'Agreement to Sale',
-  'Rent Agreement',
-  'Partnership Deed',
-  'Will',
-  'Power of Attorney',
-  'Other'
-];
-
 export default function AddTaskModal({ visible, onClose, initialClientId }) {
   const [form] = Form.useForm();
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
   const createTaskMutation = useCreateTask();
+  const createDocTypeMutation = useCreateDocumentType();
   const { data: clients, isLoading: clientsLoading } = useClients();
+  const { data: documentTypes, isLoading: docTypesLoading } = useDocumentTypes();
 
   useEffect(() => {
     if (visible) {
       form.resetFields();
+      setIsOtherSelected(false);
       form.setFieldsValue({
         startDate: dayjs(),
         clientId: initialClientId || undefined
@@ -46,10 +40,35 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
     try {
       const values = await form.validateFields();
       
+      const finalDocumentType = isOtherSelected ? values.customDocumentType : values.documentType;
+
+      if (!finalDocumentType || finalDocumentType.trim() === '') {
+        message.error('Please specify a valid document type');
+        return;
+      }
+
+      const trimmedType = finalDocumentType.trim();
+
+      // If it's a custom type, attempt to save it to the global DocumentType table
+      if (isOtherSelected && documentTypes) {
+        const exists = documentTypes.some(dt => dt.name.toLowerCase() === trimmedType.toLowerCase());
+        if (!exists) {
+          try {
+            await createDocTypeMutation.mutateAsync({ name: trimmedType });
+          } catch (err) {
+            console.error('Failed to save document type globally:', err);
+            // Ignore error, we still want to save the task
+          }
+        }
+      }
+
       const taskData = {
         ...values,
+        documentType: trimmedType,
         startDate: values.startDate ? values.startDate.toISOString() : undefined,
       };
+      
+      delete taskData.customDocumentType;
 
       await createTaskMutation.mutateAsync(taskData);
       message.success('Task added successfully');
@@ -106,16 +125,29 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
           rules={[{ required: true, message: 'Document type is required' }]}
         >
           <Select 
-            placeholder="Select or type type" 
+            placeholder="Select type" 
             size="large"
             showSearch
             allowClear
+            loading={docTypesLoading}
+            onChange={(val) => setIsOtherSelected(val === 'Other')}
           >
-            {DOCUMENT_TYPES.map(type => (
-              <Option key={type} value={type}>{type}</Option>
+            {documentTypes?.map(type => (
+              <Option key={type.id} value={type.name}>{type.name}</Option>
             ))}
+            <Option key="other" value="Other">Other</Option>
           </Select>
         </Form.Item>
+
+        {isOtherSelected && (
+          <Form.Item
+            name="customDocumentType"
+            label="Custom Document Type"
+            rules={[{ required: true, message: 'Please specify the custom document type' }]}
+          >
+            <Input placeholder="Enter custom document type" size="large" />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="startDate"
@@ -131,6 +163,13 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
           tooltip="Enter here if there is a different reference"
         >
           <Input placeholder="Enter Reference Name" size="large" />
+        </Form.Item>
+
+        <Form.Item
+          name="place"
+          label="Place"
+        >
+          <Input placeholder="Enter Place" size="large" />
         </Form.Item>
       </Form>
     </Modal>

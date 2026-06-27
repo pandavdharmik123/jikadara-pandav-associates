@@ -7,6 +7,8 @@ import clientRoutes from './routes/clients.js';
 import taskRoutes from './routes/tasks.js';
 import transactionRoutes from './routes/transactions.js';
 import reportRoutes from './routes/reports.js';
+import documentTypeRoutes from './routes/documentTypes.js';
+import financialYearRoutes from './routes/financialYears.js';
 
 dotenv.config();
 
@@ -26,6 +28,8 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/documentTypes', documentTypeRoutes);
+app.use('/api/financialYears', financialYearRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

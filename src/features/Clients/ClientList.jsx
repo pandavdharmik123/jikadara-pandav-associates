@@ -18,12 +18,12 @@ export default function ClientList() {
   const [editingClient, setEditingClient] = useState(null);
 
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, activeFinancialYear } = useAuthStore();
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
 
   const debouncedSearchText = useDebounce(searchText, 500);
-  const { data: clients, isLoading } = useClients(debouncedSearchText);
+  const { data: clients, isLoading } = useClients(debouncedSearchText, activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const deleteClientMutation = useDeleteClient();
 
   const handleDelete = (id) => {

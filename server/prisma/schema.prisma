@@ -42,6 +42,7 @@ model User {
   clients      Client[]
   tasks        Task[]
   transactions TaskTransaction[]
+  financialYears FinancialYear[]
 }
 
 // ─── Client ──────────────────────────────────────────────
@@ -69,6 +70,7 @@ model Task {
   userId        String
   documentType  String
   referenceName String     @default("")
+  place         String     @default("")
   startDate     DateTime   @default(now())
   status        TaskStatus @default(ACTIVE)
   totalIncome   Decimal    @default(0) @db.Decimal(12, 2)
@@ -105,4 +107,28 @@ model TaskTransaction {
   @@index([taskId])
   @@index([userId])
   @@index([type])
+}
+
+// ─── DocumentType ────────────────────────────────────────
+
+model DocumentType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FinancialYear {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String   // e.g. "FY 2024-2025"
+  startDate DateTime
+  endDate   DateTime
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
 }

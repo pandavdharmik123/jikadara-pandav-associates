@@ -96,7 +96,10 @@ export default function AdminUsers() {
       dataIndex: 'role',
       key: 'role',
       render: (role) => (
-        <Tag color={role === 'ADMIN' ? 'red' : role === 'SENIOR' ? 'blue' : 'default'}>
+        <Tag
+          color={role === 'ADMIN' ? 'volcano' : role === 'SENIOR' ? 'geekblue' : 'default'}
+          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', border: 'none' }}
+        >
           {role}
         </Tag>
       ),
@@ -106,7 +109,10 @@ export default function AdminUsers() {
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive) => (
-        <Tag color={isActive ? 'success' : 'error'}>
+        <Tag
+          color={isActive ? 'success' : 'error'}
+          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 500, fontSize: '12px', border: 'none' }}
+        >
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
       ),
@@ -142,32 +148,31 @@ export default function AdminUsers() {
   ];
 
   return (
-    <div className="advocate-module">
-      <div className="page-header">
+    <div className="advocate-module" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <Title level={2}>Admin Panel</Title>
-          <Text type="secondary">Manage system users</Text>
+          <Title level={2} style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: '#111827' }}>Admin Panel</Title>
+          <Text style={{ color: '#6b7280', fontSize: '15px' }}>Manage system users</Text>
         </div>
         <Button
           type="primary"
-          icon={<UserPlus size={16} />}
+          icon={<UserPlus size={18} />}
           size="large"
           onClick={() => handleOpenModal()}
+          style={{ backgroundColor: '#10b981', borderColor: '#10b981', borderRadius: '8px', fontWeight: 500, padding: '0 20px', height: '44px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           Add New User
         </Button>
       </div>
 
-      <Card className="glass-panel" bordered={false} styles={{ body: { padding: 0 } }}>
+      <Card bordered={false} styles={{ body: { padding: 0 } }} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
         <Table
-          className="full-height-table"
+          className="modern-admin-table"
           columns={columns}
           dataSource={users}
           rowKey="id"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
-          pagination={{ pageSize: 10 }}
-          scroll={{ x: 800, y: 'calc(100vh - 270px)' }}
-          size="small"
+          pagination={false}
         />
       </Card>
 

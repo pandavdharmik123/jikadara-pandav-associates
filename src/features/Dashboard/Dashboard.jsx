@@ -13,9 +13,9 @@ const { Title, Text } = Typography;
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
-  const { data: recent, isLoading: recentLoading } = useRecentData();
+  const { user, activeFinancialYear } = useAuthStore();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
+  const { data: recent, isLoading: recentLoading } = useRecentData(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
 
   if (statsLoading || recentLoading) {
     return <Loader />;
@@ -42,7 +42,11 @@ export default function Dashboard() {
       key: 'status',
       align: 'right',
       render: (status) => (
-        <Tag color={status === 'ACTIVE' ? 'processing' : '#d1fae5'} style={{ color: status === 'ACTIVE' ? undefined : '#047857', border: 'none', borderRadius: '12px', padding: '0 10px', fontWeight: 600, fontSize: '12px' }}>
+        <Tag style={
+          status === 'ACTIVE'
+            ? { backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
+            : { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
+        }>
           {status === 'ACTIVE' ? 'Active' : 'Done'}
         </Tag>
       ),
@@ -124,29 +128,47 @@ export default function Dashboard() {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-        <Col span={24}>
-          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '20px' } }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>This Month's Completed Financials</Title>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981' }}>
-                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Income</Text>
-                  <Title level={3} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.monthlyIncome || 0)}</Title>
-                </div>
-              </Col>
-              <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444' }}>
-                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Expense</Text>
-                  <Title level={3} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.monthlyExpense || 0)}</Title>
-                </div>
-              </Col>
-              <Col xs={24} sm={8}>
-                <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6' }}>
-                  <Text style={{ color: '#64748b', fontWeight: 500, fontSize: '12px' }}>Net Profit</Text>
-                  <Title level={3} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.monthlyNet || 0)}</Title>
-                </div>
-              </Col>
-            </Row>
+        <Col xs={24} lg={12}>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', height: '100%' }} styles={{ body: { padding: '20px' } }}>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>
+              {activeFinancialYear ? `FY ${activeFinancialYear.name} Completed Financials` : 'Yearly Completed Financials'}
+            </Title>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Income</Text>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.fyIncome || 0)}</Title>
+              </div>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Expense</Text>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.fyExpense || 0)}</Title>
+              </div>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Net Profit</Text>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.fyNet || 0)}</Title>
+              </div>
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', height: '100%' }} styles={{ body: { padding: '20px' } }}>
+            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>
+              This Month's Completed Financials
+            </Title>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Income</Text>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.monthlyIncome || 0)}</Title>
+              </div>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expense</Text>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.monthlyExpense || 0)}</Title>
+              </div>
+              <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.monthlyNet || 0)}</Title>
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>
@@ -169,9 +191,9 @@ export default function Dashboard() {
                 pagination={false}
               />
             ) : (
-              <EmptyState 
-                icon={ClipboardList} 
-                title="No tasks found" 
+              <EmptyState
+                icon={ClipboardList}
+                title="No tasks found"
                 description="There are no recent tasks to display."
               />
             )}
@@ -194,9 +216,9 @@ export default function Dashboard() {
                 pagination={false}
               />
             ) : (
-              <EmptyState 
-                icon={FolderOpen} 
-                title="No clients found" 
+              <EmptyState
+                icon={FolderOpen}
+                title="No clients found"
                 description="There are no recent clients to display."
               />
             )}
