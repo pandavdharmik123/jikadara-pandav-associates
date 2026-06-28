@@ -7,6 +7,7 @@ import clientRoutes from './routes/clients.js';
 import taskRoutes from './routes/tasks.js';
 import transactionRoutes from './routes/transactions.js';
 import reportRoutes from './routes/reports.js';
+import generalExpensesRoutes from './routes/generalExpenses.js';
 import documentTypeRoutes from './routes/documentTypes.js';
 import financialYearRoutes from './routes/financialYears.js';
 
@@ -30,6 +31,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/documentTypes', documentTypeRoutes);
 app.use('/api/financialYears', financialYearRoutes);
+app.use('/api/general-expenses', generalExpensesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

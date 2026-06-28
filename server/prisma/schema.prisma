@@ -43,6 +43,7 @@ model User {
   tasks        Task[]
   transactions TaskTransaction[]
   financialYears FinancialYear[]
+  generalExpenses GeneralExpense[]
 }
 
 // ─── Client ──────────────────────────────────────────────
@@ -130,5 +131,21 @@ model FinancialYear {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  @@index([userId])
+}
+
+// ─── GeneralExpense ──────────────────────────────────────
+
+model GeneralExpense {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime @default(now())
+  description String   @default("")
+  amount      Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }

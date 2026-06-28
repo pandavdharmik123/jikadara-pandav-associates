@@ -245,7 +245,7 @@ export default function MainLayout() {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
+    <Layout style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'row' }}>
       {isMobile ? (
         <Drawer
           placement="left"
@@ -279,7 +279,7 @@ export default function MainLayout() {
         </Sider>
       )}
 
-      <Layout style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <Layout style={{ flex: 1, backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <Header style={{
           padding: isMobile ? '12px 16px' : '0 24px',
           background: '#ffffff',
@@ -290,8 +290,7 @@ export default function MainLayout() {
           height: 'auto',
           minHeight: 72,
           lineHeight: 'normal',
-          position: 'sticky',
-          top: 0,
+          flexShrink: 0,
           zIndex: 999
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16, flex: 1, height: '100%' }}>
@@ -349,7 +348,7 @@ export default function MainLayout() {
           </div>
         </Header>
 
-        <Content style={{ padding: '16px', overflow: 'initial' }}>
+        <Content style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
           <Outlet />
         </Content>
       </Layout>

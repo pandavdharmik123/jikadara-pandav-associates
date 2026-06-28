@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
+import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
 import useAuthStore from '../../store/authStore';
 import dayjs from 'dayjs';
 
@@ -17,9 +18,29 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const { data: recent, isLoading: recentLoading } = useRecentData(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
 
-  if (statsLoading || recentLoading) {
+  const { data: fyGeneralExpenses, isLoading: fyGeLoading } = useGeneralExpenses(
+    activeFinancialYear?.startDate,
+    activeFinancialYear?.endDate
+  );
+
+  const currentYear = dayjs().year();
+  const currentMonth = dayjs().month();
+  const monthlyStart = dayjs().year(currentYear).month(currentMonth).startOf('month').toISOString();
+  const monthlyEnd = dayjs().year(currentYear).month(currentMonth).endOf('month').toISOString();
+  const { data: monthlyGeneralExpenses, isLoading: monthlyGeLoading } = useGeneralExpenses(monthlyStart, monthlyEnd);
+
+  if (statsLoading || recentLoading || fyGeLoading || monthlyGeLoading) {
     return <Loader />;
   }
+
+  const fyGeTotal = (fyGeneralExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
+  const monthlyGeTotal = (monthlyGeneralExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const fyTaskNet = stats?.fyNet || 0;
+  const fyFinalNet = Number(fyTaskNet) - fyGeTotal;
+
+  const monthlyTaskNet = stats?.monthlyNet || 0;
+  const monthlyFinalNet = Number(monthlyTaskNet) - monthlyGeTotal;
 
   const recentTasksColumns = [
     {
@@ -66,15 +87,16 @@ export default function Dashboard() {
       title: 'MOBILE',
       dataIndex: 'mobileNumber',
       key: 'mobileNumber',
+      align: 'right',
       render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text}</Text>
     },
-    {
-      title: 'DATE',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      align: 'right',
-      render: (date) => <Text style={{ color: '#6b7280', fontSize: '13px' }}>{dayjs(date).format('DD/MM/YYYY')}</Text>,
-    }
+    // {
+    //   title: 'DATE',
+    //   dataIndex: 'createdAt',
+    //   key: 'createdAt',
+    //   align: 'right',
+    //   render: (date) => <Text style={{ color: '#6b7280', fontSize: '13px' }}>{dayjs(date).format('DD/MM/YYYY')}</Text>,
+    // }
   ];
 
   return (
@@ -135,16 +157,16 @@ export default function Dashboard() {
             </Title>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Income</Text>
-                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.fyIncome || 0)}</Title>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit</Text>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(fyTaskNet)}</Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Expense</Text>
-                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.fyExpense || 0)}</Title>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Expense</Text>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(fyGeTotal)}</Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Net Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.fyNet || 0)}</Title>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(fyFinalNet)}</Title>
               </div>
             </div>
           </Card>
@@ -157,16 +179,16 @@ export default function Dashboard() {
             </Title>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Income</Text>
-                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(stats?.monthlyIncome || 0)}</Title>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit</Text>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(monthlyTaskNet)}</Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expense</Text>
-                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(stats?.monthlyExpense || 0)}</Title>
+                <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Expense</Text>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(monthlyGeTotal)}</Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(stats?.monthlyNet || 0)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(monthlyFinalNet)}</Title>
               </div>
             </div>
           </Card>

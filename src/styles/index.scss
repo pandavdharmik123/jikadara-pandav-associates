@@ -2,7 +2,7 @@
   /* Common variables */
   --font-sans: 'Inter', 'Anek Gujarati', system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  
+
   /* Modern HSL Color Palette - Default Dark Theme */
   --bg-primary: #07090e;
   --bg-secondary: #0d121f;
@@ -10,18 +10,18 @@
   --bg-glass: rgba(13, 18, 31, 0.45);
   --border-color: rgba(99, 102, 241, 0.15);
   --border-hover: rgba(99, 102, 241, 0.35);
-  
+
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  
+
   --primary: #6366f1;
   --primary-hover: #4f46e5;
   --primary-glow: rgba(99, 102, 241, 0.15);
-  
+
   --accent: #d946ef;
   --accent-glow: rgba(217, 70, 239, 0.15);
-  
+
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
@@ -40,18 +40,18 @@
   --bg-glass: rgba(255, 255, 255, 0.7);
   --border-color: rgba(99, 102, 241, 0.1);
   --border-hover: rgba(99, 102, 241, 0.25);
-  
+
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
-  
+
   --primary: #4f46e5;
   --primary-hover: #3730a3;
   --primary-glow: rgba(79, 70, 229, 0.1);
-  
+
   --accent: #c084fc;
   --accent-glow: rgba(192, 132, 252, 0.1);
-  
+
   --shadow-glow: 0 0 25px rgba(79, 70, 229, 0.08);
 }
 
@@ -66,8 +66,8 @@ body {
   font-family: var(--font-sans);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -79,7 +79,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -131,9 +131,10 @@ body {
 
 /* Custom layout settings for full-page */
 #root {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Gujarati Font Utilities */
@@ -190,28 +191,36 @@ body {
   .no-print {
     display: none !important;
   }
-  body, .jantri-calculator-wrap, .glass-panel {
+
+  body,
+  .jantri-calculator-wrap,
+  .glass-panel {
     background: white !important;
     background-color: white !important;
     color: black !important;
     border: none !important;
     box-shadow: none !important;
   }
+
   * {
     color: black !important;
   }
+
   .ant-card-body {
     padding: 12px !important;
   }
+
   .ant-card {
     page-break-inside: avoid;
     margin-bottom: 8px !important;
     border: 1px solid #ccc !important;
   }
+
   @page {
     size: A4;
     margin: 10mm;
   }
+
   .jantri-calculator-wrap {
     padding: 0 !important;
   }
