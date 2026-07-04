@@ -19,9 +19,26 @@ function isCloudHost(hostname) {
   return CLOUD_HOST_PATTERNS.some((pattern) => hostname.includes(pattern));
 }
 
+/** Strip SSL query params so pg.Pool `ssl` option controls verification. */
+export function stripSslParams(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete('sslmode');
+    parsed.searchParams.delete('sslaccept');
+    parsed.searchParams.delete('sslrootcert');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+export function needsCloudSsl(hostname) {
+  return isCloudHost(hostname) || process.env.NODE_ENV === 'production';
+}
+
 /**
  * Returns a production-safe DATABASE_URL.
- * Adds sslmode=require for known cloud Postgres hosts when missing.
+ * Uses sslmode=no-verify for cloud Postgres (Supabase pooler TLS on Render).
  */
 export function getDatabaseUrl() {
   const url = process.env.DATABASE_URL?.trim();
@@ -30,7 +47,7 @@ export function getDatabaseUrl() {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(
         'DATABASE_URL is not set. Add it in Render → Environment. ' +
-          'Use your provider\'s pooled connection string (Neon: *-pooler.neon.tech, Supabase: port 6543).'
+          'Use your provider\'s pooled connection string (Neon: *-pooler.neon.tech, Supabase: *.pooler.supabase.com:5432).'
       );
     }
     return LOCAL_FALLBACK;
@@ -39,12 +56,12 @@ export function getDatabaseUrl() {
   try {
     const parsed = new URL(url);
 
-    if (
-      process.env.NODE_ENV === 'production' &&
-      isCloudHost(parsed.hostname) &&
-      !parsed.searchParams.has('sslmode')
-    ) {
-      parsed.searchParams.set('sslmode', 'require');
+    if (needsCloudSsl(parsed.hostname)) {
+      const mode = parsed.searchParams.get('sslmode');
+      // Strict modes break Render → Supabase pooler (self-signed cert chain)
+      if (!mode || mode === 'require' || mode === 'verify-full' || mode === 'verify-ca') {
+        parsed.searchParams.set('sslmode', 'no-verify');
+      }
       return parsed.toString();
     }
 

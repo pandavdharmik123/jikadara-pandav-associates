@@ -9,6 +9,6 @@ export default defineConfig({
   earlyAccess: true,
   schema: path.join(import.meta.dirname, 'prisma', 'schema.prisma'),
   datasource: {
-    url: getDatabaseUrl(),
+    url: process.env.DIRECT_URL || getDatabaseUrl(),
   },
 });

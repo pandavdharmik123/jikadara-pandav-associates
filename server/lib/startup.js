@@ -42,6 +42,16 @@ export async function runStartupTasks() {
         '   Fix: ensure deploy runs `npm run build` or `npm run start` (both run prisma db push).\n' +
         '   Render build command: npm install && npm run build'
       );
+    } else if (
+      err.message?.includes('TLS') ||
+      err.message?.includes('certificate') ||
+      err.message?.includes('self-signed')
+    ) {
+      console.error('❌ Database TLS error:', err.message);
+      console.error(
+        '   Fix: use Supabase Session pooler (*.pooler.supabase.com:5432).\n' +
+          '   Remove sslmode=require from DATABASE_URL if you added it manually — the app sets sslmode=no-verify automatically.'
+      );
     } else {
       console.error('❌ Database connection failed:', err.message);
       console.error(
