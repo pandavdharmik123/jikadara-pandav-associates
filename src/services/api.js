@@ -3,7 +3,7 @@ import useAuthStore from '../store/authStore';
 
 // Create an Axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api', // Adjust in production
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
 });
 
 // Request interceptor for adding the bearer token
