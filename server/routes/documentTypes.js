@@ -5,23 +5,6 @@ import requireRole from '../middleware/requireRole.js';
 
 const router = Router();
 
-// Ensure some defaults exist (optional self-healing or can just rely on manual entry)
-const initializeDefaults = async () => {
-  const count = await prisma.documentType.count();
-  if (count === 0) {
-    const defaultTypes = [
-      'Sale Deed',
-      'Agreement to Sale',
-      'Rent Agreement',
-      'Partnership Deed',
-      'Will',
-      'Power of Attorney'
-    ];
-    await Promise.all(defaultTypes.map(name => prisma.documentType.create({ data: { name } })));
-  }
-};
-initializeDefaults().catch(console.error);
-
 /**
  * GET /api/documentTypes
  * Get all document types

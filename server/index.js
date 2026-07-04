@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import { runStartupTasks, pingDatabase } from './lib/startup.js';
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import taskRoutes from './routes/tasks.js';
@@ -38,9 +39,14 @@ app.use('/api/financialYears', financialYearRoutes);
 app.use('/api/general-expenses', generalExpensesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check (includes database connectivity)
+app.get('/api/health', async (req, res) => {
+  try {
+    await pingDatabase();
+    res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: 'degraded', database: 'disconnected', timestamp: new Date().toISOString() });
+  }
 });
 
 // Error handler
@@ -48,6 +54,8 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
+
+await runStartupTasks();
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

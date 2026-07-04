@@ -1,12 +1,19 @@
+import pg from 'pg';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import dotenv from 'dotenv';
+import { getDatabaseUrl } from './databaseUrl.js';
 
-dotenv.config();
+const connectionString = getDatabaseUrl();
+const isProduction = process.env.NODE_ENV === 'production';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://dbpandav@localhost:5432/advocate_management?schema=public';
+const pool = new pg.Pool({
+  connectionString,
+  ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+  max: 10,
+  connectionTimeoutMillis: 10_000,
+});
 
-const adapter = new PrismaPg({ connectionString });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 export default prisma;
