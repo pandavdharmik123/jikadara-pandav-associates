@@ -12,7 +12,7 @@ import {
   Form,
   message
 } from 'antd';
-import { DownloadOutlined, ReloadOutlined, CalculatorOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Download, RefreshCw, Calculator, FileText, Plus, Trash2 } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import html2pdf from 'html2pdf.js';
 
@@ -273,13 +273,13 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     <div style={{ padding: '0', maxWidth: '100%' }}>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CalculatorOutlined style={{ fontSize: 20, color: currentAccentColor }} />
+          <Calculator size={16} style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Rent Agreement Calculator</Title>
         </div>
         <div>
           {/* <Button
             type="primary"
-            icon={<ReloadOutlined />}
+            icon={<RefreshCw size={16} />}
             onClick={handleReset}
             style={{ backgroundColor: currentAccentColor }}
           >
@@ -384,7 +384,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                   <Divider style={{ margin: '8px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
-                    <Button className="no-print" type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                    <Button className="no-print" type="dashed" size="small" icon={<Plus size={16} />} onClick={addCustomField}>
                       Add Field
                     </Button>
                   </div>
@@ -403,7 +403,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                         <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
                       </Col>
                       <Col xs={2}>
-                        <Button className="no-print" type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                        <Button className="no-print" type="text" danger icon={<Trash2 size={16} />} onClick={() => removeCustomField(field.id)} />
                       </Col>
                     </Row>
                   ))}
@@ -420,7 +420,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
               className="glass-panel"
               bordered={false}
               title="Final Calculation"
-              extra={<Button type="primary" size="small" icon={<FilePdfOutlined />} className="no-print" onClick={handleGeneratePDF} style={{ backgroundColor: currentAccentColor }}>Print</Button>}
+              extra={<Button type="primary" size="small" icon={<FileText size={16} />} className="no-print" onClick={handleGeneratePDF} style={{ backgroundColor: currentAccentColor }}>Print</Button>}
             >
               <div className="table-responsive pdf-container" ref={componentRef}>
                 {/* PDF Only Header */}

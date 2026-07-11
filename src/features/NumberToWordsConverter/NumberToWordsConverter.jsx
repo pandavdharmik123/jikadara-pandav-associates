@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Input, Button, Checkbox, Select, Typography, Space, Tooltip, message, Row, Col, Divider, Radio } from 'antd';
-import { CopyOutlined, DownloadOutlined, FieldStringOutlined } from '@ant-design/icons';
+import { Copy, Download, Hash } from 'lucide-react';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -213,7 +213,7 @@ export default function NumberToWordsConverter({ currentAccentColor }) {
   return (
     <div style={{ padding: '4px 0 12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <FieldStringOutlined style={{ fontSize: 20, color: currentAccentColor }} />
+        <Hash size={16} style={{ fontSize: 20, color: currentAccentColor }} />
         <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Numbers to Words</Title>
       </div>
 
@@ -290,8 +290,8 @@ export default function NumberToWordsConverter({ currentAccentColor }) {
             <Divider style={{ margin: '16px 0' }} />
 
             <div style={{ display: 'flex', gap: 12 }}>
-              <Button block icon={<CopyOutlined />} onClick={handleCopy}>Copy</Button>
-              <Button block icon={<DownloadOutlined />} onClick={handleDownload}>Download</Button>
+              <Button block icon={<Copy size={16} />} onClick={handleCopy}>Copy</Button>
+              <Button block icon={<Download size={16} />} onClick={handleDownload}>Download</Button>
             </div>
           </Card>
         </Col>

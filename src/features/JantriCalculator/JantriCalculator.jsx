@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message } from 'antd';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
-import { CalculatorOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Calculator, FileText, Plus, Trash2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 const { Title, Text } = Typography;
@@ -262,12 +262,12 @@ export default function JantriCalculator({ currentAccentColor }) {
     <div className="jantri-calculator-wrap" style={{ padding: '4px 0 12px' }}>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CalculatorOutlined style={{ fontSize: 20, color: currentAccentColor }} />
+          <Calculator size={16} style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Jantri & Stamp Duty Calculator</Title>
         </div>
         <Button
           type="primary"
-          icon={<FilePdfOutlined />}
+          icon={<FileText size={16} />}
           onClick={() => handleGeneratePDF(false)}
           style={{ backgroundColor: currentAccentColor, height: '32px' }}
         >
@@ -631,7 +631,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     <Divider style={{ margin: '8px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
-                      <Button className="no-print" type="dashed" size="small" icon={<PlusOutlined />} onClick={addCustomField}>
+                      <Button className="no-print" type="dashed" size="small" icon={<Plus size={16} />} onClick={addCustomField}>
                         Add Field
                       </Button>
                     </div>
@@ -650,7 +650,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                           <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
                         </Col>
                         <Col xs={2}>
-                          <Button className="no-print" type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomField(field.id)} />
+                          <Button className="no-print" type="text" danger icon={<Trash2 size={16} />} onClick={() => removeCustomField(field.id)} />
                         </Col>
                       </Row>
                     ))}
@@ -665,7 +665,7 @@ export default function JantriCalculator({ currentAccentColor }) {
             <Card size="small" className="glass-panel pdf-final-calculation" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
               <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Final Calculation</span>
-                <Button type="primary" size="small" icon={<FilePdfOutlined />} className="no-print" onClick={() => handleGeneratePDF(true)} style={{ backgroundColor: currentAccentColor }}>Print</Button>
+                <Button type="primary" size="small" icon={<FileText size={16} />} className="no-print" onClick={() => handleGeneratePDF(true)} style={{ backgroundColor: currentAccentColor }}>Print</Button>
               </Title>
 
               <Space direction="vertical" style={{ width: '100%' }} size="small">

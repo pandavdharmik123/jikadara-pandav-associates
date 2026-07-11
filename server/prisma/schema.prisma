@@ -1,0 +1,178 @@
+// Prisma schema for Advocate Management System
+// PostgreSQL + Prisma ORM (Prisma v7+)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SENIOR
+  JUNIOR
+}
+
+enum TaskStatus {
+  ACTIVE
+  DONE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// ─── User ────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(JUNIOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clients      Client[]
+  tasks        Task[]
+  transactions TaskTransaction[]
+  financialYears FinancialYear[]
+  generalExpenses GeneralExpense[]
+  invoices       Invoice[]
+}
+
+// ─── Client ──────────────────────────────────────────────
+
+model Client {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  referenceName String   @default("")
+  mobileNumber  String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId])
+}
+
+// ─── Task ────────────────────────────────────────────────
+
+model Task {
+  id            String     @id @default(uuid())
+  clientId      String
+  userId        String
+  documentType  String
+  referenceName String     @default("")
+  place         String     @default("")
+  startDate     DateTime   @default(now())
+  status        TaskStatus @default(ACTIVE)
+  totalIncome   Decimal    @default(0) @db.Decimal(12, 2)
+  totalExpense  Decimal    @default(0) @db.Decimal(12, 2)
+  netAmount     Decimal    @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  client       Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions TaskTransaction[]
+  invoices     Invoice[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([status])
+}
+
+// ─── TaskTransaction ─────────────────────────────────────
+
+model TaskTransaction {
+  id          String          @id @default(uuid())
+  taskId      String
+  userId      String
+  date        DateTime        @default(now())
+  type        TransactionType
+  description String          @default("")
+  amount      Decimal         @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([type])
+}
+
+// ─── DocumentType ────────────────────────────────────────
+
+model DocumentType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FinancialYear {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String   // e.g. "FY 2024-2025"
+  startDate DateTime
+  endDate   DateTime
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+// ─── GeneralExpense ──────────────────────────────────────
+
+model GeneralExpense {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime @default(now())
+  description String   @default("")
+  amount      Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Invoice ─────────────────────────────────────────────
+
+model Invoice {
+  id             String   @id @default(uuid())
+  invoiceNo      String
+  userId         String
+  taskId         String?
+  clientName     String
+  date           DateTime
+  discountAmount Decimal  @default(0) @db.Decimal(12, 2)
+  jamaAmount     Decimal  @default(0) @db.Decimal(12, 2)
+  subTotal       Decimal  @default(0) @db.Decimal(12, 2)
+  total          Decimal  @default(0) @db.Decimal(12, 2)
+  balance        Decimal  @default(0) @db.Decimal(12, 2)
+  items          Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([taskId])
+}
