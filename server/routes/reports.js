@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
 import requireRole from '../middleware/requireRole.js';
+import { startOfDayIST, endOfDayIST, startOfMonthIST, endOfMonthIST, toISTDateParts } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -14,19 +15,20 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const { year: nowYear, month: nowMonth } = toISTDateParts(now);
+    const startOfMonth = startOfMonthIST(nowYear, nowMonth);
+    const endOfMonth = endOfMonthIST(nowYear, nowMonth);
 
     const { fyStartDate, fyEndDate } = req.query;
     
     let fyStart, fyEnd;
     if (fyStartDate && fyEndDate) {
-      fyStart = new Date(fyStartDate);
-      fyEnd = new Date(fyEndDate);
+      fyStart = startOfDayIST(fyStartDate);
+      fyEnd = endOfDayIST(fyEndDate);
     } else {
-      // Fallback to current year if no FY is selected
-      fyStart = new Date(now.getFullYear(), 0, 1);
-      fyEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      // Fallback to current year in IST if no FY is selected
+      fyStart = startOfMonthIST(nowYear, 1);
+      fyEnd = endOfMonthIST(nowYear, 12);
     }
 
     let effStartOfMonth = startOfMonth;
@@ -93,18 +95,18 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 router.get('/monthly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, res) => {
   try {
     const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+    const month = parseInt(req.query.month) || toISTDateParts(new Date()).month;
 
-    let startOfMonth = new Date(year, month - 1, 1);
-    let endOfMonth = new Date(year, month, 0, 23, 59, 59);
+    let startOfMonth = startOfMonthIST(year, month);
+    let endOfMonth = endOfMonthIST(year, month);
 
     const { fyStartDate, fyEndDate } = req.query;
     if (fyStartDate) {
-      const fyStart = new Date(fyStartDate);
+      const fyStart = startOfDayIST(fyStartDate);
       if (fyStart > startOfMonth) startOfMonth = fyStart;
     }
     if (fyEndDate) {
-      const fyEnd = new Date(fyEndDate);
+      const fyEnd = endOfDayIST(fyEndDate);
       if (fyEnd < endOfMonth) endOfMonth = fyEnd;
     }
 
@@ -151,12 +153,12 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     
     let startOfYear, endOfYear;
     if (fyStartDate && fyEndDate) {
-      startOfYear = new Date(fyStartDate);
-      endOfYear = new Date(fyEndDate);
+      startOfYear = startOfDayIST(fyStartDate);
+      endOfYear = endOfDayIST(fyEndDate);
     } else {
-      const targetYear = parseInt(year) || new Date().getFullYear();
-      startOfYear = new Date(targetYear, 0, 1);
-      endOfYear = new Date(targetYear, 11, 31, 23, 59, 59);
+      const targetYear = parseInt(year) || toISTDateParts(new Date()).year;
+      startOfYear = startOfMonthIST(targetYear, 1);
+      endOfYear = endOfMonthIST(targetYear, 12);
     }
 
     const tasks = await prisma.task.findMany({
@@ -193,14 +195,14 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     }
 
     tasks.forEach((task) => {
-      const d = new Date(task.startDate);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const { year: y, month: m } = toISTDateParts(task.startDate);
+      const key = `${y}-${String(m).padStart(2, '0')}`;
       if (monthsMap.has(key)) {
-        const m = monthsMap.get(key);
-        m.totalIncome += Number(task.totalIncome);
-        m.totalExpense += Number(task.totalExpense);
-        m.netAmount += Number(task.netAmount);
-        m.taskCount += 1;
+        const mo = monthsMap.get(key);
+        mo.totalIncome += Number(task.totalIncome);
+        mo.totalExpense += Number(task.totalExpense);
+        mo.netAmount += Number(task.netAmount);
+        mo.taskCount += 1;
       }
     });
     
@@ -235,8 +237,8 @@ router.get('/recent', requireAuth, async (req, res) => {
     
     let fyStart, fyEnd;
     if (fyStartDate && fyEndDate) {
-      fyStart = new Date(fyStartDate);
-      fyEnd = new Date(fyEndDate);
+      fyStart = startOfDayIST(fyStartDate);
+      fyEnd = endOfDayIST(fyEndDate);
     }
 
     const [recentClients, recentTasks] = await Promise.all([

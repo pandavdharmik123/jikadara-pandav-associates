@@ -59,7 +59,7 @@ export default function EditTaskModal({ visible, task, onClose }) {
         id: task.id,
         ...values,
         documentType: trimmedType,
-        startDate: values.startDate ? values.startDate.toISOString() : undefined,
+        startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
       };
 
       delete taskData.customDocumentType;

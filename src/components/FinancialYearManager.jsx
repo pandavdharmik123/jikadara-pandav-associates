@@ -46,8 +46,8 @@ export default function FinancialYearManager() {
       const values = await form.validateFields();
       const payload = {
         name: values.name,
-        startDate: values.dates[0].toISOString(),
-        endDate: values.dates[1].toISOString(),
+        startDate: values.dates[0].format('YYYY-MM-DD'),
+        endDate: values.dates[1].format('YYYY-MM-DD'),
       };
 
       if (editingId) {
