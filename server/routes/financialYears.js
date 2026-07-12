@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
+import { startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -45,8 +46,8 @@ router.post('/', requireAuth, async (req, res) => {
       data: {
         userId: req.user.id,
         name,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: startOfDayIST(startDate),
+        endDate: endOfDayIST(endDate),
         isDefault: isDefault || false,
       },
     });
@@ -87,8 +88,8 @@ router.put('/:id', requireAuth, async (req, res) => {
       where: { id },
       data: {
         ...(name && { name }),
-        ...(startDate && { startDate: new Date(startDate) }),
-        ...(endDate && { endDate: new Date(endDate) }),
+        ...(startDate && { startDate: startOfDayIST(startDate) }),
+        ...(endDate && { endDate: endOfDayIST(endDate) }),
         ...(isDefault !== undefined && { isDefault }),
       },
     });

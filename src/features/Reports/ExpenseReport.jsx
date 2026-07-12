@@ -51,8 +51,8 @@ export default function ExpenseReport() {
 
   let geStart, geEnd;
   if (reportType === 'MONTHLY') {
-    geStart = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month').toISOString();
-    geEnd = dayjs().year(selectedYear).month(selectedMonth - 1).endOf('month').toISOString();
+    geStart = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month').format('YYYY-MM-DD');
+    geEnd = dayjs().year(selectedYear).month(selectedMonth - 1).endOf('month').format('YYYY-MM-DD');
   } else {
     geStart = activeFinancialYear?.startDate;
     geEnd = activeFinancialYear?.endDate;
@@ -89,7 +89,7 @@ export default function ExpenseReport() {
     try {
       const values = await expenseForm.validateFields();
       const payload = {
-        date: values.date.toISOString(),
+        date: values.date.format('YYYY-MM-DD'),
         description: values.description,
         amount: values.amount,
       };

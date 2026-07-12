@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
+import { startOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -69,7 +70,7 @@ router.post('/', requireAuth, async (req, res) => {
       data: {
         taskId,
         userId: req.user.id,
-        date: date ? new Date(date) : new Date(),
+        date: date ? startOfDayIST(date) : new Date(),
         type,
         description: description || '',
         amount: parseFloat(amount) || 0,
@@ -131,7 +132,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const transaction = await prisma.taskTransaction.update({
       where: { id: req.params.id },
       data: {
-        ...(date !== undefined && { date: new Date(date) }),
+        ...(date !== undefined && { date: startOfDayIST(date) }),
         ...(type !== undefined && { type }),
         ...(description !== undefined && { description }),
         ...(amount !== undefined && { amount: parseFloat(amount) }),

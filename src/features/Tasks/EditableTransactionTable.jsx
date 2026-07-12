@@ -87,7 +87,7 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
       const payload = {
         taskId,
         type,
-        date: row.date.toISOString(),
+        date: row.date.format('YYYY-MM-DD'),
         description: row.description,
         amount: row.amount
       };
@@ -120,7 +120,7 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
     const newKey = `new-${Date.now()}`;
     const newData = {
       id: newKey,
-      date: dayjs().toISOString(),
+      date: dayjs().format('YYYY-MM-DD'),
       description: '',
       amount: '',
       type,

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
+import { startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -18,8 +19,8 @@ router.get('/', requireAuth, async (req, res) => {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) whereClause.date.gte = new Date(startDate);
-      if (endDate) whereClause.date.lte = new Date(endDate);
+      if (startDate) whereClause.date.gte = startOfDayIST(startDate);
+      if (endDate) whereClause.date.lte = endOfDayIST(endDate);
     }
 
     const expenses = await prisma.generalExpense.findMany({
@@ -49,7 +50,7 @@ router.post('/', requireAuth, async (req, res) => {
     const newExpense = await prisma.generalExpense.create({
       data: {
         userId: req.user.id,
-        date: new Date(date),
+        date: startOfDayIST(date),
         description: description || "",
         amount: Number(amount),
       },
@@ -82,7 +83,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const updated = await prisma.generalExpense.update({
       where: { id },
       data: {
-        ...(date && { date: new Date(date) }),
+        ...(date && { date: startOfDayIST(date) }),
         ...(description !== undefined && { description }),
         ...(amount !== undefined && { amount: Number(amount) }),
       },

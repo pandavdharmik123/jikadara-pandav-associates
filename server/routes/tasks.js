@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
 import requireRole from '../middleware/requireRole.js';
+import { startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -17,8 +18,8 @@ router.get('/', requireAuth, async (req, res) => {
     
     if (req.query.startDate && req.query.endDate) {
       where.startDate = {
-        gte: new Date(req.query.startDate),
-        lte: new Date(req.query.endDate),
+        gte: startOfDayIST(req.query.startDate),
+        lte: endOfDayIST(req.query.endDate),
       };
     }
 
@@ -94,7 +95,7 @@ router.post('/', requireAuth, async (req, res) => {
         documentType,
         referenceName: referenceName || client.referenceName || '',
         place: place || '',
-        startDate: startDate ? new Date(startDate) : new Date(),
+        startDate: startDate ? startOfDayIST(startDate) : new Date(),
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -134,7 +135,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         ...(documentType !== undefined && { documentType }),
         ...(referenceName !== undefined && { referenceName }),
         ...(place !== undefined && { place }),
-        ...(startDate !== undefined && { startDate: new Date(startDate) }),
+        ...(startDate !== undefined && { startDate: startOfDayIST(startDate) }),
       },
     });
 
