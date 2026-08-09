@@ -22,10 +22,12 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
-  Files
+  Files,
+  Sparkles
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
+import { hasPageAccess } from '../utils/pagePermissions';
 
 const { Header, Sider, Content } = Layout;
 
@@ -93,94 +95,122 @@ export default function MainLayout() {
     }
   };
 
-  const advocateMenuItems = [
-    {
-      key: '/app/dashboard',
-      icon: <LayoutDashboard size={20} />,
-      label: 'Dashboard',
-    },
-    {
-      key: '/app/clients',
-      icon: <Users size={20} />,
-      label: 'Clients',
-    },
-    {
-      key: '/app/tasks',
-      icon: <CheckSquare size={20} />,
-      label: 'Tasks',
-    },
-    {
-      key: '/app/reports',
-      icon: <BarChart2 size={20} />,
-      label: 'Reports',
-    },
-  ];
+  let menuItems = [];
 
   if (user?.role === 'ADMIN') {
-    advocateMenuItems.push(
+    menuItems = [
       {
-        key: '/app/admin/users',
-        icon: <Settings size={20} />,
-        label: 'Admin Panel',
+        key: 'admin-group',
+        type: 'group',
+        label: 'Administration',
+        children: [
+          {
+            key: '/app/admin/users',
+            icon: <Settings size={20} />,
+            label: 'Admin Panel',
+          },
+          {
+            key: '/app/admin/document-types',
+            icon: <Files size={20} />,
+            label: 'Document Types',
+          },
+        ],
+      },
+    ];
+  } else {
+    const rawAdvocateItems = [
+      {
+        key: '/app/dashboard',
+        icon: <LayoutDashboard size={20} />,
+        label: 'Dashboard',
+      },
+      {
+        key: '/app/clients',
+        icon: <Users size={20} />,
+        label: 'Clients',
+      },
+      {
+        key: '/app/tasks',
+        icon: <CheckSquare size={20} />,
+        label: 'Tasks',
+      },
+      {
+        key: '/app/reports',
+        icon: <BarChart2 size={20} />,
+        label: 'Reports',
       },
       {
         key: '/app/admin/document-types',
         icon: <Files size={20} />,
         label: 'Document Types',
-      }
-    );
+      },
+    ];
+
+    const rawToolItems = [
+      {
+        key: '/app/tools/translator',
+        icon: <Languages size={20} />,
+        label: 'Eng to Guj',
+      },
+      {
+        key: '/app/tools/universal',
+        icon: <Palette size={20} />,
+        label: 'Universal Converter',
+      },
+      {
+        key: '/app/tools/jantri',
+        icon: <Calculator size={20} />,
+        label: 'Jantri Calculator',
+      },
+      {
+        key: '/app/tools/rent_agreement',
+        icon: <FileSignature size={20} />,
+        label: 'Rent Agreement',
+      },
+      {
+        key: '/app/tools/invoice',
+        icon: <FileText size={20} />,
+        label: 'Invoice Generator',
+      },
+      {
+        key: '/app/tools/number_to_words',
+        icon: <Hash size={20} />,
+        label: 'Numbers to Words',
+      },
+      {
+        key: '/app/tools/document-ai',
+        icon: <Sparkles size={20} />,
+        label: 'Document AI & OCR',
+      },
+    ];
+
+    const allowedAdvocate = rawAdvocateItems.filter((item) => hasPageAccess(user, item.key));
+    const allowedTools = rawToolItems.filter((item) => hasPageAccess(user, item.key));
+
+    if (allowedAdvocate.length > 0) {
+      menuItems.push({
+        key: 'advocate-group',
+        type: 'group',
+        label: 'Advocate Management',
+        children: allowedAdvocate,
+      });
+    }
+
+    if (allowedAdvocate.length > 0 && allowedTools.length > 0) {
+      menuItems.push({
+        type: 'divider',
+      });
+    }
+
+    if (allowedTools.length > 0) {
+      menuItems.push({
+        key: 'tools-group',
+        type: 'group',
+        label: 'Tools',
+        children: allowedTools,
+      });
+    }
   }
-
-  const existingMenuItems = [
-    {
-      key: '/app/tools/translator',
-      icon: <Languages size={20} />,
-      label: 'Eng to Guj',
-    },
-    {
-      key: '/app/tools/universal',
-      icon: <Palette size={20} />,
-      label: 'Universal Converter',
-    },
-    {
-      key: '/app/tools/jantri',
-      icon: <Calculator size={20} />,
-      label: 'Jantri Calculator',
-    },
-    {
-      key: '/app/tools/rent_agreement',
-      icon: <FileSignature size={20} />,
-      label: 'Rent Agreement',
-    },
-    {
-      key: '/app/tools/invoice',
-      icon: <FileText size={20} />,
-      label: 'Invoice Generator',
-    },
-    {
-      key: '/app/tools/number_to_words',
-      icon: <Hash size={20} />,
-      label: 'Numbers to Words',
-    }
-  ];
-
-  const menuItems = [
-    {
-      key: 'advocate-group',
-      type: 'group',
-      label: 'Advocate Management',
-      children: advocateMenuItems,
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'tools-group',
-      type: 'group',
-      label: 'Tools',
-      children: existingMenuItems,
-    }
-  ];
 
   let selectedKey = location.pathname;
 
@@ -303,14 +333,16 @@ export default function MainLayout() {
               </div>
               {!isMobile && (
                 <div style={{ color: '#64748b', fontSize: '13px', marginTop: 4, lineHeight: 1.2 }}>
-                  Here's what's happening with your practice today. • {dayjs().format('dddd, MMMM D, YYYY')}
+                  {user?.role === 'ADMIN'
+                    ? `System Administration & User Management • ${dayjs().format('dddd, MMMM D, YYYY')}`
+                    : `Here's what's happening with your practice today. • ${dayjs().format('dddd, MMMM D, YYYY')}`}
                 </div>
               )}
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24 }}>
-            {!isMobile && (
+            {!isMobile && user?.role !== 'ADMIN' && (
               <Select
                 placeholder="Select Financial Year"
                 value={activeFinancialYear?.id || undefined}

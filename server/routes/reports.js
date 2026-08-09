@@ -39,15 +39,22 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     
     const isMonthInFy = effStartOfMonth <= effEndOfMonth;
 
+    const completedDateFilter = (start, end) => ({
+      OR: [
+        { completedDate: { gte: start, lte: end } },
+        { completedDate: null, startDate: { gte: start, lte: end } },
+      ],
+    });
+
     const [totalClients, activeTasks, completedTasks, monthlyAgg, fyAgg] = await Promise.all([
       prisma.client.count({ where: userFilter }),
       prisma.task.count({ where: { ...userFilter, status: 'ACTIVE', startDate: { gte: fyStart, lte: fyEnd } } }),
-      prisma.task.count({ where: { ...userFilter, status: 'DONE', startDate: { gte: fyStart, lte: fyEnd } } }),
+      prisma.task.count({ where: { ...userFilter, status: 'DONE', ...completedDateFilter(fyStart, fyEnd) } }),
       isMonthInFy ? prisma.task.aggregate({
         where: {
           userId: req.user.id,
           status: 'DONE',
-          startDate: { gte: effStartOfMonth, lte: effEndOfMonth },
+          ...completedDateFilter(effStartOfMonth, effEndOfMonth),
         },
         _sum: {
           totalIncome: true,
@@ -59,7 +66,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         where: {
           userId: req.user.id,
           status: 'DONE',
-          startDate: { gte: fyStart, lte: fyEnd },
+          ...completedDateFilter(fyStart, fyEnd),
         },
         _sum: {
           totalIncome: true,
@@ -113,16 +120,26 @@ router.get('/monthly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, 
     const isMonthInFy = startOfMonth <= endOfMonth;
     const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
 
+    const completedDateFilter = (start, end) => ({
+      OR: [
+        { completedDate: { gte: start, lte: end } },
+        { completedDate: null, startDate: { gte: start, lte: end } },
+      ],
+    });
+
     const tasks = isMonthInFy ? await prisma.task.findMany({
       where: {
         ...userFilter,
         status: 'DONE',
-        startDate: { gte: startOfMonth, lte: endOfMonth },
+        ...completedDateFilter(startOfMonth, endOfMonth),
       },
       include: {
         client: { select: { id: true, name: true } },
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: [
+        { completedDate: 'asc' },
+        { startDate: 'asc' },
+      ],
     }) : [];
 
     const totals = tasks.reduce(
@@ -161,14 +178,22 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
       endOfYear = endOfMonthIST(targetYear, 12);
     }
 
+    const completedDateFilter = (start, end) => ({
+      OR: [
+        { completedDate: { gte: start, lte: end } },
+        { completedDate: null, startDate: { gte: start, lte: end } },
+      ],
+    });
+
     const tasks = await prisma.task.findMany({
       where: {
         ...userFilter,
         status: 'DONE',
-        startDate: { gte: startOfYear, lte: endOfYear },
+        ...completedDateFilter(startOfYear, endOfYear),
       },
       select: {
         startDate: true,
+        completedDate: true,
         totalIncome: true,
         totalExpense: true,
         netAmount: true,
@@ -195,7 +220,8 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     }
 
     tasks.forEach((task) => {
-      const { year: y, month: m } = toISTDateParts(task.startDate);
+      const effectiveDate = task.completedDate || task.startDate;
+      const { year: y, month: m } = toISTDateParts(effectiveDate);
       const key = `${y}-${String(m).padStart(2, '0')}`;
       if (monthsMap.has(key)) {
         const mo = monthsMap.get(key);
