@@ -7,6 +7,7 @@ import { COLOR_PALETTES } from './utils/constants';
 // Layouts and Auth
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AuthSessionWatcher from './components/AuthSessionWatcher';
 import LoginPage from './features/Auth/LoginPage';
 import ForgotPasswordPage from './features/Auth/ForgotPasswordPage';
 
@@ -121,6 +122,7 @@ export default function App() {
         }}
       >
         <BrowserRouter>
+          <AuthSessionWatcher />
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />

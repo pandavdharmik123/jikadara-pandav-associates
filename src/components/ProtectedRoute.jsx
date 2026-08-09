@@ -2,11 +2,15 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { hasPageAccess, getInitialUserRoute } from '../utils/pagePermissions';
+import { isTokenExpired } from '../utils/tokenUtils';
 
 const ProtectedRoute = ({ allowedRoles, pageKey }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, token, user, logout } = useAuthStore();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !token || isTokenExpired(token)) {
+    if (isAuthenticated) {
+      logout();
+    }
     return <Navigate to="/login" replace />;
   }
 

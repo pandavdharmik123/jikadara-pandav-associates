@@ -7,6 +7,17 @@ import requireRole from '../middleware/requireRole.js';
 
 const router = Router();
 
+const USER_SELECT_FIELDS = {
+  id: true,
+  email: true,
+  name: true,
+  mobileNumber: true,
+  role: true,
+  isActive: true,
+  allowedPages: true,
+  createdAt: true,
+};
+
 /**
  * Generate JWT token for a user
  */
@@ -14,20 +25,20 @@ function generateToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '1h' }
   );
 }
 
 /**
  * POST /api/auth/register
- * Admin-only: create a new user with a specific role and allowedPages
+ * Admin-only: create a new user with a specific role, mobileNumber, and allowedPages
  */
 router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
-    const { email, password, name, role, allowedPages } = req.body;
+    const { email, password, name, mobileNumber, role, allowedPages } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+    if (!email || !password || !name || !mobileNumber) {
+      return res.status(400).json({ error: 'Email, password, full name, and mobile number are required' });
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -41,11 +52,12 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
       data: {
         email,
         passwordHash,
-        name,
+        name: name.trim(),
+        mobileNumber: mobileNumber.trim(),
         role: role || 'JUNIOR',
         allowedPages: Array.isArray(allowedPages) ? allowedPages : [],
       },
-      select: { id: true, email: true, name: true, role: true, isActive: true, allowedPages: true, createdAt: true },
+      select: USER_SELECT_FIELDS,
     });
 
     res.status(201).json({ user });
@@ -88,6 +100,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        mobileNumber: user.mobileNumber || '',
         role: user.role,
         isActive: user.isActive,
         allowedPages: user.allowedPages || [],
@@ -139,7 +152,6 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-
 /**
  * GET /api/auth/me
  * Protected: get current authenticated user
@@ -148,7 +160,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, name: true, role: true, isActive: true, allowedPages: true, createdAt: true },
+      select: USER_SELECT_FIELDS,
     });
 
     if (!user) {
@@ -163,13 +175,89 @@ router.get('/me', requireAuth, async (req, res) => {
 });
 
 /**
+ * PUT /api/auth/me
+ * Protected: update current authenticated user's profile (name & mobileNumber)
+ * Note: email cannot be changed
+ */
+router.put('/me', requireAuth, async (req, res) => {
+  try {
+    const { name, mobileNumber } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+
+    if (!mobileNumber || !mobileNumber.trim()) {
+      return res.status(400).json({ error: 'Mobile number is required' });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name: name.trim(),
+        mobileNumber: mobileNumber.trim(),
+      },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json({ user, message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+/**
+ * PUT /api/auth/change-password
+ * Protected: change password for current authenticated user
+ */
+router.put('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { passwordHash },
+    });
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+/**
  * GET /api/auth/users
  * Admin-only: list all users
  */
 router.get('/users', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, isActive: true, allowedPages: true, createdAt: true },
+      select: USER_SELECT_FIELDS,
       orderBy: { createdAt: 'desc' },
     });
     res.json({ users });
@@ -181,21 +269,22 @@ router.get('/users', requireAuth, requireRole('ADMIN'), async (req, res) => {
 
 /**
  * PUT /api/auth/users/:id
- * Admin-only: update user role, active status, name, or allowedPages
+ * Admin-only: update user role, active status, name, mobileNumber, or allowedPages
  */
 router.put('/users/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
-    const { role, isActive, name, allowedPages } = req.body;
+    const { role, isActive, name, mobileNumber, allowedPages } = req.body;
     const data = {};
     if (role) data.role = role;
     if (typeof isActive === 'boolean') data.isActive = isActive;
-    if (name) data.name = name;
+    if (name) data.name = name.trim();
+    if (mobileNumber !== undefined) data.mobileNumber = mobileNumber.trim();
     if (Array.isArray(allowedPages)) data.allowedPages = allowedPages;
 
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data,
-      select: { id: true, email: true, name: true, role: true, isActive: true, allowedPages: true, createdAt: true },
+      select: USER_SELECT_FIELDS,
     });
 
     res.json({ user });

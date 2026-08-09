@@ -34,6 +34,7 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
+  mobileNumber String   @default("")
   role         Role     @default(JUNIOR)
   isActive     Boolean  @default(true)
   allowedPages String[] @default([])

@@ -47,6 +47,7 @@ export default function AdminUsers() {
       form.setFieldsValue({
         name: user.name,
         email: user.email,
+        mobileNumber: user.mobileNumber || '',
         role: user.role,
         isActive: user.isActive,
         allowedPages: user.allowedPages && user.allowedPages.length > 0 ? user.allowedPages : DEFAULT_ALLOWED_PAGES,
@@ -128,6 +129,12 @@ export default function AdminUsers() {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+    },
+    {
+      title: 'Mobile',
+      dataIndex: 'mobileNumber',
+      key: 'mobileNumber',
+      render: (text) => text || '-',
     },
     {
       title: 'Role',
@@ -277,6 +284,21 @@ export default function AdminUsers() {
 
             <Col xs={24} sm={12}>
               <Form.Item
+                name="mobileNumber"
+                label="Mobile Number"
+                rules={[
+                  { required: true, message: 'Enter Mobile Number' },
+                  { pattern: /^[0-9]{10}$/, message: 'Enter valid 10-digit mobile number' }
+                ]}
+              >
+                <Input placeholder="e.g. 9876543210" size="large" maxLength={10} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
                 name="email"
                 label="Email Address"
                 rules={[
@@ -287,10 +309,8 @@ export default function AdminUsers() {
                 <Input placeholder="email@example.com" size="large" disabled={!!editingUser} />
               </Form.Item>
             </Col>
-          </Row>
 
-          <Row gutter={16}>
-            {!editingUser && (
+            {!editingUser ? (
               <Col xs={24} sm={12}>
                 <Form.Item
                   name="password"
@@ -300,9 +320,21 @@ export default function AdminUsers() {
                   <Input.Password placeholder="Enter Password" size="large" />
                 </Form.Item>
               </Col>
+            ) : (
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="isActive"
+                  label="Active Status"
+                  valuePropName="checked"
+                >
+                  <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                </Form.Item>
+              </Col>
             )}
+          </Row>
 
-            <Col xs={24} sm={editingUser ? 12 : 12}>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="role"
                 label="User Role"
@@ -315,18 +347,6 @@ export default function AdminUsers() {
                 </Select>
               </Form.Item>
             </Col>
-
-            {editingUser && (
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="isActive"
-                  label="Active Status"
-                  valuePropName="checked"
-                >
-                  <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                </Form.Item>
-              </Col>
-            )}
           </Row>
 
           <Divider style={{ margin: '12px 0 16px 0' }} />
