@@ -1,5 +1,6 @@
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
+import { isTokenExpired } from '../utils/tokenUtils';
 
 // Create an Axios instance
 const api = axios.create({
@@ -9,8 +10,12 @@ const api = axios.create({
 // Request interceptor for adding the bearer token
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    const { token, logout } = useAuthStore.getState();
     if (token) {
+      if (isTokenExpired(token)) {
+        logout();
+        return Promise.reject(new Error('Session expired. Please log in again.'));
+      }
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -27,9 +32,7 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear auth state and potentially redirect to login
       useAuthStore.getState().logout();
-      // Optional: window.location.href = '/login';
     }
     return Promise.reject(error);
   }

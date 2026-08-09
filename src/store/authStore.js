@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isTokenExpired } from '../utils/tokenUtils';
 
 const useAuthStore = create(
   persist(
@@ -18,8 +19,15 @@ const useAuthStore = create(
       updateUser: (userData) => set((state) => ({ user: { ...state.user, ...userData } })),
     }),
     {
-      name: 'auth-storage', // name of the item in the storage (must be unique)
-      // getStorage: () => localStorage, // (optional) by default, 'localStorage' is used
+      name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state && state.token && isTokenExpired(state.token)) {
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          state.activeFinancialYear = null;
+        }
+      },
     }
   )
 );
