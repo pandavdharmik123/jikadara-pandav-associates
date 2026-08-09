@@ -80,14 +80,20 @@ export const useDeleteTask = () => {
 export const useMarkTaskDone = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id) => {
-      const { data } = await api.patch(`/tasks/${id}/done`);
+    mutationFn: async (payload) => {
+      const id = typeof payload === 'object' ? payload.id : payload;
+      const completedDate = typeof payload === 'object' ? payload.completedDate : undefined;
+      const { data } = await api.patch(`/tasks/${id}/done`, { completedDate });
       return data.task;
     },
-    onSuccess: (data, id) => {
+    onSuccess: (data, variables) => {
+      const id = typeof variables === 'object' ? variables.id : variables;
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyReport'] });
+      queryClient.invalidateQueries({ queryKey: ['yearlyReport'] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
     },
   });
@@ -105,6 +111,9 @@ export const useReopenTask = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyReport'] });
+      queryClient.invalidateQueries({ queryKey: ['yearlyReport'] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
     },
   });

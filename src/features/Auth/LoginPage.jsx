@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Checkbox, message } from 'antd';
 import { User, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
 import './login.scss'; // Importing specific scoped styles
+
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -88,7 +89,7 @@ const LoginPage = () => {
               <Form.Item name="remember" valuePropName="checked" noStyle>
                 <Checkbox>Remember Me</Checkbox>
               </Form.Item>
-              <a href="#" style={{ color: '#D4AF37', fontWeight: 500 }}>Forgot Password?</a>
+              <Link to="/forgot-password" style={{ color: '#D4AF37', fontWeight: 500 }}>Forgot Password?</Link>
             </div>
 
             <Form.Item style={{ marginBottom: 0 }}>

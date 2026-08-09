@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert } from 'antd';
+import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker } from 'antd';
 import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar } from 'lucide-react';
 import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
@@ -20,6 +20,9 @@ export default function TaskDetail() {
   const markDoneMutation = useMarkTaskDone();
   const reopenMutation = useReopenTask();
 
+  const [isMarkDoneModalOpen, setIsMarkDoneModalOpen] = useState(false);
+  const [doneForm] = Form.useForm();
+
   if (isLoading) {
     return <Loader />;
   }
@@ -28,39 +31,53 @@ export default function TaskDetail() {
     return <div style={{ textAlign: 'center', padding: '50px' }}>Task not found</div>;
   }
 
+  const isTaskDone = task.status === 'DONE';
+  const canToggleStatus = user?.role === 'ADMIN' || user?.role === 'SENIOR';
 
+  const handleOpenMarkDoneModal = () => {
+    doneForm.setFieldsValue({
+      completedDate: dayjs(),
+    });
+    setIsMarkDoneModalOpen(true);
+  };
 
-  const handleToggleStatus = () => {
-    const isDone = task.status === 'DONE';
-    const actionText = isDone ? 'Reopen' : 'Done';
+  const handleCloseMarkDoneModal = () => {
+    setIsMarkDoneModalOpen(false);
+    doneForm.resetFields();
+  };
 
+  const handleConfirmMarkDone = async () => {
+    try {
+      const values = await doneForm.validateFields();
+      await markDoneMutation.mutateAsync({
+        id: task.id,
+        completedDate: values.completedDate.format('YYYY-MM-DD'),
+      });
+      message.success('Task marked as done');
+      handleCloseMarkDoneModal();
+    } catch (error) {
+      if (error.name !== 'ValidationError') {
+        message.error('Failed to complete task');
+      }
+    }
+  };
+
+  const handleReopenTask = () => {
     Modal.confirm({
-      title: `Mark task as ${actionText}?`,
-      content: isDone
-        ? 'Reopening this task will allow adding new transactions.'
-        : 'Marking the task as done will close it and freeze the total amount. Are you sure?',
-      okText: 'Yes',
-      cancelText: 'No',
+      title: 'Reopen task?',
+      content: 'Reopening this task will set it back to Active and allow adding new transactions. Are you sure?',
+      okText: 'Yes, Reopen',
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
-          if (isDone) {
-            await reopenMutation.mutateAsync(task.id);
-            message.success('Task reopened');
-          } else {
-            await markDoneMutation.mutateAsync(task.id);
-            message.success('Task marked as done');
-          }
+          await reopenMutation.mutateAsync(task.id);
+          message.success('Task reopened');
         } catch (error) {
-          message.error('Failed to change status');
+          message.error('Failed to reopen task');
         }
       },
     });
   };
-
-  const isTaskDone = task.status === 'DONE';
-  const canToggleStatus = user?.role === 'ADMIN' || user?.role === 'SENIOR';
-
-
 
   // Calculate current totals dynamically if ACTIVE, else use stored totals
   let displayIncome = Number(task.totalIncome) || 0;
@@ -98,7 +115,7 @@ export default function TaskDetail() {
               type={isTaskDone ? "default" : "primary"}
               danger={isTaskDone}
               icon={isTaskDone ? <RefreshCw size={16} /> : <CheckCircle size={16} />}
-              onClick={handleToggleStatus}
+              onClick={isTaskDone ? handleReopenTask : handleOpenMarkDoneModal}
               loading={markDoneMutation.isPending || reopenMutation.isPending}
               style={{ borderRadius: '8px', height: 40, boxShadow: 'none' }}
             >
@@ -156,6 +173,20 @@ export default function TaskDetail() {
             </div>
           </Space>
         </Card>
+
+        {isTaskDone && (
+          <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#f0fdf4' }} styles={{ body: { padding: '12px 16px' } }}>
+            <Space align="center" size="middle">
+              <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+                <CheckCircle size={16} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500, color: '#16a34a' }}>Completion Date</Text>
+                <Text strong style={{ fontSize: 13, color: '#15803d' }}>{dayjs(task.completedDate || task.startDate).format('DD MMM YYYY')}</Text>
+              </div>
+            </Space>
+          </Card>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -210,12 +241,38 @@ export default function TaskDetail() {
         </Col>
       </Row>
 
-      {/* <Card className="glass-panel" bordered={false} styles={{ body: { padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } }}>
-        <Title level={4} style={{ margin: 0 }}>Net Amount (Total Profit)</Title>
-        <Title level={4} style={{ margin: 0, color: displayNet >= 0 ? '#1890ff' : '#ff4d4f' }}>
-          ₹{displayNet.toFixed(2)}
-        </Title>
-      </Card> */}
+      {/* Mark Done Completion Date Modal */}
+      <Modal
+        title="Complete Task"
+        open={isMarkDoneModalOpen}
+        onOk={handleConfirmMarkDone}
+        onCancel={handleCloseMarkDoneModal}
+        confirmLoading={markDoneMutation.isPending}
+        okText="Confirm & Mark Done"
+        cancelText="Cancel"
+        width={440}
+      >
+        <div style={{ marginTop: 8, marginBottom: 16 }}>
+          <Text style={{ color: '#4b5563', fontSize: 14 }}>
+            Marking the task as done will freeze financial totals and record the profit for the selected completion date.
+          </Text>
+        </div>
+
+        <Form form={doneForm} layout="vertical">
+          <Form.Item
+            name="completedDate"
+            label={<span style={{ fontWeight: 600 }}>Completion Date</span>}
+            rules={[{ required: true, message: 'Please select a completion date' }]}
+          >
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+              size="large"
+              allowClear={false}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty, Modal, Form, Input, message } from 'antd';
-import { BarChart2, FileLineChart, Plus, Edit, Trash2 } from 'lucide-react';
+import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import { useGeneralExpenses, useCreateGeneralExpense, useUpdateGeneralExpense, useDeleteGeneralExpense } from '../../hooks/useGeneralExpenses';
 import useAuthStore from '../../store/authStore';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
+import FinancialReportPrintLayout from './FinancialReportPrintLayout';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
 
@@ -14,6 +16,9 @@ const { Option } = Select;
 
 export default function ExpenseReport() {
   const { user, activeFinancialYear } = useAuthStore();
+
+  const reportPrintRef = useRef(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const currentYear = dayjs().year();
   const currentMonth = dayjs().month() + 1; // 1-12
@@ -129,10 +134,17 @@ export default function ExpenseReport() {
 
   const monthlyColumns = [
     {
+      title: 'Sr.',
+      key: 'srNo',
+      width: 55,
+      align: 'center',
+      render: (_, __, index) => <Text style={{ color: '#64748b', fontSize: '13px' }}>{index + 1}</Text>,
+    },
+    {
       title: 'Date',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      dataIndex: 'completedDate',
+      key: 'completedDate',
+      render: (_, record) => dayjs(record.completedDate || record.startDate).format('DD/MM/YYYY'),
     },
     {
       title: 'Document Type',
@@ -171,6 +183,13 @@ export default function ExpenseReport() {
 
   const yearlyColumns = [
     {
+      title: 'Sr.',
+      key: 'srNo',
+      width: 55,
+      align: 'center',
+      render: (_, __, index) => <Text style={{ color: '#64748b', fontSize: '13px' }}>{index + 1}</Text>,
+    },
+    {
       title: 'Month',
       dataIndex: 'month',
       key: 'month',
@@ -181,20 +200,6 @@ export default function ExpenseReport() {
       dataIndex: 'taskCount',
       key: 'taskCount',
       align: 'center',
-    },
-    {
-      title: 'Income',
-      dataIndex: 'totalIncome',
-      key: 'totalIncome',
-      align: 'right',
-      render: (val) => <Text type="success">{formatCurrency(val)}</Text>,
-    },
-    {
-      title: 'Expense',
-      dataIndex: 'totalExpense',
-      key: 'totalExpense',
-      align: 'right',
-      render: (val) => <Text type="danger">{formatCurrency(val)}</Text>,
     },
     {
       title: 'Net Profit',
@@ -210,6 +215,13 @@ export default function ExpenseReport() {
   ];
 
   const generalExpenseColumns = [
+    {
+      title: 'Sr.',
+      key: 'srNo',
+      width: 55,
+      align: 'center',
+      render: (_, __, index) => <Text style={{ color: '#64748b', fontSize: '13px' }}>{index + 1}</Text>,
+    },
     {
       title: 'Date',
       dataIndex: 'date',
@@ -249,13 +261,93 @@ export default function ExpenseReport() {
   const totalGeneralExpense = (generalExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
   const finalNetProfit = Number(tasksNetProfit) - totalGeneralExpense;
 
+  const handleGeneratePDF = async () => {
+    const element = reportPrintRef.current;
+    if (!element) return;
+
+    setIsGeneratingPDF(true);
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    try {
+      const clone = element.cloneNode(true);
+      clone.classList.add('pdf-mode');
+
+      const container = document.createElement('div');
+      container.className = 'pdf-export-container';
+      Object.assign(container.style, {
+        position: 'fixed',
+        left: '-10000px',
+        top: '0',
+        width: '794px',
+        overflow: 'visible',
+        pointerEvents: 'none',
+        zIndex: '-1',
+      });
+
+      Object.assign(clone.style, {
+        overflow: 'visible',
+        height: 'auto',
+        maxHeight: 'none',
+      });
+
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      document.body.style.overflow = 'visible';
+      document.documentElement.style.overflow = 'visible';
+
+      await new Promise((r) => setTimeout(r, 300));
+
+      const captureWidth = 794;
+      const captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight, 1120);
+
+      const periodName =
+        reportType === 'MONTHLY'
+          ? `${dayjs().month(selectedMonth - 1).format('MMMM')}_${selectedYear}`
+          : (activeFinancialYear?.name?.replace(/[^a-zA-Z0-9]/g, '_') || `FY_${selectedYear}`);
+
+      const filename = `Financial_Report_${periodName}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
+        },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      };
+
+      await html2pdf().set(opt).from(clone).save();
+      document.body.removeChild(container);
+      message.success('Financial report PDF exported successfully!');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      message.error('Failed to generate PDF');
+    } finally {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="advocate-module">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>Financial Reports</Title>
         </div>
-        <Space>
+        <Space wrap>
           <Select
             value={reportType}
             onChange={setReportType}
@@ -292,6 +384,26 @@ export default function ExpenseReport() {
               variant="filled"
             />
           )}
+
+          <Button
+            type="primary"
+            icon={<Download size={16} />}
+            onClick={handleGeneratePDF}
+            loading={isGeneratingPDF}
+            disabled={isLoading}
+            style={{
+              borderRadius: '8px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#10b981',
+              borderColor: '#10b981',
+              fontWeight: 500,
+            }}
+          >
+            Export PDF
+          </Button>
         </Space>
       </div>
 
@@ -347,12 +459,12 @@ export default function ExpenseReport() {
                   dataSource={monthlyData.tasks}
                   rowKey="id"
                   pagination={false}
-                  scroll={{ x: 'max-content', y: 225 }}
+                  scroll={{ x: 'max-content' }}
                   size="small"
                   summary={() => (
-                    <Table.Summary fixed>
+                    <Table.Summary>
                       <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                        <Table.Summary.Cell index={0} colSpan={5}>
+                        <Table.Summary.Cell index={0} colSpan={6}>
                           <Text strong>Total</Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={1} align="right">
@@ -371,24 +483,18 @@ export default function ExpenseReport() {
                   dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
                   rowKey="key"
                   pagination={false}
-                  scroll={{ x: 'max-content', y: 225 }}
+                  scroll={{ x: 'max-content' }}
                   size="small"
                   summary={() => (
-                    <Table.Summary fixed>
+                    <Table.Summary>
                       <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                        <Table.Summary.Cell index={0}>
+                        <Table.Summary.Cell index={0} colSpan={2}>
                           <Text strong>Total</Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={1} align="center">
                           <Text strong>{yearlyData?.yearlyTotals?.taskCount || 0}</Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={2} align="right">
-                          <Text type="success" strong>{formatCurrency(yearlyData?.yearlyTotals?.totalIncome || 0)}</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={3} align="right">
-                          <Text type="danger" strong>{formatCurrency(yearlyData?.yearlyTotals?.totalExpense || 0)}</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={4} align="right">
                           <Text type={Number(tasksNetProfit) >= 0 ? 'success' : 'danger'} strong>
                             {formatCurrency(tasksNetProfit)}
                           </Text>
@@ -424,13 +530,13 @@ export default function ExpenseReport() {
               rowKey="id"
               pagination={false}
               loading={generalExpensesLoading}
-              scroll={{ x: 'max-content', y: 450 }}
+              scroll={{ x: 'max-content' }}
               size="small"
               locale={{ emptyText: <Empty description="No general expenses found for this period" /> }}
               summary={() => (
-                <Table.Summary fixed>
+                <Table.Summary>
                   <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                    <Table.Summary.Cell index={0} colSpan={2}>
+                    <Table.Summary.Cell index={0} colSpan={3}>
                       <Text strong>Total</Text>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={1} align="right">
@@ -479,6 +585,23 @@ export default function ExpenseReport() {
         </Form>
       </Modal>
 
+      {/* Hidden Printable Component for PDF Generation */}
+      <div style={{ position: 'absolute', left: '-10000px', top: 0, overflow: 'hidden' }}>
+        <div ref={reportPrintRef}>
+          <FinancialReportPrintLayout
+            reportType={reportType}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            activeFinancialYear={activeFinancialYear}
+            monthlyData={monthlyData}
+            yearlyData={yearlyData}
+            generalExpenses={generalExpenses}
+            tasksNetProfit={tasksNetProfit}
+            totalGeneralExpense={totalGeneralExpense}
+            finalNetProfit={finalNetProfit}
+          />
+        </div>
+      </div>
     </div>
   );
 }

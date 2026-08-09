@@ -178,10 +178,14 @@ router.patch('/:id/done', requireAuth, requireRole('ADMIN', 'SENIOR'), async (re
 
     const netAmount = totalIncome - totalExpense;
 
+    const { completedDate } = req.body;
+    const finalCompletedDate = completedDate ? startOfDayIST(completedDate) : startOfDayIST(new Date());
+
     const task = await prisma.task.update({
       where: { id: req.params.id },
       data: {
         status: 'DONE',
+        completedDate: finalCompletedDate,
         totalIncome,
         totalExpense,
         netAmount,
@@ -215,7 +219,10 @@ router.patch('/:id/reopen', requireAuth, requireRole('ADMIN', 'SENIOR'), async (
 
     const task = await prisma.task.update({
       where: { id: req.params.id },
-      data: { status: 'ACTIVE' },
+      data: {
+        status: 'ACTIVE',
+        completedDate: null,
+      },
     });
 
     res.json({ task });

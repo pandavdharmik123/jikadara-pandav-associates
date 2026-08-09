@@ -58,6 +58,12 @@ export default function Dashboard() {
       )
     },
     {
+      title: 'REFERENCE',
+      dataIndex: 'referenceName',
+      key: 'referenceName',
+      render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text || '-'}</Text>
+    },
+    {
       title: 'STATUS',
       dataIndex: 'status',
       key: 'status',

@@ -145,13 +145,13 @@ export default function ClientList() {
 
   return (
     <div className="advocate-module">
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        justifyContent: 'space-between', 
-        alignItems: isMobile ? 'stretch' : 'center', 
-        marginBottom: 20, 
-        gap: 16 
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'stretch' : 'center',
+        marginBottom: 20,
+        gap: 16
       }}>
         <div>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Clients</Title>
@@ -184,14 +184,14 @@ export default function ClientList() {
           rowKey="id"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
+          // scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
           size="small"
           locale={{
             emptyText: (
-              <EmptyState 
-                icon={FolderOpen} 
-                title="No clients found" 
-                description="Try adjusting your search or filter criteria." 
+              <EmptyState
+                icon={FolderOpen}
+                title="No clients found"
+                description="Try adjusting your search or filter criteria."
               />
             )
           }}
