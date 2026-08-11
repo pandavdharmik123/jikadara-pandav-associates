@@ -248,7 +248,7 @@ export default function FinancialReportPrintLayout({
                       {t.documentType}
                     </td>
                     <td style={{ padding: '6px 8px', color: '#475569', wordBreak: 'break-word' }}>{t.place || '-'}</td>
-                    <td style={{ padding: '6px 8px', color: '#0f172a', wordBreak: 'break-word' }}>{t.client?.name || '-'}</td>
+                    <td style={{ padding: '6px 8px', color: '#0f172a', wordBreak: 'break-word' }}>{t.client?.name || t.clientName || '-'}</td>
                     <td style={{ padding: '6px 8px', color: '#475569', wordBreak: 'break-word' }}>{t.referenceName || '-'}</td>
                     <td
                       style={{

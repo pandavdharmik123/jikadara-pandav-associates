@@ -133,7 +133,15 @@ export default function TaskDetail() {
             </div>
             <div>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Client</Text>
-              <a onClick={() => navigate(`/app/clients/${task.client?.id}`)} style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5' }}>{task.client?.name}</a>
+              {task.client?.id ? (
+                <a onClick={() => navigate(`/app/clients/${task.client.id}`)} style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5' }}>
+                  {task.client.name}
+                </a>
+              ) : (
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                  {task.clientName || 'N/A'}
+                </span>
+              )}
             </div>
           </Space>
         </Card>
