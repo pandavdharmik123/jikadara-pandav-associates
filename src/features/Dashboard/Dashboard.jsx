@@ -45,9 +45,8 @@ export default function Dashboard() {
   const recentTasksColumns = [
     {
       title: 'CLIENT',
-      dataIndex: ['client', 'name'],
       key: 'client',
-      render: (text) => <Text style={{ fontWeight: 600, color: '#1f2937', fontSize: '13px' }}>{text}</Text>
+      render: (_, record) => <Text style={{ fontWeight: 600, color: '#1f2937', fontSize: '13px' }}>{record.client?.name || record.clientName || '-'}</Text>
     },
     {
       title: 'DOCUMENT',

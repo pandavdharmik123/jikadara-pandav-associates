@@ -28,7 +28,9 @@ export const useCreateGeneralExpense = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['generalExpenses']);
+      queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -41,7 +43,9 @@ export const useUpdateGeneralExpense = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['generalExpenses']);
+      queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -54,7 +58,9 @@ export const useDeleteGeneralExpense = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['generalExpenses']);
+      queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };

@@ -40,7 +40,31 @@ export const useCreateTask = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+    },
+  });
+};
+
+// Create a direct income task entry (for reports)
+export const useCreateDirectIncome = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (incomeData) => {
+      const { data } = await api.post('/tasks/income', incomeData);
+      return data.task;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
     },
   });
 };
@@ -57,6 +81,8 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -70,8 +96,10 @@ export const useDeleteTask = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['client'] }); // invalidate all clients to update task counts
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
     },
   });
 };
@@ -91,10 +119,10 @@ export const useMarkTaskDone = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyReport'] });
-      queryClient.invalidateQueries({ queryKey: ['yearlyReport'] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
   });
 };
@@ -111,10 +139,10 @@ export const useReopenTask = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyReport'] });
-      queryClient.invalidateQueries({ queryKey: ['yearlyReport'] });
       queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
   });
 };
@@ -130,6 +158,8 @@ export const useCreateTransaction = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -145,6 +175,8 @@ export const useUpdateTransaction = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };
@@ -160,6 +192,8 @@ export const useDeleteTransaction = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 };

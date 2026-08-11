@@ -8,6 +8,7 @@ import useAuthStore from '../../store/authStore';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import FinancialReportPrintLayout from './FinancialReportPrintLayout';
+import AddIncomeModal from './AddIncomeModal';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
 
@@ -26,6 +27,9 @@ export default function ExpenseReport() {
   const [reportType, setReportType] = useState('MONTHLY'); // MONTHLY or YEARLY
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+
+  // Income Modal State
+  const [isIncomeModalVisible, setIsIncomeModalVisible] = useState(false);
 
   // General Expense Modal State
   const [isExpenseModalVisible, setIsExpenseModalVisible] = useState(false);
@@ -159,8 +163,8 @@ export default function ExpenseReport() {
     },
     {
       title: 'Client',
-      dataIndex: ['client', 'name'],
       key: 'client',
+      render: (_, record) => record.client?.name || record.clientName || '-',
     },
     {
       title: 'Reference',
@@ -449,7 +453,12 @@ export default function ExpenseReport() {
             </Card>
           </div>
 
-          <Title level={4} style={{ marginBottom: 16 }}>Income List</Title>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Title level={4} style={{ margin: 0 }}>Income List</Title>
+            <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsIncomeModalVisible(true)}>
+              Add Income
+            </Button>
+          </div>
           {hasData ? (
             <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
               {reportType === 'MONTHLY' ? (
@@ -550,6 +559,12 @@ export default function ExpenseReport() {
           </Card>
         </>
       )}
+
+      {/* Add Income Modal */}
+      <AddIncomeModal
+        visible={isIncomeModalVisible}
+        onClose={() => setIsIncomeModalVisible(false)}
+      />
 
       {/* General Expense Modal */}
       <Modal

@@ -89,20 +89,23 @@ export default function TaskList() {
     },
     {
       title: 'Client',
-      dataIndex: ['client', 'name'],
       key: 'client',
       width: 280,
       render: (text, record) => {
-        const clientName = record.client?.name || '';
-        const initials = clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'C';
+        const clientName = record.client?.name || record.clientName || '-';
+        const initials = clientName && clientName !== '-' ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'C';
         return (
           <Space gap={12}>
             <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600 }}>
               {initials}
             </Avatar>
-            <a onClick={() => navigate(`/app/clients/${record.client?.id}`)} style={{ fontWeight: 600, color: '#4f46e5' }}>
-              {clientName}
-            </a>
+            {record.client?.id ? (
+              <a onClick={() => navigate(`/app/clients/${record.client.id}`)} style={{ fontWeight: 600, color: '#4f46e5' }}>
+                {clientName}
+              </a>
+            ) : (
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>{clientName}</span>
+            )}
           </Space>
         );
       },

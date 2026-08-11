@@ -110,6 +110,71 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/tasks/income
+ * Direct manual income entry (TaskTransaction with taskId: null)
+ */
+router.post('/income', requireAuth, async (req, res) => {
+  try {
+    const { clientId, clientName, documentType, place, referenceName, date, amount } = req.body;
+
+    if (!documentType || !documentType.trim()) {
+      return res.status(400).json({ error: 'Document type is required' });
+    }
+
+    if (amount === undefined || amount === null || isNaN(amount) || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Valid income amount is required' });
+    }
+
+    if ((!clientId || clientId === 'OTHER') && (!clientName || !clientName.trim())) {
+      return res.status(400).json({ error: 'Client selection or new client name is required' });
+    }
+
+    let finalClientId = null;
+    let finalClientName = '';
+
+    if (clientId && clientId !== 'OTHER') {
+      const existingClient = await prisma.client.findFirst({
+        where: req.user.role === 'ADMIN' ? { id: clientId } : { id: clientId, userId: req.user.id }
+      });
+      if (!existingClient) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      finalClientId = existingClient.id;
+      finalClientName = existingClient.name;
+    } else if (clientName && clientName.trim()) {
+      finalClientName = clientName.trim();
+    }
+
+    const entryDate = date ? startOfDayIST(date) : startOfDayIST(new Date());
+    const numAmount = Number(amount);
+
+    const transaction = await prisma.taskTransaction.create({
+      data: {
+        taskId: null,
+        userId: req.user.id,
+        clientId: finalClientId,
+        clientName: finalClientName,
+        documentType: documentType.trim(),
+        place: place ? place.trim() : '',
+        referenceName: referenceName ? referenceName.trim() : '',
+        date: entryDate,
+        type: 'INCOME',
+        amount: numAmount,
+        description: 'Direct Income Entry',
+      },
+      include: {
+        client: { select: { id: true, name: true } },
+      },
+    });
+
+    res.status(201).json({ transaction });
+  } catch (err) {
+    console.error('Direct income creation error:', err);
+    res.status(500).json({ error: err.message || 'Failed to record income entry' });
+  }
+});
+
+/**
  * PUT /api/tasks/:id
  * Update a task (only if ACTIVE)
  */

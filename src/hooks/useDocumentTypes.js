@@ -19,7 +19,7 @@ export const useCreateDocumentType = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['documentTypes']);
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
     },
   });
 };
@@ -32,7 +32,7 @@ export const useUpdateDocumentType = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['documentTypes']);
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
     },
   });
 };
@@ -45,7 +45,7 @@ export const useDeleteDocumentType = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['documentTypes']);
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
     },
   });
 };

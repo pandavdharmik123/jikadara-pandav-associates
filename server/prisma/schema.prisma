@@ -60,8 +60,9 @@ model Client {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tasks Task[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  transactions TaskTransaction[]
 
   @@index([userId])
 }
@@ -70,7 +71,8 @@ model Client {
 
 model Task {
   id            String     @id @default(uuid())
-  clientId      String
+  clientId      String?
+  clientName    String     @default("")
   userId        String
   documentType  String
   referenceName String     @default("")
@@ -84,7 +86,7 @@ model Task {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  client       Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions TaskTransaction[]
   invoices     Invoice[]
@@ -98,22 +100,30 @@ model Task {
 // ─── TaskTransaction ─────────────────────────────────────
 
 model TaskTransaction {
-  id          String          @id @default(uuid())
-  taskId      String
-  userId      String
-  date        DateTime        @default(now())
-  type        TransactionType
-  description String          @default("")
-  amount      Decimal         @default(0) @db.Decimal(12, 2)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(uuid())
+  taskId        String?
+  userId        String
+  clientId      String?
+  clientName    String          @default("")
+  documentType  String          @default("")
+  place         String          @default("")
+  referenceName String          @default("")
+  date          DateTime        @default(now())
+  type          TransactionType
+  description   String          @default("")
+  amount        Decimal         @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([userId])
+  @@index([clientId])
   @@index([type])
+  @@index([date])
 }
 
 // ─── DocumentType ────────────────────────────────────────
