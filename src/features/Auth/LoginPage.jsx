@@ -89,7 +89,7 @@ const LoginPage = () => {
               <Form.Item name="remember" valuePropName="checked" noStyle>
                 <Checkbox>Remember Me</Checkbox>
               </Form.Item>
-              <Link to="/forgot-password" style={{ color: '#D4AF37', fontWeight: 500 }}>Forgot Password?</Link>
+              {/* <Link to="/forgot-password" style={{ color: '#D4AF37', fontWeight: 500 }}>Forgot Password?</Link> */}
             </div>
 
             <Form.Item style={{ marginBottom: 0 }}>
