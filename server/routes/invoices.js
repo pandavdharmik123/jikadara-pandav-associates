@@ -43,11 +43,14 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-// Get invoices for user
+// Get active invoices for user
 router.get('/', requireAuth, async (req, res) => {
   try {
     const invoices = await prisma.invoice.findMany({
-      where: { userId: req.user.id },
+      where: {
+        userId: req.user.id,
+        isDeleted: false,
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         task: {
@@ -81,7 +84,7 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     // Ensure the invoice belongs to the user
     const existingInvoice = await prisma.invoice.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id, isDeleted: false }
     });
 
     if (!existingInvoice) {
@@ -108,6 +111,31 @@ router.put('/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error updating invoice:', error);
     res.status(500).json({ error: 'Failed to update invoice' });
+  }
+});
+
+// Soft delete an invoice
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.invoice.findFirst({
+      where: { id, userId: req.user.id, isDeleted: false }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    await prisma.invoice.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() }
+    });
+
+    res.json({ success: true, message: 'Invoice moved to Recycle Bin' });
+  } catch (error) {
+    console.error('Error deleting invoice:', error);
+    res.status(500).json({ error: 'Failed to delete invoice' });
   }
 });
 

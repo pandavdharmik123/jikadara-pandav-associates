@@ -18,6 +18,7 @@ import ExpenseReport from './features/Reports/ExpenseReport';
 import UpadList from './features/Upad/UpadList';
 import AdminUsers from './features/Admin/AdminUsers';
 import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
+import RecycleBin from './features/RecycleBin/RecycleBin';
 import UserProfile from './features/Profile/UserProfile';
 
 // Existing Tools
@@ -166,6 +167,11 @@ export default function App() {
                 {/* Document Types Route */}
                 <Route element={<ProtectedRoute pageKey="/app/admin/document-types" />}>
                   <Route path="admin/document-types" element={<DocumentTypesAdmin />} />
+                </Route>
+
+                {/* Recycle Bin Route */}
+                <Route element={<ProtectedRoute pageKey="/app/recycle-bin" />}>
+                  <Route path="recycle-bin" element={<RecycleBin />} />
                 </Route>
 
                 {/* Tools with Individual Page Checks */}

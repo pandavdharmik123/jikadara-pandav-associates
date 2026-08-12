@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tag, Table, Space, Avatar, Grid } from 'antd';
-import { ArrowLeft, Plus, Phone, User as UserIcon, Calendar, NotebookText, Eye } from 'lucide-react';
+import { Card, Typography, Button, Tag, Table, Space, Avatar, Modal, message } from 'antd';
+import { ArrowLeft, Plus, Phone, User as UserIcon, Calendar, NotebookText, Eye, Edit, Trash2 } from 'lucide-react';
 import { useClient } from '../../hooks/useClients';
+import { useDeleteTask } from '../../hooks/useTasks';
 import dayjs from 'dayjs';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import AddTaskModal from '../Tasks/AddTaskModal';
+import EditTaskModal from '../Tasks/EditTaskModal';
 import { formatCurrency } from '../../utils/currency';
 import useAuthStore from '../../store/authStore';
 
@@ -18,6 +20,27 @@ export default function ClientDetail() {
   const { user, activeFinancialYear } = useAuthStore();
   const { data: client, isLoading } = useClient(id, activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  const deleteTaskMutation = useDeleteTask();
+
+  const handleDeleteTask = (taskId) => {
+    Modal.confirm({
+      title: 'Delete Task?',
+      content: 'Are you sure you want to delete this task? All financial transactions will also be moved to the Recycle Bin.',
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          await deleteTaskMutation.mutateAsync(taskId);
+          message.success('Task moved to Recycle Bin');
+        } catch (error) {
+          message.error('Failed to delete task');
+        }
+      },
+    });
+  };
 
   if (isLoading) {
     return <Loader />;
@@ -46,6 +69,12 @@ export default function ClientDetail() {
           <a onClick={() => navigate(`/app/tasks/${record.id}`)} style={{ fontWeight: 600, color: '#0f172a' }}>{text}</a>
         </Space>
       ),
+    },
+    {
+      title: 'Place',
+      dataIndex: 'place',
+      key: 'place',
+      render: (text) => text || '-',
     },
     {
       title: 'Reference',
@@ -81,13 +110,29 @@ export default function ClientDetail() {
     {
       title: 'Actions',
       key: 'actions',
+      width: 140,
       render: (_, record) => (
-        <Button
-          type="text"
-          icon={<Eye size={16} />}
-          onClick={() => navigate(`/app/tasks/${record.id}`)}
-          title="View Details"
-        />
+        <Space size="middle">
+          <Button
+            type="text"
+            icon={<Eye size={16} />}
+            onClick={() => navigate(`/app/tasks/${record.id}`)}
+            title="View Details"
+          />
+          <Button
+            type="text"
+            icon={<Edit size={16} />}
+            onClick={() => setEditingTask({ ...record, client: { name: client.name, id: client.id } })}
+            title="Edit Task"
+          />
+          <Button
+            type="text"
+            danger
+            icon={<Trash2 size={16} />}
+            onClick={() => handleDeleteTask(record.id)}
+            title="Delete Task"
+          />
+        </Space>
       ),
     },
   ];
@@ -182,6 +227,12 @@ export default function ClientDetail() {
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
         initialClientId={client.id}
+      />
+
+      <EditTaskModal
+        visible={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        task={editingTask}
       />
     </div>
   );

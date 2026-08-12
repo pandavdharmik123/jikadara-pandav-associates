@@ -24,7 +24,8 @@ import {
   ChevronRight,
   Files,
   Sparkles,
-  Wallet
+  Wallet,
+  Trash2
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -115,6 +116,11 @@ export default function MainLayout() {
             icon: <Files size={20} />,
             label: 'Document Types',
           },
+          {
+            key: '/app/recycle-bin',
+            icon: <Trash2 size={20} />,
+            label: 'Recycle Bin',
+          },
         ],
       },
     ];
@@ -144,6 +150,11 @@ export default function MainLayout() {
         key: '/app/upad',
         icon: <Wallet size={20} />,
         label: 'Upad List',
+      },
+      {
+        key: '/app/recycle-bin',
+        icon: <Trash2 size={20} />,
+        label: 'Recycle Bin',
       },
       {
         key: '/app/admin/document-types',

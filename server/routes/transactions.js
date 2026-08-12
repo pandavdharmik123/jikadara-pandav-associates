@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * GET /api/transactions?taskId=xxx
- * List transactions for a task
+ * List active transactions for a task
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -17,8 +17,11 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     // Verify task ownership
-    const taskWhere = { id: taskId };
-    if (req.user.role !== 'ADMIN') taskWhere.userId = req.user.id;
+    const taskWhere = {
+      id: taskId,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const task = await prisma.task.findFirst({ where: taskWhere });
     if (!task) {
@@ -26,7 +29,7 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     const transactions = await prisma.taskTransaction.findMany({
-      where: { taskId },
+      where: { taskId, isDeleted: false },
       orderBy: { date: 'asc' },
     });
 
@@ -54,8 +57,11 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     // Verify task ownership and status
-    const taskWhere = { id: taskId };
-    if (req.user.role !== 'ADMIN') taskWhere.userId = req.user.id;
+    const taskWhere = {
+      id: taskId,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const task = await prisma.task.findFirst({ where: taskWhere });
     if (!task) {
@@ -77,10 +83,10 @@ router.post('/', requireAuth, async (req, res) => {
       },
     });
 
-    // Recalculate task totals
+    // Recalculate task totals with active transactions
     const aggregations = await prisma.taskTransaction.groupBy({
       by: ['type'],
-      where: { taskId },
+      where: { taskId, isDeleted: false },
       _sum: { amount: true },
     });
 
@@ -113,18 +119,23 @@ router.post('/', requireAuth, async (req, res) => {
  */
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.taskTransaction.findFirst({ where });
     if (!existing) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    // Check task is not DONE
-    const task = await prisma.task.findUnique({ where: { id: existing.taskId } });
-    if (task?.status === 'DONE') {
-      return res.status(400).json({ error: 'Cannot edit transactions of a completed task' });
+    // Check task is not DONE if taskId exists
+    if (existing.taskId) {
+      const task = await prisma.task.findUnique({ where: { id: existing.taskId } });
+      if (task?.status === 'DONE') {
+        return res.status(400).json({ error: 'Cannot edit transactions of a completed task' });
+      }
     }
 
     const { date, type, description, amount } = req.body;
@@ -139,28 +150,30 @@ router.put('/:id', requireAuth, async (req, res) => {
       },
     });
 
-    // Recalculate task totals
-    const aggregations = await prisma.taskTransaction.groupBy({
-      by: ['type'],
-      where: { taskId: existing.taskId },
-      _sum: { amount: true },
-    });
+    // Recalculate task totals if linked to a task
+    if (existing.taskId) {
+      const aggregations = await prisma.taskTransaction.groupBy({
+        by: ['type'],
+        where: { taskId: existing.taskId, isDeleted: false },
+        _sum: { amount: true },
+      });
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-    aggregations.forEach((agg) => {
-      if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
-      if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
-    });
+      let totalIncome = 0;
+      let totalExpense = 0;
+      aggregations.forEach((agg) => {
+        if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
+        if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
+      });
 
-    await prisma.task.update({
-      where: { id: existing.taskId },
-      data: {
-        totalIncome,
-        totalExpense,
-        netAmount: totalIncome - totalExpense,
-      },
-    });
+      await prisma.task.update({
+        where: { id: existing.taskId },
+        data: {
+          totalIncome,
+          totalExpense,
+          netAmount: totalIncome - totalExpense,
+        },
+      });
+    }
 
     res.json({ transaction });
   } catch (err) {
@@ -171,52 +184,63 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 /**
  * DELETE /api/transactions/:id
- * Delete a transaction
+ * Soft delete a transaction
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.taskTransaction.findFirst({ where });
     if (!existing) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    // Check task is not DONE
-    const task = await prisma.task.findUnique({ where: { id: existing.taskId } });
-    if (task?.status === 'DONE') {
-      return res.status(400).json({ error: 'Cannot delete transactions of a completed task' });
+    // Check task is not DONE if taskId exists
+    if (existing.taskId) {
+      const task = await prisma.task.findUnique({ where: { id: existing.taskId } });
+      if (task?.status === 'DONE') {
+        return res.status(400).json({ error: 'Cannot delete transactions of a completed task' });
+      }
     }
 
     const taskId = existing.taskId;
 
-    await prisma.taskTransaction.delete({ where: { id: req.params.id } });
-
-    // Recalculate task totals
-    const aggregations = await prisma.taskTransaction.groupBy({
-      by: ['type'],
-      where: { taskId },
-      _sum: { amount: true },
+    // Soft delete transaction
+    await prisma.taskTransaction.update({
+      where: { id: req.params.id },
+      data: { isDeleted: true, deletedAt: new Date() },
     });
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-    aggregations.forEach((agg) => {
-      if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
-      if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
-    });
+    // Recalculate task totals with remaining active transactions
+    if (taskId) {
+      const aggregations = await prisma.taskTransaction.groupBy({
+        by: ['type'],
+        where: { taskId, isDeleted: false },
+        _sum: { amount: true },
+      });
 
-    await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        totalIncome,
-        totalExpense,
-        netAmount: totalIncome - totalExpense,
-      },
-    });
+      let totalIncome = 0;
+      let totalExpense = 0;
+      aggregations.forEach((agg) => {
+        if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
+        if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
+      });
 
-    res.json({ message: 'Transaction deleted successfully' });
+      await prisma.task.update({
+        where: { id: taskId },
+        data: {
+          totalIncome,
+          totalExpense,
+          netAmount: totalIncome - totalExpense,
+        },
+      });
+    }
+
+    res.json({ message: 'Transaction moved to Recycle Bin' });
   } catch (err) {
     console.error('Delete transaction error:', err);
     res.status(500).json({ error: 'Failed to delete transaction' });

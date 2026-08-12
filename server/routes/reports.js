@@ -12,7 +12,10 @@ const router = Router();
  */
 router.get('/dashboard', requireAuth, async (req, res) => {
   try {
-    const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const userFilter = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
 
     const now = new Date();
     const { year: nowYear, month: nowMonth } = toISTDateParts(now);
@@ -62,6 +65,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         where: {
           userId: req.user.id,
           status: 'DONE',
+          isDeleted: false,
           ...completedDateFilter(effStartOfMonth, effEndOfMonth),
         },
         _sum: {
@@ -74,6 +78,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         where: {
           userId: req.user.id,
           status: 'DONE',
+          isDeleted: false,
           ...completedDateFilter(fyStart, fyEnd),
         },
         _sum: {
@@ -86,6 +91,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         where: {
           userId: req.user.id,
           taskId: null,
+          isDeleted: false,
           type: 'INCOME',
           date: { gte: effStartOfMonth, lte: effEndOfMonth },
         },
@@ -97,6 +103,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         where: {
           userId: req.user.id,
           taskId: null,
+          isDeleted: false,
           type: 'INCOME',
           date: { gte: fyStart, lte: fyEnd },
         },
@@ -160,7 +167,10 @@ router.get('/monthly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, 
     }
 
     const isMonthInFy = startOfMonth <= endOfMonth;
-    const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const userFilter = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
 
     const completedDateFilter = (start, end) => ({
       OR: [
@@ -245,7 +255,10 @@ router.get('/monthly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, 
  */
 router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, res) => {
   try {
-    const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const userFilter = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
 
     const { fyStartDate, fyEndDate, year } = req.query;
     
@@ -359,11 +372,14 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
 
 /**
  * GET /api/reports/recent
- * Recent clients and tasks for dashboard
+ * Recent active clients and tasks for dashboard
  */
 router.get('/recent', requireAuth, async (req, res) => {
   try {
-    const userFilter = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const userFilter = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
 
     const [recentClients, recentTasks] = await Promise.all([
       prisma.client.findMany({
@@ -371,7 +387,7 @@ router.get('/recent', requireAuth, async (req, res) => {
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { tasks: true } },
+          _count: { select: { tasks: { where: { isDeleted: false } } } },
         },
       }),
       prisma.task.findMany({
