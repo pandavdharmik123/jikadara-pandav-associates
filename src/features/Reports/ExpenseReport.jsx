@@ -468,10 +468,10 @@ export default function ExpenseReport() {
                   dataSource={monthlyData.tasks}
                   rowKey="id"
                   pagination={false}
-                  scroll={{ x: 'max-content' }}
+                  scroll={{ x: 'max-content', y: 'calc(100vh - 600px)' }}
                   size="small"
                   summary={() => (
-                    <Table.Summary>
+                    <Table.Summary fixed={true}>
                       <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
                         <Table.Summary.Cell index={0} colSpan={6}>
                           <Text strong>Total</Text>
@@ -492,7 +492,7 @@ export default function ExpenseReport() {
                   dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
                   rowKey="key"
                   pagination={false}
-                  scroll={{ x: 'max-content' }}
+                  scroll={{ x: 'max-content', y: 'calc(100vh - 600px)', scroll: 'auto' }}
                   size="small"
                   summary={() => (
                     <Table.Summary>
