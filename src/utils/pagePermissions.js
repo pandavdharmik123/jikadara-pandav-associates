@@ -11,6 +11,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/clients', label: 'Clients', description: 'Client profiles & records' },
       { key: '/app/tasks', label: 'Tasks', description: 'Task, case & financial ledger tracking' },
       { key: '/app/reports', label: 'Reports', description: 'Monthly & yearly financial reports' },
+      { key: '/app/upad', label: 'Upad List', description: 'User profit withdrawal ledger' },
       { key: '/app/admin/document-types', label: 'Document Types', description: 'Document type configurations' },
     ],
   },

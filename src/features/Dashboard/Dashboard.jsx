@@ -25,8 +25,21 @@ export default function Dashboard() {
 
   const currentYear = dayjs().year();
   const currentMonth = dayjs().month();
-  const monthlyStart = dayjs().year(currentYear).month(currentMonth).startOf('month').toISOString();
-  const monthlyEnd = dayjs().year(currentYear).month(currentMonth).endOf('month').toISOString();
+  let mStart = dayjs().year(currentYear).month(currentMonth).startOf('month');
+  let mEnd = dayjs().year(currentYear).month(currentMonth).endOf('month');
+
+  if (activeFinancialYear?.startDate) {
+    const fyS = dayjs(activeFinancialYear.startDate);
+    if (fyS.isAfter(mStart)) mStart = fyS;
+  }
+  if (activeFinancialYear?.endDate) {
+    const fyE = dayjs(activeFinancialYear.endDate);
+    if (fyE.isBefore(mEnd)) mEnd = fyE;
+  }
+
+  const isCurrentMonthInFy = !mStart.isAfter(mEnd);
+  const monthlyStart = isCurrentMonthInFy ? mStart.format('YYYY-MM-DD') : '1970-01-01';
+  const monthlyEnd = isCurrentMonthInFy ? mEnd.format('YYYY-MM-DD') : '1970-01-01';
   const { data: monthlyGeneralExpenses, isLoading: monthlyGeLoading } = useGeneralExpenses(monthlyStart, monthlyEnd);
 
   if (statsLoading || recentLoading || fyGeLoading || monthlyGeLoading) {

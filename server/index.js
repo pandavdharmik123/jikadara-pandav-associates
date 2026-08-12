@@ -13,6 +13,7 @@ import documentTypeRoutes from './routes/documentTypes.js';
 import financialYearRoutes from './routes/financialYears.js';
 import invoiceRoutes from './routes/invoices.js';
 import documentRoutes from './routes/document.js';
+import upadRoutes from './routes/upad.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/financialYears', financialYearRoutes);
 app.use('/api/general-expenses', generalExpensesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/document', documentRoutes);
+app.use('/api/upad', upadRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {

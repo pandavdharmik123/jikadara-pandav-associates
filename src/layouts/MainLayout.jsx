@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Files,
-  Sparkles
+  Sparkles,
+  Wallet
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -138,6 +139,11 @@ export default function MainLayout() {
         key: '/app/reports',
         icon: <BarChart2 size={20} />,
         label: 'Reports',
+      },
+      {
+        key: '/app/upad',
+        icon: <Wallet size={20} />,
+        label: 'Upad List',
       },
       {
         key: '/app/admin/document-types',
