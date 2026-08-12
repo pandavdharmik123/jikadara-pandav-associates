@@ -41,12 +41,13 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  clients      Client[]
-  tasks        Task[]
-  transactions TaskTransaction[]
-  financialYears FinancialYear[]
+  clients         Client[]
+  tasks           Task[]
+  transactions    TaskTransaction[]
+  financialYears  FinancialYear[]
   generalExpenses GeneralExpense[]
-  invoices       Invoice[]
+  invoices        Invoice[]
+  upads           Upad[]
 }
 
 // ─── Client ──────────────────────────────────────────────
@@ -190,3 +191,22 @@ model Invoice {
   @@index([userId])
   @@index([taskId])
 }
+
+// ─── Upad (Profit Withdrawal) ────────────────────────────
+
+model Upad {
+  id          String   @id @default(uuid())
+  userId      String
+  userName    String   @default("")
+  date        DateTime @default(now())
+  description String   @default("")
+  amount      Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
