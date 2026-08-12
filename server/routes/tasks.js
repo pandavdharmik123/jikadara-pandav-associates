@@ -12,7 +12,10 @@ const router = Router();
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const where = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const where = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
     if (req.query.clientId) where.clientId = req.query.clientId;
     if (req.query.status) where.status = req.query.status;
     
@@ -27,7 +30,7 @@ router.get('/', requireAuth, async (req, res) => {
       where,
       include: {
         client: { select: { id: true, name: true } },
-        _count: { select: { transactions: true } },
+        _count: { select: { transactions: { where: { isDeleted: false } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -41,18 +44,24 @@ router.get('/', requireAuth, async (req, res) => {
 
 /**
  * GET /api/tasks/:id
- * Get a single task with all transactions
+ * Get a single task with all active transactions
  */
 router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const task = await prisma.task.findFirst({
       where,
       include: {
         client: { select: { id: true, name: true, referenceName: true } },
-        transactions: { orderBy: { date: 'asc' } },
+        transactions: {
+          where: { isDeleted: false },
+          orderBy: { date: 'asc' },
+        },
       },
     });
 
@@ -79,9 +88,12 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'clientId and documentType are required' });
     }
 
-    // Verify client ownership
-    const clientWhere = { id: clientId };
-    if (req.user.role !== 'ADMIN') clientWhere.userId = req.user.id;
+    // Verify client ownership and not deleted
+    const clientWhere = {
+      id: clientId,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const client = await prisma.client.findFirst({ where: clientWhere });
     if (!client) {
@@ -92,9 +104,9 @@ router.post('/', requireAuth, async (req, res) => {
       data: {
         clientId,
         userId: req.user.id,
-        documentType,
-        referenceName: referenceName || client.referenceName || '',
-        place: place || '',
+        documentType: documentType.trim(),
+        referenceName: referenceName ? referenceName.trim() : (client.referenceName || ''),
+        place: place ? place.trim() : '',
         startDate: startDate ? startOfDayIST(startDate) : new Date(),
       },
       include: {
@@ -134,7 +146,11 @@ router.post('/income', requireAuth, async (req, res) => {
 
     if (clientId && clientId !== 'OTHER') {
       const existingClient = await prisma.client.findFirst({
-        where: req.user.role === 'ADMIN' ? { id: clientId } : { id: clientId, userId: req.user.id }
+        where: {
+          id: clientId,
+          isDeleted: false,
+          ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+        },
       });
       if (!existingClient) {
         return res.status(404).json({ error: 'Client not found' });
@@ -176,12 +192,15 @@ router.post('/income', requireAuth, async (req, res) => {
 
 /**
  * PUT /api/tasks/:id
- * Update a task (only if ACTIVE)
+ * Update a task
  */
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.task.findFirst({ where });
     if (!existing) {
@@ -218,18 +237,21 @@ router.put('/:id', requireAuth, async (req, res) => {
  */
 router.patch('/:id/done', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.task.findFirst({ where });
     if (!existing) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Calculate totals from transactions
+    // Calculate totals from active transactions
     const aggregations = await prisma.taskTransaction.groupBy({
       by: ['type'],
-      where: { taskId: req.params.id },
+      where: { taskId: req.params.id, isDeleted: false },
       _sum: { amount: true },
     });
 
@@ -274,8 +296,11 @@ router.patch('/:id/done', requireAuth, requireRole('ADMIN', 'SENIOR'), async (re
  */
 router.patch('/:id/reopen', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.task.findFirst({ where });
     if (!existing) {
@@ -299,20 +324,42 @@ router.patch('/:id/reopen', requireAuth, requireRole('ADMIN', 'SENIOR'), async (
 
 /**
  * DELETE /api/tasks/:id
- * Delete a task (cascades to transactions)
+ * Soft delete a task (cascades to transactions and invoices)
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.task.findFirst({ where });
     if (!existing) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await prisma.task.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Task deleted successfully' });
+    const now = new Date();
+
+    await prisma.$transaction([
+      // Soft-delete the task
+      prisma.task.update({
+        where: { id: req.params.id },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+      // Soft-delete all task transactions
+      prisma.taskTransaction.updateMany({
+        where: { taskId: req.params.id, isDeleted: false },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+      // Soft-delete all invoices linked to this task
+      prisma.invoice.updateMany({
+        where: { taskId: req.params.id, isDeleted: false },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+    ]);
+
+    res.json({ message: 'Task and related transactions moved to Recycle Bin' });
   } catch (err) {
     console.error('Delete task error:', err);
     res.status(500).json({ error: 'Failed to delete task' });

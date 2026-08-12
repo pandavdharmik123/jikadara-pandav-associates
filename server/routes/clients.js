@@ -6,11 +6,14 @@ const router = Router();
 
 /**
  * GET /api/clients
- * List all clients for the authenticated user (Admin sees all)
+ * List all active clients for the authenticated user (Admin sees all)
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const where = req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+    const where = {
+      isDeleted: false,
+      ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+    };
     const search = req.query.search;
 
     if (search) {
@@ -22,9 +25,12 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     const { fyStartDate, fyEndDate } = req.query;
-    let fyFilter = {};
+    let fyFilter = { isDeleted: false };
     if (fyStartDate && fyEndDate) {
-      fyFilter = { startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) } };
+      fyFilter = {
+        isDeleted: false,
+        startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) },
+      };
     }
 
     const clients = await prisma.client.findMany({
@@ -46,17 +52,23 @@ router.get('/', requireAuth, async (req, res) => {
 
 /**
  * GET /api/clients/:id
- * Get a single client with tasks
+ * Get a single client with active tasks
  */
 router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const { fyStartDate, fyEndDate } = req.query;
-    let fyFilter = {};
+    let fyFilter = { isDeleted: false };
     if (fyStartDate && fyEndDate) {
-      fyFilter = { startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) } };
+      fyFilter = {
+        isDeleted: false,
+        startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) },
+      };
     }
 
     const client = await prisma.client.findFirst({
@@ -65,7 +77,7 @@ router.get('/:id', requireAuth, async (req, res) => {
         tasks: {
           where: fyFilter,
           orderBy: { createdAt: 'desc' },
-          include: { _count: { select: { transactions: true } } },
+          include: { _count: { select: { transactions: { where: { isDeleted: false } } } } },
         },
       },
     });
@@ -115,8 +127,11 @@ router.post('/', requireAuth, async (req, res) => {
  */
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.client.findFirst({ where });
     if (!existing) {
@@ -143,20 +158,56 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 /**
  * DELETE /api/clients/:id
- * Delete a client (cascades to tasks and transactions)
+ * Soft delete a client (cascades to tasks, transactions, and invoices)
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const where = { id: req.params.id };
-    if (req.user.role !== 'ADMIN') where.userId = req.user.id;
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
 
     const existing = await prisma.client.findFirst({ where });
     if (!existing) {
       return res.status(404).json({ error: 'Client not found' });
     }
 
-    await prisma.client.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Client deleted successfully' });
+    const now = new Date();
+
+    await prisma.$transaction([
+      // Soft-delete the client
+      prisma.client.update({
+        where: { id: req.params.id },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+      // Soft-delete all tasks for this client
+      prisma.task.updateMany({
+        where: { clientId: req.params.id, isDeleted: false },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+      // Soft-delete transactions linked to this client or its tasks
+      prisma.taskTransaction.updateMany({
+        where: {
+          OR: [
+            { clientId: req.params.id },
+            { task: { clientId: req.params.id } },
+          ],
+          isDeleted: false,
+        },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+      // Soft-delete invoices linked to this client's tasks
+      prisma.invoice.updateMany({
+        where: {
+          task: { clientId: req.params.id },
+          isDeleted: false,
+        },
+        data: { isDeleted: true, deletedAt: now },
+      }),
+    ]);
+
+    res.json({ message: 'Client and related items moved to Recycle Bin' });
   } catch (err) {
     console.error('Delete client error:', err);
     res.status(500).json({ error: 'Failed to delete client' });

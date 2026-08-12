@@ -67,6 +67,7 @@ export const useDeleteUpad = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['upads'] });
+      queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
     },
   });
 };

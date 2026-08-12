@@ -7,13 +7,15 @@ const router = Router();
 
 /**
  * GET /api/upad
- * Get all Upad entries with optional filters (userName, date range, search)
+ * Get all active Upad entries with optional filters (userName, date range, search)
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { userName, startDate, endDate, fyStartDate, fyEndDate, search } = req.query;
 
-    const whereClause = {};
+    const whereClause = {
+      isDeleted: false,
+    };
 
     if (userName && userName !== 'ALL') {
       whereClause.userName = { equals: userName.trim(), mode: 'insensitive' };
@@ -69,12 +71,12 @@ router.get('/', requireAuth, async (req, res) => {
 
 /**
  * GET /api/upad/:id
- * Get single Upad record by ID
+ * Get single active Upad record by ID
  */
 router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const upad = await prisma.upad.findUnique({
-      where: { id: req.params.id },
+    const upad = await prisma.upad.findFirst({
+      where: { id: req.params.id, isDeleted: false },
     });
 
     if (!upad) {
@@ -97,19 +99,19 @@ router.post('/', requireAuth, async (req, res) => {
     const { date, userName, description, amount } = req.body;
 
     if (!date) {
-      return res.status(400).json({ error: 'Date is required (તારીખ જરૂરી છે)' });
+      return res.status(400).json({ error: 'Date is required' });
     }
 
     if (!userName || !userName.trim()) {
-      return res.status(400).json({ error: 'User name is required (વપરાશકર્તાનું નામ જરૂરી છે)' });
+      return res.status(400).json({ error: 'User name is required' });
     }
 
     if (!description || !description.trim()) {
-      return res.status(400).json({ error: 'Description is required (વિગત જરૂરી છે)' });
+      return res.status(400).json({ error: 'Description is required' });
     }
 
     if (amount === undefined || amount === null || isNaN(amount) || Number(amount) <= 0) {
-      return res.status(400).json({ error: 'Valid amount greater than 0 is required (માન્ય રકમ જરૂરી છે)' });
+      return res.status(400).json({ error: 'Valid amount greater than 0 is required' });
     }
 
     const newUpad = await prisma.upad.create({
@@ -138,8 +140,8 @@ router.put('/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     const { date, userName, description, amount } = req.body;
 
-    const existing = await prisma.upad.findUnique({
-      where: { id },
+    const existing = await prisma.upad.findFirst({
+      where: { id, isDeleted: false },
     });
 
     if (!existing) {
@@ -187,25 +189,26 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 /**
  * DELETE /api/upad/:id
- * Delete an Upad record
+ * Soft delete an Upad record
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.upad.findUnique({
-      where: { id },
+    const existing = await prisma.upad.findFirst({
+      where: { id, isDeleted: false },
     });
 
     if (!existing) {
       return res.status(404).json({ error: 'Upad record not found' });
     }
 
-    await prisma.upad.delete({
+    await prisma.upad.update({
       where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
     });
 
-    res.json({ message: 'Upad record deleted successfully' });
+    res.json({ message: 'Upad record moved to Recycle Bin' });
   } catch (err) {
     console.error('Delete Upad error:', err);
     res.status(500).json({ error: 'Failed to delete Upad record' });

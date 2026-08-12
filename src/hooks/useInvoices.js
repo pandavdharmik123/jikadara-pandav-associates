@@ -39,3 +39,18 @@ export const useUpdateInvoice = () => {
     },
   });
 };
+
+// Delete an invoice
+export const useDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const response = await api.delete(`/invoices/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
+    },
+  });
+};
