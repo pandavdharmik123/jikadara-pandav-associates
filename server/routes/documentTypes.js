@@ -49,9 +49,9 @@ router.post('/', requireAuth, async (req, res) => {
 
 /**
  * PUT /api/documentTypes/:id
- * Update a document type (Admin only)
+ * Update a document type
  */
-router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -78,9 +78,9 @@ router.put('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
 
 /**
  * DELETE /api/documentTypes/:id
- * Delete a document type (Admin only)
+ * Delete a document type
  */
-router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.documentType.delete({
