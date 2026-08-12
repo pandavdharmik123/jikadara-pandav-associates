@@ -189,7 +189,13 @@
         color: #2563eb !important;
       }
     }
+
   }
+}
+
+
+.ant-table-body {
+  overflow: auto !important;
 }
 
 .modern-admin-table {

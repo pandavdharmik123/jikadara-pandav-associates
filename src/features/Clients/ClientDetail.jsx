@@ -48,6 +48,12 @@ export default function ClientDetail() {
       ),
     },
     {
+      title: 'Reference',
+      dataIndex: 'referenceName',
+      key: 'referenceName',
+      render: (text) => text || '-',
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',

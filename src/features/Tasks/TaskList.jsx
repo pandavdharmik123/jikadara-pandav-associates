@@ -141,14 +141,12 @@ export default function TaskList() {
             onClick={() => navigate(`/app/tasks/${record.id}`)}
             title="View Details"
           />
-          {record.status === 'ACTIVE' && (
-            <Button
-              type="text"
-              icon={<Edit size={16} />}
-              onClick={() => setEditingTask(record)}
-              title="Edit"
-            />
-          )}
+          <Button
+            type="text"
+            icon={<Edit size={16} />}
+            onClick={() => setEditingTask(record)}
+            title="Edit"
+          />
           <Button
             type="text"
             danger
@@ -205,7 +203,7 @@ export default function TaskList() {
           rowKey="id"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
+          scroll={{ x: 800, y: 'calc(100vh - 260px)' }}
           size="small"
           locale={{
             emptyText: (
