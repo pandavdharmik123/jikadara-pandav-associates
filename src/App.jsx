@@ -15,6 +15,7 @@ import Dashboard from './features/Dashboard/Dashboard';
 import ClientRoutes from './features/Clients';
 import TaskRoutes from './features/Tasks';
 import ExpenseReport from './features/Reports/ExpenseReport';
+import UpadList from './features/Upad/UpadList';
 import AdminUsers from './features/Admin/AdminUsers';
 import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
 import UserProfile from './features/Profile/UserProfile';
@@ -149,6 +150,10 @@ export default function App() {
 
                 <Route element={<ProtectedRoute pageKey="/app/reports" />}>
                   <Route path="reports" element={<ExpenseReport />} />
+                </Route>
+
+                <Route element={<ProtectedRoute pageKey="/app/upad" />}>
+                  <Route path="upad" element={<UpadList />} />
                 </Route>
 
                 <Route path="profile" element={<UserProfile />} />

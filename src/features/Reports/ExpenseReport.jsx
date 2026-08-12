@@ -60,11 +60,33 @@ export default function ExpenseReport() {
 
   let geStart, geEnd;
   if (reportType === 'MONTHLY') {
-    geStart = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month').format('YYYY-MM-DD');
-    geEnd = dayjs().year(selectedYear).month(selectedMonth - 1).endOf('month').format('YYYY-MM-DD');
+    let mStart = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
+    let mEnd = dayjs().year(selectedYear).month(selectedMonth - 1).endOf('month');
+
+    if (activeFinancialYear?.startDate) {
+      const fyS = dayjs(activeFinancialYear.startDate);
+      if (fyS.isAfter(mStart)) mStart = fyS;
+    }
+    if (activeFinancialYear?.endDate) {
+      const fyE = dayjs(activeFinancialYear.endDate);
+      if (fyE.isBefore(mEnd)) mEnd = fyE;
+    }
+
+    if (mStart.isAfter(mEnd)) {
+      geStart = '1970-01-01';
+      geEnd = '1970-01-01';
+    } else {
+      geStart = mStart.format('YYYY-MM-DD');
+      geEnd = mEnd.format('YYYY-MM-DD');
+    }
   } else {
-    geStart = activeFinancialYear?.startDate;
-    geEnd = activeFinancialYear?.endDate;
+    if (activeFinancialYear?.startDate && activeFinancialYear?.endDate) {
+      geStart = activeFinancialYear.startDate;
+      geEnd = activeFinancialYear.endDate;
+    } else {
+      geStart = dayjs().year(selectedYear).startOf('year').format('YYYY-MM-DD');
+      geEnd = dayjs().year(selectedYear).endOf('year').format('YYYY-MM-DD');
+    }
   }
 
   const { data: generalExpenses, isLoading: generalExpensesLoading } = useGeneralExpenses(geStart, geEnd);
