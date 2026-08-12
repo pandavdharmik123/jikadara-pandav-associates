@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker } from 'antd';
-import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit } from 'lucide-react';
 import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
 import EditableTransactionTable from './EditableTransactionTable';
+import EditTaskModal from './EditTaskModal';
 import Loader from '../../components/Loader';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
@@ -20,6 +21,7 @@ export default function TaskDetail() {
   const markDoneMutation = useMarkTaskDone();
   const reopenMutation = useReopenTask();
 
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isMarkDoneModalOpen, setIsMarkDoneModalOpen] = useState(false);
   const [doneForm] = Form.useForm();
 
@@ -110,6 +112,14 @@ export default function TaskDetail() {
         </Space>
 
         <Space>
+          <Button
+            icon={<Edit size={16} />}
+            onClick={() => setIsEditModalVisible(true)}
+            style={{ borderRadius: '8px', height: 40 }}
+          >
+            Edit Task
+          </Button>
+
           {canToggleStatus && (
             <Button
               type={isTaskDone ? "default" : "primary"}
@@ -146,7 +156,7 @@ export default function TaskDetail() {
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
           <Space align="center" size="middle">
             <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Bookmark size={16} />
@@ -158,7 +168,7 @@ export default function TaskDetail() {
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
           <Space align="center" size="middle">
             <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
@@ -170,7 +180,7 @@ export default function TaskDetail() {
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
           <Space align="center" size="middle">
             <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Calendar size={16} />
@@ -183,7 +193,7 @@ export default function TaskDetail() {
         </Card>
 
         {isTaskDone && (
-          <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#f0fdf4' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#f0fdf4' }} styles={{ body: { padding: '12px 16px' } }}>
             <Space align="center" size="middle">
               <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
                 <CheckCircle size={16} />
@@ -198,7 +208,7 @@ export default function TaskDetail() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
           <Space align="center" size="small">
             <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: 16, fontWeight: 600 }}>₹</div>
             <div>
@@ -281,6 +291,13 @@ export default function TaskDetail() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Edit Task Details Modal */}
+      <EditTaskModal
+        visible={isEditModalVisible}
+        task={task}
+        onClose={() => setIsEditModalVisible(false)}
+      />
     </div>
   );
 }

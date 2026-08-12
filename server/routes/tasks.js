@@ -188,19 +188,19 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (existing.status === 'DONE') {
-      return res.status(400).json({ error: 'Cannot edit a completed task' });
-    }
-
-    const { documentType, referenceName, startDate, place } = req.body;
+    const { documentType, referenceName, startDate, place, completedDate } = req.body;
 
     const task = await prisma.task.update({
       where: { id: req.params.id },
       data: {
-        ...(documentType !== undefined && { documentType }),
-        ...(referenceName !== undefined && { referenceName }),
-        ...(place !== undefined && { place }),
+        ...(documentType !== undefined && { documentType: documentType.trim() }),
+        ...(referenceName !== undefined && { referenceName: referenceName.trim() }),
+        ...(place !== undefined && { place: place.trim() }),
         ...(startDate !== undefined && { startDate: startOfDayIST(startDate) }),
+        ...(completedDate !== undefined && { completedDate: completedDate ? startOfDayIST(completedDate) : null }),
+      },
+      include: {
+        client: { select: { id: true, name: true } },
       },
     });
 
