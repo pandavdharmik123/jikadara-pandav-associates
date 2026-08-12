@@ -12,6 +12,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tasks', label: 'Tasks', description: 'Task, case & financial ledger tracking' },
       { key: '/app/reports', label: 'Reports', description: 'Monthly & yearly financial reports' },
       { key: '/app/upad', label: 'Upad List', description: 'User profit withdrawal ledger' },
+      { key: '/app/recycle-bin', label: 'Recycle Bin', description: 'Restoration & permanent removal of deleted items' },
       { key: '/app/admin/document-types', label: 'Document Types', description: 'Document type configurations' },
     ],
   },
@@ -42,7 +43,7 @@ export const DEFAULT_ALLOWED_PAGES = ALL_AVAILABLE_PAGES.map((p) => p.key);
 
 /**
  * Check if a user has access to a specific page route
- * - ADMIN always has access to administrative pages (/app/admin/users, /app/admin/document-types, /app/profile)
+ * - ADMIN always has access to administrative pages (/app/admin/users, /app/admin/document-types, /app/recycle-bin, /app/profile)
  * - Regular users are checked against user.allowedPages
  */
 export function hasPageAccess(user, pageKey) {
@@ -51,9 +52,9 @@ export function hasPageAccess(user, pageKey) {
   // Profile is universally accessible
   if (pageKey === '/app/profile') return true;
 
-  // ADMIN role access: strictly user management and document types
+  // ADMIN role access: strictly user management, document types, and recycle bin
   if (user.role === 'ADMIN') {
-    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types';
+    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/recycle-bin';
   }
 
   // Non-admin cannot access admin panel users

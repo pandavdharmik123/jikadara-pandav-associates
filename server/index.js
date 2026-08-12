@@ -14,6 +14,7 @@ import financialYearRoutes from './routes/financialYears.js';
 import invoiceRoutes from './routes/invoices.js';
 import documentRoutes from './routes/document.js';
 import upadRoutes from './routes/upad.js';
+import recycleBinRoutes from './routes/recycleBin.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/general-expenses', generalExpensesRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/document', documentRoutes);
 app.use('/api/upad', upadRoutes);
+app.use('/api/recycle-bin', recycleBinRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {

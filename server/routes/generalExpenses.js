@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * GET /api/general-expenses
- * Get all general expenses for the logged-in user within an optional date range
+ * Get all active general expenses for the logged-in user within an optional date range
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -15,6 +15,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const whereClause = {
       userId: req.user.id,
+      isDeleted: false,
     };
 
     if (startDate || endDate) {
@@ -73,7 +74,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const { date, description, amount } = req.body;
 
     const existing = await prisma.generalExpense.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id, isDeleted: false }
     });
 
     if (!existing) {
@@ -98,25 +99,26 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 /**
  * DELETE /api/general-expenses/:id
- * Delete a general expense
+ * Soft delete a general expense
  */
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
     const existing = await prisma.generalExpense.findFirst({
-      where: { id, userId: req.user.id }
+      where: { id, userId: req.user.id, isDeleted: false }
     });
 
     if (!existing) {
       return res.status(404).json({ error: 'General expense not found' });
     }
 
-    await prisma.generalExpense.delete({
-      where: { id }
+    await prisma.generalExpense.update({
+      where: { id },
+      data: { isDeleted: true, deletedAt: new Date() },
     });
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'General expense moved to Recycle Bin' });
   } catch (err) {
     console.error('Delete general expense error:', err);
     res.status(500).json({ error: 'Failed to delete general expense' });

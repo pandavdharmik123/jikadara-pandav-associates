@@ -53,19 +53,23 @@ model User {
 // ─── Client ──────────────────────────────────────────────
 
 model Client {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   userId        String
   name          String
-  referenceName String   @default("")
-  mobileNumber  String   @default("")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  referenceName String    @default("")
+  mobileNumber  String    @default("")
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks        Task[]
   transactions TaskTransaction[]
 
   @@index([userId])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
 
 // ─── Task ────────────────────────────────────────────────
@@ -84,6 +88,8 @@ model Task {
   totalIncome   Decimal    @default(0) @db.Decimal(12, 2)
   totalExpense  Decimal    @default(0) @db.Decimal(12, 2)
   netAmount     Decimal    @default(0) @db.Decimal(12, 2)
+  isDeleted     Boolean    @default(false)
+  deletedAt     DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -96,6 +102,8 @@ model Task {
   @@index([clientId])
   @@index([status])
   @@index([completedDate])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
 
 // ─── TaskTransaction ─────────────────────────────────────
@@ -113,6 +121,8 @@ model TaskTransaction {
   type          TransactionType
   description   String          @default("")
   amount        Decimal         @default(0) @db.Decimal(12, 2)
+  isDeleted     Boolean         @default(false)
+  deletedAt     DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -125,15 +135,21 @@ model TaskTransaction {
   @@index([clientId])
   @@index([type])
   @@index([date])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
 
 // ─── DocumentType ────────────────────────────────────────
 
 model DocumentType {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  name      String    @unique
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isDeleted])
 }
 
 model FinancialYear {
@@ -154,59 +170,70 @@ model FinancialYear {
 // ─── GeneralExpense ──────────────────────────────────────
 
 model GeneralExpense {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
-  date        DateTime @default(now())
-  description String   @default("")
-  amount      Decimal  @default(0) @db.Decimal(12, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  date        DateTime  @default(now())
+  description String    @default("")
+  amount      Decimal   @default(0) @db.Decimal(12, 2)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
 
 // ─── Invoice ─────────────────────────────────────────────
 
 model Invoice {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   invoiceNo      String
   userId         String
   taskId         String?
   clientName     String
   date           DateTime
-  discountAmount Decimal  @default(0) @db.Decimal(12, 2)
-  jamaAmount     Decimal  @default(0) @db.Decimal(12, 2)
-  subTotal       Decimal  @default(0) @db.Decimal(12, 2)
-  total          Decimal  @default(0) @db.Decimal(12, 2)
-  balance        Decimal  @default(0) @db.Decimal(12, 2)
+  discountAmount Decimal   @default(0) @db.Decimal(12, 2)
+  jamaAmount     Decimal   @default(0) @db.Decimal(12, 2)
+  subTotal       Decimal   @default(0) @db.Decimal(12, 2)
+  total          Decimal   @default(0) @db.Decimal(12, 2)
+  balance        Decimal   @default(0) @db.Decimal(12, 2)
   items          Json
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task           Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([taskId])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
 
 // ─── Upad (Profit Withdrawal) ────────────────────────────
 
 model Upad {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   userId      String
-  userName    String   @default("")
-  date        DateTime @default(now())
-  description String   @default("")
-  amount      Decimal  @default(0) @db.Decimal(12, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  userName    String    @default("")
+  date        DateTime  @default(now())
+  description String    @default("")
+  amount      Decimal   @default(0) @db.Decimal(12, 2)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([date])
+  @@index([isDeleted])
+  @@index([deletedAt])
 }
-

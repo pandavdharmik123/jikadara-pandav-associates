@@ -46,6 +46,7 @@ export const useDeleteDocumentType = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
+      queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
     },
   });
 };

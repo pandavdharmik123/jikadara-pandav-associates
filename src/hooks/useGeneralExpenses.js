@@ -61,6 +61,7 @@ export const useDeleteGeneralExpense = () => {
       queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
     },
   });
 };
