@@ -22,8 +22,21 @@ const USER_SELECT_FIELDS = {
   isActive: true,
   allowedPages: true,
   twoFactorEnabled: true,
+  securityPinHash: true,
   createdAt: true,
 };
+
+/**
+ * Helper to strip sensitive hashes and return safe user object with boolean flags
+ */
+function sanitizeUser(user) {
+  if (!user) return null;
+  const { passwordHash, securityPinHash, twoFactorSecret, backupCodes, ...safeUser } = user;
+  return {
+    ...safeUser,
+    hasSecurityPin: !!securityPinHash,
+  };
+}
 
 /**
  * Generate JWT token for a user session
@@ -67,7 +80,7 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
       select: USER_SELECT_FIELDS,
     });
 
-    res.status(201).json({ user });
+    res.status(201).json({ user: sanitizeUser(user) });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Failed to register user' });
@@ -126,16 +139,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       require2FA: false,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        mobileNumber: user.mobileNumber || '',
-        role: user.role,
-        isActive: user.isActive,
-        allowedPages: user.allowedPages || [],
-        twoFactorEnabled: false,
-      },
+      user: sanitizeUser(user),
       token,
     });
   } catch (err) {
@@ -207,16 +211,7 @@ router.post('/2fa/verify-login', async (req, res) => {
 
     res.json({
       message: usedBackupCode ? 'Logged in with backup code' : 'Verification successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        mobileNumber: user.mobileNumber || '',
-        role: user.role,
-        isActive: user.isActive,
-        allowedPages: user.allowedPages || [],
-        twoFactorEnabled: true,
-      },
+      user: sanitizeUser(user),
       token,
     });
   } catch (err) {
@@ -435,7 +430,7 @@ router.get('/me', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (err) {
     console.error('Me error:', err);
     res.status(500).json({ error: 'Failed to fetch user' });
@@ -463,7 +458,7 @@ router.put('/me', requireAuth, async (req, res) => {
       select: USER_SELECT_FIELDS,
     });
 
-    res.json({ user, message: 'Profile updated successfully' });
+    res.json({ user: sanitizeUser(user), message: 'Profile updated successfully' });
   } catch (err) {
     console.error('Update profile error:', err);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -514,6 +509,144 @@ router.put('/change-password', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/auth/pin/verify
+ * Protected: verify current user's security PIN
+ */
+router.post('/pin/verify', requireAuth, async (req, res) => {
+  try {
+    const { pin } = req.body;
+
+    if (!pin) {
+      return res.status(400).json({ error: 'Security PIN is required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.securityPinHash) {
+      return res.status(400).json({ error: 'No Security PIN configured for this account', hasSecurityPin: false });
+    }
+
+    const valid = await bcrypt.compare(pin.toString().trim(), user.securityPinHash);
+    if (!valid) {
+      return res.status(400).json({ error: 'Incorrect PIN. Please try again.' });
+    }
+
+    res.json({ success: true, message: 'PIN verified successfully' });
+  } catch (err) {
+    console.error('Verify PIN error:', err);
+    res.status(500).json({ error: 'Failed to verify PIN' });
+  }
+});
+
+/**
+ * POST /api/auth/pin/set
+ * Protected: set or update current user's security PIN
+ */
+router.post('/pin/set', requireAuth, async (req, res) => {
+  try {
+    const { newPin, currentPin, password } = req.body;
+
+    if (!newPin || !/^\d{4,6}$/.test(newPin.toString().trim())) {
+      return res.status(400).json({ error: 'PIN must be 4 to 6 numeric digits' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If PIN is already set, verify currentPin or password
+    if (user.securityPinHash) {
+      let isAuthorized = false;
+      if (currentPin) {
+        isAuthorized = await bcrypt.compare(currentPin.toString().trim(), user.securityPinHash);
+      }
+      if (!isAuthorized && password) {
+        isAuthorized = await bcrypt.compare(password, user.passwordHash);
+      }
+      if (!isAuthorized) {
+        return res.status(400).json({ error: 'Current PIN or password is required and incorrect' });
+      }
+    } else {
+      // First time setting PIN: verify account password
+      if (!password) {
+        return res.status(400).json({ error: 'Account password is required to set security PIN' });
+      }
+      const validPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!validPassword) {
+        return res.status(400).json({ error: 'Incorrect account password' });
+      }
+    }
+
+    const securityPinHash = await bcrypt.hash(newPin.toString().trim(), 12);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { securityPinHash },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json({
+      message: 'Security PIN saved successfully',
+      user: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    console.error('Set PIN error:', err);
+    res.status(500).json({ error: 'Failed to set security PIN' });
+  }
+});
+
+/**
+ * POST /api/auth/pin/remove
+ * Protected: remove user's security PIN using account password
+ */
+router.post('/pin/remove', requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Account password is required to remove security PIN' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(400).json({ error: 'Incorrect account password' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { securityPinHash: null },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json({
+      message: 'Security PIN removed successfully',
+      user: sanitizeUser(updatedUser),
+    });
+  } catch (err) {
+    console.error('Remove PIN error:', err);
+    res.status(500).json({ error: 'Failed to remove security PIN' });
+  }
+});
+
+/**
  * GET /api/auth/users
  * Admin-only: list all users
  */
@@ -523,7 +656,7 @@ router.get('/users', requireAuth, requireRole('ADMIN'), async (req, res) => {
       select: USER_SELECT_FIELDS,
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ users });
+    res.json({ users: users.map(sanitizeUser) });
   } catch (err) {
     console.error('List users error:', err);
     res.status(500).json({ error: 'Failed to fetch users' });
@@ -532,11 +665,11 @@ router.get('/users', requireAuth, requireRole('ADMIN'), async (req, res) => {
 
 /**
  * PUT /api/auth/users/:id
- * Admin-only: update user role, active status, name, mobileNumber, allowedPages, or reset 2FA
+ * Admin-only: update user role, active status, name, mobileNumber, allowedPages, or reset 2FA / PIN
  */
 router.put('/users/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
-    const { role, isActive, name, mobileNumber, allowedPages, reset2FA } = req.body;
+    const { role, isActive, name, mobileNumber, allowedPages, reset2FA, resetPin } = req.body;
     const data = {};
     if (role) data.role = role;
     if (typeof isActive === 'boolean') data.isActive = isActive;
@@ -550,13 +683,17 @@ router.put('/users/:id', requireAuth, requireRole('ADMIN'), async (req, res) => 
       data.backupCodes = [];
     }
 
+    if (resetPin) {
+      data.securityPinHash = null;
+    }
+
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data,
       select: USER_SELECT_FIELDS,
     });
 
-    res.json({ user, message: reset2FA ? 'User 2FA reset successfully' : 'User updated successfully' });
+    res.json({ user: sanitizeUser(user), message: reset2FA ? 'User 2FA reset successfully' : resetPin ? 'User PIN reset successfully' : 'User updated successfully' });
   } catch (err) {
     console.error('Update user error:', err);
     res.status(500).json({ error: 'Failed to update user' });

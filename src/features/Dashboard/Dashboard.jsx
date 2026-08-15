@@ -1,13 +1,18 @@
-import React from 'react';
-import { Row, Col, Card, Typography, Table, Tag, Empty, Button } from 'antd';
-import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { Row, Col, Card, Typography, Table, Tag, Empty, Button, Tooltip } from 'antd';
+import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency } from '../../utils/currency';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
 import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
+import { useCurrentProfile } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
+import usePrivacyStore from '../../store/privacyStore';
+import PrivacyAmount from '../../components/PrivacyAmount';
+import PinVerificationModal from '../../components/PinVerificationModal';
+import SetPinModal from '../../components/SetPinModal';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -15,6 +20,14 @@ const { Title, Text } = Typography;
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, activeFinancialYear } = useAuthStore();
+  const { data: profile } = useCurrentProfile();
+  const activeUser = profile || user;
+
+  const { isRevealed, hide } = usePrivacyStore();
+  const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [setPinModalVisible, setSetPinModalVisible] = useState(false);
+  const [isResetPinMode, setIsResetPinMode] = useState(false);
+
   const { data: stats, isLoading: statsLoading } = useDashboardStats(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const { data: recent, isLoading: recentLoading } = useRecentData(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
 
@@ -41,6 +54,24 @@ export default function Dashboard() {
   const monthlyStart = isCurrentMonthInFy ? mStart.format('YYYY-MM-DD') : '1970-01-01';
   const monthlyEnd = isCurrentMonthInFy ? mEnd.format('YYYY-MM-DD') : '1970-01-01';
   const { data: monthlyGeneralExpenses, isLoading: monthlyGeLoading } = useGeneralExpenses(monthlyStart, monthlyEnd);
+
+  const handleToggleEye = () => {
+    if (isRevealed) {
+      hide();
+    } else {
+      if (!activeUser?.hasSecurityPin) {
+        setIsResetPinMode(false);
+        setSetPinModalVisible(true);
+      } else {
+        setVerifyModalVisible(true);
+      }
+    }
+  };
+
+  const handleForgotPin = () => {
+    setIsResetPinMode(true);
+    setSetPinModalVisible(true);
+  };
 
   if (statsLoading || recentLoading || fyGeLoading || monthlyGeLoading) {
     return <Loader />;
@@ -108,13 +139,6 @@ export default function Dashboard() {
       align: 'right',
       render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text}</Text>
     },
-    // {
-    //   title: 'DATE',
-    //   dataIndex: 'createdAt',
-    //   key: 'createdAt',
-    //   align: 'right',
-    //   render: (date) => <Text style={{ color: '#6b7280', fontSize: '13px' }}>{dayjs(date).format('DD/MM/YYYY')}</Text>,
-    // }
   ];
 
   return (
@@ -170,21 +194,51 @@ export default function Dashboard() {
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={12}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', height: '100%' }} styles={{ body: { padding: '20px' } }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>
-              {activeFinancialYear ? `FY ${activeFinancialYear.name} Completed Financials` : 'Yearly Completed Financials'}
-            </Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>
+                {activeFinancialYear ? `FY ${activeFinancialYear.name} Completed Financials` : 'Yearly Completed Financials'}
+              </Title>
+              <Tooltip title={isRevealed ? "Hide amounts" : "Reveal amounts (PIN required)"}>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={handleToggleEye}
+                  style={{
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px 8px',
+                    backgroundColor: isRevealed ? '#f1f5f9' : '#eff6ff',
+                    color: isRevealed ? '#64748b' : '#2563eb',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    gap: 6,
+                  }}
+                >
+                  {isRevealed ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <span>{isRevealed ? 'Hide' : 'View'}</span>
+                </Button>
+              </Tooltip>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(fyTaskNet)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>
+                  <PrivacyAmount amount={fyTaskNet} color="#10b981" />
+                </Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Expense</Text>
-                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(fyGeTotal)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>
+                  <PrivacyAmount amount={fyGeTotal} color="#ef4444" />
+                </Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(fyFinalNet)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>
+                  <PrivacyAmount amount={fyFinalNet} color="#3b82f6" />
+                </Title>
               </div>
             </div>
           </Card>
@@ -192,26 +246,75 @@ export default function Dashboard() {
 
         <Col xs={24} lg={12}>
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', height: '100%' }} styles={{ body: { padding: '20px' } }}>
-            <Title level={5} style={{ marginTop: 0, marginBottom: 16, fontWeight: 700, color: '#1e293b' }}>
-              This Month's Completed Financials
-            </Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>
+                This Month's Completed Financials
+              </Title>
+              <Tooltip title={isRevealed ? "Hide amounts" : "Reveal amounts (PIN required)"}>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={handleToggleEye}
+                  style={{
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px 8px',
+                    backgroundColor: isRevealed ? '#f1f5f9' : '#eff6ff',
+                    color: isRevealed ? '#64748b' : '#2563eb',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    gap: 6,
+                  }}
+                >
+                  {isRevealed ? <EyeOff size={16} /> : <Eye size={16} />}
+                  <span>{isRevealed ? 'Hide' : 'View'}</span>
+                </Button>
+              </Tooltip>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>{formatCurrency(monthlyTaskNet)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#10b981', fontWeight: 700 }}>
+                  <PrivacyAmount amount={monthlyTaskNet} color="#10b981" />
+                </Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #ef4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Expense</Text>
-                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>{formatCurrency(monthlyGeTotal)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#ef4444', fontWeight: 700 }}>
+                  <PrivacyAmount amount={monthlyGeTotal} color="#ef4444" />
+                </Title>
               </div>
               <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
-                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>{formatCurrency(monthlyFinalNet)}</Title>
+                <Title level={4} style={{ margin: 0, color: '#3b82f6', fontWeight: 700 }}>
+                  <PrivacyAmount amount={monthlyFinalNet} color="#3b82f6" />
+                </Title>
               </div>
             </div>
           </Card>
         </Col>
       </Row>
+
+      {/* PIN Verification Modal */}
+      <PinVerificationModal
+        visible={verifyModalVisible}
+        onClose={() => setVerifyModalVisible(false)}
+        onForgotPin={handleForgotPin}
+      />
+
+      {/* Set / Change PIN Modal */}
+      <SetPinModal
+        visible={setPinModalVisible}
+        onClose={() => setSetPinModalVisible(false)}
+        hasExistingPin={Boolean(activeUser?.hasSecurityPin)}
+        isResetMode={isResetPinMode}
+        onSuccess={() => {
+          setSetPinModalVisible(false);
+          setVerifyModalVisible(true);
+        }}
+      />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
