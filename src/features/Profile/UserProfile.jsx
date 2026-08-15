@@ -6,6 +6,7 @@ import { useCurrentProfile, useUpdateProfile, useChangePassword } from '../../ho
 import dayjs from 'dayjs';
 import FinancialYearManager from '../../components/FinancialYearManager';
 import TwoFactorSettingsModal from '../../components/TwoFactorSettingsModal';
+import SetPinModal from '../../components/SetPinModal';
 
 const { Title, Text } = Typography;
 
@@ -19,6 +20,8 @@ export default function UserProfile() {
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [isResetPinMode, setIsResetPinMode] = useState(false);
 
   // Populate profile form when user/profileData is loaded
   useEffect(() => {
@@ -321,6 +324,90 @@ export default function UserProfile() {
                 </div>
               </Form>
             </Card>
+            {/* Security PIN Card */}
+            <Card
+              bordered={false}
+              style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
+              title={
+                <Space>
+                  <KeyRound size={18} color="#2563eb" />
+                  <span style={{ fontWeight: 700, fontSize: 16 }}>Financial Privacy & Security PIN</span>
+                </Space>
+              }
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Text strong style={{ fontSize: 15 }}>4-Digit Security PIN</Text>
+                    <Tag
+                      color={activeUser?.hasSecurityPin ? 'success' : 'default'}
+                      style={{ borderRadius: 10, padding: '2px 10px', fontWeight: 600, fontSize: 12 }}
+                    >
+                      {activeUser?.hasSecurityPin ? 'CONFIGURED' : 'NOT CONFIGURED'}
+                    </Tag>
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 13, display: 'block', maxWidth: 500 }}>
+                    Protects sensitive numbers like income, expense totals, and net profits with a 4-digit banking PIN on your dashboard.
+                  </Text>
+                </div>
+
+                <Space wrap>
+                  {activeUser?.hasSecurityPin ? (
+                    <>
+                      <Button
+                        type="default"
+                        icon={<KeyRound size={16} />}
+                        onClick={() => {
+                          setIsResetPinMode(false);
+                          setPinModalVisible(true);
+                        }}
+                        style={{
+                          borderRadius: 8,
+                          fontWeight: 600,
+                          height: 40,
+                          padding: '0 16px',
+                        }}
+                      >
+                        Change PIN
+                      </Button>
+                      <Button
+                        type="link"
+                        onClick={() => {
+                          setIsResetPinMode(true);
+                          setPinModalVisible(true);
+                        }}
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: '#2563eb',
+                        }}
+                      >
+                        Reset with Password
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="primary"
+                      icon={<KeyRound size={16} />}
+                      onClick={() => {
+                        setIsResetPinMode(false);
+                        setPinModalVisible(true);
+                      }}
+                      style={{
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        height: 40,
+                        padding: '0 20px',
+                        background: '#2563eb',
+                      }}
+                    >
+                      Set Security PIN
+                    </Button>
+                  )}
+                </Space>
+              </div>
+            </Card>
+
             {/* Two-Factor Authentication (TOTP) Card */}
             <Card
               bordered={false}
@@ -368,6 +455,18 @@ export default function UserProfile() {
           </Space>
         </Col>
       </Row>
+
+      {/* Security PIN Modal */}
+      <SetPinModal
+        visible={pinModalVisible}
+        onClose={() => setPinModalVisible(false)}
+        hasExistingPin={Boolean(activeUser?.hasSecurityPin)}
+        isResetMode={isResetPinMode}
+        onSuccess={() => {
+          setPinModalVisible(false);
+          if (refetchProfile) refetchProfile();
+        }}
+      />
 
       {/* Two-Factor Setup / Management Modal */}
       <TwoFactorSettingsModal

@@ -255,13 +255,13 @@ export default function MainLayout() {
         height: 89,
         overflow: 'hidden'
       }}>
-        <img src="/logo.png" alt="Logo" style={{ height: 40, width: 'auto', flexShrink: 0 }} />
+        <img src="/logo.png" alt="Logo" style={{ height: 44, width: 'auto', flexShrink: 0 }} />
         {!collapsed && (
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-              JIKADARA & PANDAV
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, justifyContent: 'center' }}>
+            <h2 style={{ margin: 0, textAlign: 'center', fontSize: '13px', fontWeight: 700, color: '#0f172a', lineHeight: 1.25, letterSpacing: '-0.2px' }}>
+              JIKADARA & PANDAV<br />ASSOCIATES
             </h2>
-            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
               Advocate & Legal Consultants
             </span>
           </div>

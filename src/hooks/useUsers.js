@@ -81,3 +81,41 @@ export const useDeleteUser = () => {
     },
   });
 };
+
+export const useVerifyPin = () => {
+  return useMutation({
+    mutationFn: async (pin) => {
+      const { data } = await api.post('/auth/pin/verify', { pin });
+      return data;
+    },
+  });
+};
+
+export const useSetPin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const { data } = await api.post('/auth/pin/set', payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+export const useRemovePin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload) => {
+      const { data } = await api.post('/auth/pin/remove', payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+

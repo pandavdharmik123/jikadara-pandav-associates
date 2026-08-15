@@ -1,10 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty, Modal, Form, Input, message } from 'antd';
-import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download } from 'lucide-react';
+import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty, Modal, Form, Input, message, Tooltip } from 'antd';
+import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import { useGeneralExpenses, useCreateGeneralExpense, useUpdateGeneralExpense, useDeleteGeneralExpense } from '../../hooks/useGeneralExpenses';
+import { useCurrentProfile } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
+import usePrivacyStore from '../../store/privacyStore';
+import PrivacyAmount from '../../components/PrivacyAmount';
+import PinVerificationModal from '../../components/PinVerificationModal';
+import SetPinModal from '../../components/SetPinModal';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import FinancialReportPrintLayout from './FinancialReportPrintLayout';
@@ -17,6 +22,13 @@ const { Option } = Select;
 
 export default function ExpenseReport() {
   const { user, activeFinancialYear } = useAuthStore();
+  const { data: profile } = useCurrentProfile();
+  const activeUser = profile || user;
+
+  const { isRevealed, hide } = usePrivacyStore();
+  const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [setPinModalVisible, setSetPinModalVisible] = useState(false);
+  const [isResetPinMode, setIsResetPinMode] = useState(false);
 
   const reportPrintRef = useRef(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -35,6 +47,24 @@ export default function ExpenseReport() {
   const [isExpenseModalVisible, setIsExpenseModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [expenseForm] = Form.useForm();
+
+  const handleToggleEye = () => {
+    if (isRevealed) {
+      hide();
+    } else {
+      if (!activeUser?.hasSecurityPin) {
+        setIsResetPinMode(false);
+        setSetPinModalVisible(true);
+      } else {
+        setVerifyModalVisible(true);
+      }
+    }
+  };
+
+  const handleForgotPin = () => {
+    setIsResetPinMode(true);
+    setSetPinModalVisible(true);
+  };
 
   if (user?.role === 'JUNIOR') {
     return (
@@ -200,9 +230,7 @@ export default function ExpenseReport() {
       key: 'netAmount',
       align: 'right',
       render: (val) => (
-        <Text type={Number(val) >= 0 ? 'success' : 'danger'} strong>
-          {formatCurrency(val)}
-        </Text>
+        <PrivacyAmount amount={val} color={Number(val) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
       ),
     },
   ];
@@ -233,9 +261,7 @@ export default function ExpenseReport() {
       key: 'netAmount',
       align: 'right',
       render: (val) => (
-        <Text type={Number(val) >= 0 ? 'success' : 'danger'} strong>
-          {formatCurrency(val)}
-        </Text>
+        <PrivacyAmount amount={val} color={Number(val) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
       ),
     },
   ];
@@ -264,7 +290,7 @@ export default function ExpenseReport() {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
-      render: (val) => <Text type="danger">{formatCurrency(val)}</Text>,
+      render: (val) => <PrivacyAmount amount={val} color="#dc2626" style={{ fontWeight: 600 }} />,
     },
     {
       title: 'Actions',
@@ -370,8 +396,30 @@ export default function ExpenseReport() {
   return (
     <div className="advocate-module">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>Financial Reports</Title>
+          <Tooltip title={isRevealed ? "Hide amounts" : "Reveal amounts (PIN required)"}>
+            <Button
+              type="text"
+              size="small"
+              onClick={handleToggleEye}
+              style={{
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px 8px',
+                backgroundColor: isRevealed ? '#f1f5f9' : '#eff6ff',
+                color: isRevealed ? '#64748b' : '#2563eb',
+                fontWeight: 600,
+                fontSize: '12px',
+                gap: 6,
+              }}
+            >
+              {isRevealed ? <EyeOff size={16} /> : <Eye size={16} />}
+              <span>{isRevealed ? 'Hide' : 'View'}</span>
+            </Button>
+          </Tooltip>
         </div>
         <Space wrap>
           <Select
@@ -444,7 +492,7 @@ export default function ExpenseReport() {
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Profit</Text>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>
-                    {formatCurrency(tasksNetProfit)}
+                    <PrivacyAmount amount={tasksNetProfit} color="#16a34a" />
                   </div>
                 </div>
               </Space>
@@ -456,7 +504,7 @@ export default function ExpenseReport() {
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Expense</Text>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626' }}>
-                    {formatCurrency(totalGeneralExpense)}
+                    <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" />
                   </div>
                 </div>
               </Space>
@@ -468,7 +516,7 @@ export default function ExpenseReport() {
                 <div>
                   <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit</Text>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#2563eb' }}>
-                    {formatCurrency(finalNetProfit)}
+                    <PrivacyAmount amount={finalNetProfit} color="#2563eb" />
                   </div>
                 </div>
               </Space>
@@ -499,9 +547,7 @@ export default function ExpenseReport() {
                           <Text strong>Total</Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={1} align="right">
-                          <Text type={Number(tasksNetProfit) >= 0 ? 'success' : 'danger'} strong>
-                            {formatCurrency(tasksNetProfit)}
-                          </Text>
+                          <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
                         </Table.Summary.Cell>
                       </Table.Summary.Row>
                     </Table.Summary>
@@ -526,9 +572,7 @@ export default function ExpenseReport() {
                           <Text strong>{yearlyData?.yearlyTotals?.taskCount || 0}</Text>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={2} align="right">
-                          <Text type={Number(tasksNetProfit) >= 0 ? 'success' : 'danger'} strong>
-                            {formatCurrency(tasksNetProfit)}
-                          </Text>
+                          <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
                         </Table.Summary.Cell>
                       </Table.Summary.Row>
                     </Table.Summary>
@@ -571,7 +615,7 @@ export default function ExpenseReport() {
                       <Text strong>Total</Text>
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={1} align="right">
-                      <Text type="danger" strong>{formatCurrency(totalGeneralExpense)}</Text>
+                      <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
                     </Table.Summary.Cell>
                     <Table.Summary.Cell index={2}></Table.Summary.Cell>
                   </Table.Summary.Row>
@@ -621,6 +665,25 @@ export default function ExpenseReport() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* PIN Verification Modal */}
+      <PinVerificationModal
+        visible={verifyModalVisible}
+        onClose={() => setVerifyModalVisible(false)}
+        onForgotPin={handleForgotPin}
+      />
+
+      {/* Set / Change PIN Modal */}
+      <SetPinModal
+        visible={setPinModalVisible}
+        onClose={() => setSetPinModalVisible(false)}
+        hasExistingPin={Boolean(activeUser?.hasSecurityPin)}
+        isResetMode={isResetPinMode}
+        onSuccess={() => {
+          setSetPinModalVisible(false);
+          setVerifyModalVisible(true);
+        }}
+      />
 
       {/* Hidden Printable Component for PDF Generation */}
       <div style={{ position: 'absolute', left: '-10000px', top: 0, overflow: 'hidden' }}>
