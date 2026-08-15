@@ -184,6 +184,19 @@ export default function AdminUsers() {
       },
     },
     {
+      title: '2FA Security',
+      dataIndex: 'twoFactorEnabled',
+      key: 'twoFactorEnabled',
+      render: (twoFactorEnabled) => (
+        <Tag
+          color={twoFactorEnabled ? 'success' : 'default'}
+          style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500, fontSize: '12px' }}
+        >
+          {twoFactorEnabled ? 'Enabled' : 'Disabled'}
+        </Tag>
+      ),
+    },
+    {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
@@ -347,6 +360,35 @@ export default function AdminUsers() {
                 </Select>
               </Form.Item>
             </Col>
+
+            {editingUser && (
+              <Col xs={24} sm={12}>
+                <Form.Item label="Two-Factor Authentication (2FA)">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 40 }}>
+                    <Tag color={editingUser.twoFactorEnabled ? 'success' : 'default'} style={{ borderRadius: 8, padding: '4px 10px', fontSize: 12 }}>
+                      {editingUser.twoFactorEnabled ? 'Active / Enabled' : 'Disabled'}
+                    </Tag>
+                    {editingUser.twoFactorEnabled && (
+                      <Button
+                        size="small"
+                        danger
+                        onClick={async () => {
+                          try {
+                            await updateUserMutation.mutateAsync({ id: editingUser.id, reset2FA: true });
+                            message.success('2FA has been reset for this user');
+                            handleCloseModal();
+                          } catch (err) {
+                            message.error(err.response?.data?.error || 'Failed to reset 2FA');
+                          }
+                        }}
+                      >
+                        Reset 2FA
+                      </Button>
+                    )}
+                  </div>
+                </Form.Item>
+              </Col>
+            )}
           </Row>
 
           <Divider style={{ margin: '12px 0 16px 0' }} />

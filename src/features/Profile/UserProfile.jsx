@@ -1,22 +1,24 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Typography, Avatar, Tag, Row, Col, Space, Form, Input, Button, message, Divider, Tooltip } from 'antd';
-import { User, Mail, Phone, ShieldCheck, Calendar, Lock, KeyRound, CheckCircle2, Save, Info } from 'lucide-react';
+import { User, Mail, Phone, ShieldCheck, Calendar, Lock, KeyRound, CheckCircle2, Save, Info, ShieldAlert, Smartphone, QrCode } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { useCurrentProfile, useUpdateProfile, useChangePassword } from '../../hooks/useUsers';
 import dayjs from 'dayjs';
 import FinancialYearManager from '../../components/FinancialYearManager';
+import TwoFactorSettingsModal from '../../components/TwoFactorSettingsModal';
 
 const { Title, Text } = Typography;
 
 export default function UserProfile() {
   const { user, updateUser } = useAuthStore();
-  const { data: profileData } = useCurrentProfile();
+  const { data: profileData, refetch: refetchProfile } = useCurrentProfile();
 
   const updateProfileMutation = useUpdateProfile();
   const changePasswordMutation = useChangePassword();
 
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const [twoFactorModalVisible, setTwoFactorModalVisible] = useState(false);
 
   // Populate profile form when user/profileData is loaded
   useEffect(() => {
@@ -319,9 +321,66 @@ export default function UserProfile() {
                 </div>
               </Form>
             </Card>
+            {/* Two-Factor Authentication (TOTP) Card */}
+            <Card
+              bordered={false}
+              style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
+              title={
+                <Space>
+                  <ShieldCheck size={18} color="#2563eb" />
+                  <span style={{ fontWeight: 700, fontSize: 16 }}>Two-Factor Authentication (2FA)</span>
+                </Space>
+              }
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Text strong style={{ fontSize: 15 }}>Authenticator App (TOTP)</Text>
+                    <Tag
+                      color={activeUser?.twoFactorEnabled ? 'success' : 'default'}
+                      style={{ borderRadius: 10, padding: '2px 10px', fontWeight: 600, fontSize: 12 }}
+                    >
+                      {activeUser?.twoFactorEnabled ? 'ACTIVE / ENABLED' : 'NOT ENABLED'}
+                    </Tag>
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 13, display: 'block', maxWidth: 500 }}>
+                    Use Google Authenticator, Microsoft Authenticator, or Authy to generate secure 6-digit verification codes upon login.
+                  </Text>
+                </div>
+
+                <Button
+                  type={activeUser?.twoFactorEnabled ? 'default' : 'primary'}
+                  icon={<QrCode size={16} />}
+                  onClick={() => setTwoFactorModalVisible(true)}
+                  style={{
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    height: 40,
+                    padding: '0 20px',
+                    borderColor: activeUser?.twoFactorEnabled ? '#059669' : undefined,
+                    color: activeUser?.twoFactorEnabled ? '#059669' : undefined,
+                  }}
+                >
+                  {activeUser?.twoFactorEnabled ? 'Manage 2FA & Backup Codes' : 'Enable 2FA'}
+                </Button>
+              </div>
+            </Card>
           </Space>
         </Col>
       </Row>
+
+      {/* Two-Factor Setup / Management Modal */}
+      <TwoFactorSettingsModal
+        visible={twoFactorModalVisible}
+        onClose={() => setTwoFactorModalVisible(false)}
+        user={activeUser}
+        onStatusChanged={(updatedUserData) => {
+          if (updatedUserData) {
+            updateUser(updatedUserData);
+            if (refetchProfile) refetchProfile();
+          }
+        }}
+      />
 
       {/* Financial Year Manager for Non-Admin */}
       {activeUser?.role !== 'ADMIN' && (

@@ -4,6 +4,12 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
 import requireRole from '../middleware/requireRole.js';
+import {
+  generateTOTP,
+  verifyTOTP,
+  generateBackupCodes,
+  verifyAndConsumeBackupCode,
+} from '../lib/twoFactor.js';
 
 const router = Router();
 
@@ -15,17 +21,18 @@ const USER_SELECT_FIELDS = {
   role: true,
   isActive: true,
   allowedPages: true,
+  twoFactorEnabled: true,
   createdAt: true,
 };
 
 /**
- * Generate JWT token for a user
+ * Generate JWT token for a user session
  */
 function generateToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '12h' }
   );
 }
 
@@ -37,8 +44,8 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
   try {
     const { email, password, name, mobileNumber, role, allowedPages } = req.body;
 
-    if (!email || !password || !name || !mobileNumber) {
-      return res.status(400).json({ error: 'Email, password, full name, and mobile number are required' });
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Email, password, and full name are required' });
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -53,7 +60,7 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
         email,
         passwordHash,
         name: name.trim(),
-        mobileNumber: mobileNumber.trim(),
+        mobileNumber: mobileNumber ? mobileNumber.trim() : '',
         role: role || 'JUNIOR',
         allowedPages: Array.isArray(allowedPages) ? allowedPages : [],
       },
@@ -69,7 +76,8 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
 
 /**
  * POST /api/auth/login
- * Public: authenticate user with email + password
+ * Public: authenticate user with email + password from database.
+ * If user has 2FA enabled, returns a temporary token for TOTP code submission.
  */
 router.post('/login', async (req, res) => {
   try {
@@ -93,9 +101,31 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Check if user has TOTP 2FA enabled
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
+      // Issue short-lived 2FA pending token (10 minutes)
+      const tempToken = jwt.sign(
+        { id: user.id, is2faPending: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+
+      return res.json({
+        require2FA: true,
+        tempToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+      });
+    }
+
+    // 2FA not enabled: issue full session directly
     const token = generateToken(user);
 
     res.json({
+      require2FA: false,
       user: {
         id: user.id,
         email: user.email,
@@ -104,12 +134,250 @@ router.post('/login', async (req, res) => {
         role: user.role,
         isActive: user.isActive,
         allowedPages: user.allowedPages || [],
+        twoFactorEnabled: false,
       },
       token,
     });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/verify-login
+ * Verify 6-digit TOTP code (or 8-character backup code) on login
+ */
+router.post('/2fa/verify-login', async (req, res) => {
+  try {
+    const { tempToken, code } = req.body;
+
+    if (!tempToken || !code) {
+      return res.status(400).json({ error: 'Verification session and 6-digit code are required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Verification session expired. Please log in again.' });
+    }
+
+    if (!decoded.is2faPending || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid verification session' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'User account not found or deactivated' });
+    }
+
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+      return res.status(400).json({ error: 'Two-factor authentication is not configured for this account' });
+    }
+
+    const cleanCode = code.toString().trim();
+    let isVerified = verifyTOTP(cleanCode, user.twoFactorSecret);
+    let usedBackupCode = false;
+
+    // If TOTP verification failed, check if it's a valid backup recovery code
+    if (!isVerified && user.backupCodes && user.backupCodes.length > 0) {
+      const backupResult = verifyAndConsumeBackupCode(cleanCode, user.backupCodes);
+      if (backupResult.isValid) {
+        isVerified = true;
+        usedBackupCode = true;
+
+        // Update remaining backup codes in DB
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { backupCodes: backupResult.remainingHashes },
+        });
+      }
+    }
+
+    if (!isVerified) {
+      return res.status(400).json({ error: 'Invalid 6-digit code or backup code. Please check and try again.' });
+    }
+
+    // Generate final session JWT token
+    const token = generateToken(user);
+
+    res.json({
+      message: usedBackupCode ? 'Logged in with backup code' : 'Verification successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        mobileNumber: user.mobileNumber || '',
+        role: user.role,
+        isActive: user.isActive,
+        allowedPages: user.allowedPages || [],
+        twoFactorEnabled: true,
+      },
+      token,
+    });
+  } catch (err) {
+    console.error('Verify 2FA login error:', err);
+    res.status(500).json({ error: 'Failed to verify 2FA code' });
+  }
+});
+
+/**
+ * GET /api/auth/2fa/setup
+ * Protected: Generate secret and QR code for user to scan in Google Authenticator / Microsoft Auth
+ */
+router.get('/2fa/setup', requireAuth, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { secret, otpauth, qrCode } = await generateTOTP(user.email);
+
+    res.json({
+      secret,
+      otpauth,
+      qrCode,
+    });
+  } catch (err) {
+    console.error('2FA setup error:', err);
+    res.status(500).json({ error: 'Failed to generate 2FA setup details' });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/enable
+ * Protected: Verify first code and activate 2FA for the account
+ */
+router.post('/2fa/enable', requireAuth, async (req, res) => {
+  try {
+    const { secret, code } = req.body;
+
+    if (!secret || !code) {
+      return res.status(400).json({ error: 'Secret key and verification code are required' });
+    }
+
+    const isValid = verifyTOTP(code, secret);
+    if (!isValid) {
+      return res.status(400).json({ error: 'Invalid 6-digit code. Please ensure your authenticator app time is synced.' });
+    }
+
+    // Generate backup recovery codes
+    const { plainCodes, hashedCodes } = generateBackupCodes();
+
+    // Save 2FA to user record
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorSecret: secret,
+        backupCodes: hashedCodes,
+      },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json({
+      message: 'Two-factor authentication enabled successfully!',
+      user: updatedUser,
+      backupCodes: plainCodes,
+    });
+  } catch (err) {
+    console.error('2FA enable error:', err);
+    res.status(500).json({ error: 'Failed to enable 2FA' });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/disable
+ * Protected: Disable 2FA (requires current password for security)
+ */
+router.post('/2fa/disable', requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Current password is required to disable 2FA' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(400).json({ error: 'Incorrect password' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        backupCodes: [],
+      },
+      select: USER_SELECT_FIELDS,
+    });
+
+    res.json({
+      message: 'Two-factor authentication disabled successfully',
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error('2FA disable error:', err);
+    res.status(500).json({ error: 'Failed to disable 2FA' });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/generate-backup-codes
+ * Protected: Generate new backup codes (replaces old ones)
+ */
+router.post('/2fa/generate-backup-codes', requireAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Current password is required to regenerate backup codes' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user || !user.twoFactorEnabled) {
+      return res.status(400).json({ error: '2FA is not enabled on this account' });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return res.status(400).json({ error: 'Incorrect password' });
+    }
+
+    const { plainCodes, hashedCodes } = generateBackupCodes();
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { backupCodes: hashedCodes },
+    });
+
+    res.json({
+      message: 'New backup codes generated',
+      backupCodes: plainCodes,
+    });
+  } catch (err) {
+    console.error('Regenerate backup codes error:', err);
+    res.status(500).json({ error: 'Failed to generate backup codes' });
   }
 });
 
@@ -177,7 +445,6 @@ router.get('/me', requireAuth, async (req, res) => {
 /**
  * PUT /api/auth/me
  * Protected: update current authenticated user's profile (name & mobileNumber)
- * Note: email cannot be changed
  */
 router.put('/me', requireAuth, async (req, res) => {
   try {
@@ -187,15 +454,11 @@ router.put('/me', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Full name is required' });
     }
 
-    if (!mobileNumber || !mobileNumber.trim()) {
-      return res.status(400).json({ error: 'Mobile number is required' });
-    }
-
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: {
         name: name.trim(),
-        mobileNumber: mobileNumber.trim(),
+        mobileNumber: mobileNumber ? mobileNumber.trim() : '',
       },
       select: USER_SELECT_FIELDS,
     });
@@ -269,11 +532,11 @@ router.get('/users', requireAuth, requireRole('ADMIN'), async (req, res) => {
 
 /**
  * PUT /api/auth/users/:id
- * Admin-only: update user role, active status, name, mobileNumber, or allowedPages
+ * Admin-only: update user role, active status, name, mobileNumber, allowedPages, or reset 2FA
  */
 router.put('/users/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
   try {
-    const { role, isActive, name, mobileNumber, allowedPages } = req.body;
+    const { role, isActive, name, mobileNumber, allowedPages, reset2FA } = req.body;
     const data = {};
     if (role) data.role = role;
     if (typeof isActive === 'boolean') data.isActive = isActive;
@@ -281,13 +544,19 @@ router.put('/users/:id', requireAuth, requireRole('ADMIN'), async (req, res) => 
     if (mobileNumber !== undefined) data.mobileNumber = mobileNumber.trim();
     if (Array.isArray(allowedPages)) data.allowedPages = allowedPages;
 
+    if (reset2FA) {
+      data.twoFactorEnabled = false;
+      data.twoFactorSecret = null;
+      data.backupCodes = [];
+    }
+
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data,
       select: USER_SELECT_FIELDS,
     });
 
-    res.json({ user });
+    res.json({ user, message: reset2FA ? 'User 2FA reset successfully' : 'User updated successfully' });
   } catch (err) {
     console.error('Update user error:', err);
     res.status(500).json({ error: 'Failed to update user' });

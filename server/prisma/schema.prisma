@@ -38,8 +38,11 @@ model User {
   role         Role     @default(JUNIOR)
   isActive     Boolean  @default(true)
   allowedPages String[] @default([])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?
+  backupCodes      String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   clients         Client[]
   tasks           Task[]
