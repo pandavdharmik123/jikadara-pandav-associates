@@ -123,18 +123,20 @@ export default function AdminUsers() {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (text) => <Text strong>{text}</Text>,
+      width: 'fit-content',
+      render: (text) => <Text strong style={{ whiteSpace: 'nowrap', display: 'inline-block' }}>{text}</Text>,
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      render: (text) => <span style={{ whiteSpace: 'nowrap' }}>{text}</span>,
     },
     {
       title: 'Mobile',
       dataIndex: 'mobileNumber',
       key: 'mobileNumber',
-      render: (text) => text || '-',
+      render: (text) => <span style={{ whiteSpace: 'nowrap' }}>{text || '-'}</span>,
     },
     {
       title: 'Role',
@@ -143,7 +145,7 @@ export default function AdminUsers() {
       render: (role) => (
         <Tag
           color={role === 'ADMIN' ? 'volcano' : role === 'SENIOR' ? 'geekblue' : 'default'}
-          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', border: 'none' }}
+          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase', border: 'none', whiteSpace: 'nowrap' }}
         >
           {role}
         </Tag>
@@ -155,7 +157,7 @@ export default function AdminUsers() {
       render: (_, record) => {
         if (record.role === 'ADMIN') {
           return (
-            <Tag color="purple" style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500 }}>
+            <Tag color="purple" style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500, whiteSpace: 'nowrap' }}>
               <Shield size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} />
               Admin Portal Only
             </Tag>
@@ -176,7 +178,7 @@ export default function AdminUsers() {
 
         return (
           <Tooltip title={<div style={{ maxWidth: 280 }}>{pageLabels.join(', ')}</div>}>
-            <Tag color={count === total ? 'green' : count > 0 ? 'blue' : 'orange'} style={{ borderRadius: '12px', padding: '2px 10px', cursor: 'pointer' }}>
+            <Tag color={count === total ? 'green' : count > 0 ? 'blue' : 'orange'} style={{ borderRadius: '12px', padding: '2px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {count === total ? `All Pages (${total})` : `${count} of ${total} Pages`}
             </Tag>
           </Tooltip>
@@ -190,7 +192,7 @@ export default function AdminUsers() {
       render: (twoFactorEnabled) => (
         <Tag
           color={twoFactorEnabled ? 'success' : 'default'}
-          style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500, fontSize: '12px' }}
+          style={{ borderRadius: '12px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', whiteSpace: 'nowrap' }}
         >
           {twoFactorEnabled ? 'Enabled' : 'Disabled'}
         </Tag>
@@ -203,7 +205,7 @@ export default function AdminUsers() {
       render: (isActive) => (
         <Tag
           color={isActive ? 'success' : 'error'}
-          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 500, fontSize: '12px', border: 'none' }}
+          style={{ borderRadius: '16px', padding: '2px 12px', fontWeight: 500, fontSize: '12px', border: 'none', whiteSpace: 'nowrap' }}
         >
           {isActive ? 'Active' : 'Inactive'}
         </Tag>
@@ -213,13 +215,14 @@ export default function AdminUsers() {
       title: 'Joined',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      render: (date) => <span style={{ whiteSpace: 'nowrap' }}>{dayjs(date).format('DD/MM/YYYY')}</span>,
     },
     {
       title: 'Actions',
       key: 'actions',
+      fixed: 'right',
       render: (_, record) => (
-        <Space size="middle">
+        <Space size="middle" style={{ whiteSpace: 'nowrap' }}>
           <Button
             type="text"
             icon={<Edit size={16} />}
@@ -265,6 +268,7 @@ export default function AdminUsers() {
           rowKey="id"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={false}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
