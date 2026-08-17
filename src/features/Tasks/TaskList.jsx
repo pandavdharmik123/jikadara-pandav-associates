@@ -203,7 +203,7 @@ export default function TaskList() {
           rowKey="id"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800, y: 'calc(100vh - 260px)' }}
+          scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
           size="small"
           locale={{
             emptyText: (

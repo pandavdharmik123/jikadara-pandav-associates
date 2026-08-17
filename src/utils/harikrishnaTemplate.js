@@ -33,7 +33,6 @@ const MATRA_KEYS = {
   '\u0ac9': 'i`', // ૉ
   '\u0acb': 'i[', // ો
   '\u0acc': 'i]', // ૌ
-  '\u0a81': 'M', // ઁ
   '\u0a82': '>', // ં
   '\u0a83': ':', // ઃ
 };
@@ -78,6 +77,8 @@ const CONJUNCTS = {
   'શ્ન': 'â', // \u00e2
   'હૃ': 'ã', // \u00e3
   'ખ્ર': 'å', // \u00e5
+  'ત્ત': '_i',
+  'ત્ત્': '_',
   // general reph below (્ર) -> \
   '\u0acd\u0ab0': '\\',
   // Half consonants (Table 3)

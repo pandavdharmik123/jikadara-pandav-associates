@@ -25,9 +25,7 @@ const REVERSE_MATRAS = {
   '`': '\u0ac5',  // ૅ
   '[': '\u0ac7',  // ે
   ']': '\u0ac8',  // ૈ
-  'M': '\u0a81',  // ઁ
   '>': '\u0a82',  // ં
-  ':': '\u0a83',  // ઃ
 };
 
 const REVERSE_DIGITS = {
@@ -49,6 +47,8 @@ const REVERSE_CONJUNCTS = {
   'w': 'દ્ધ', // mapping conflict in original w -> દ્ધ or દ્ય. We'll favor દ્ધ.
   'Ò': 'ત્ર',
   '#i': 'ત્રા', // Since Ò replaces ત્ર, #i was historically replacing something else or mapped directly. We'll handle it.
+  '_i': 'ત્ત',
+  '_': 'ત્ત્',
   'Ê': 'ક્ક',
   'Ë': 'દ્ગ',
   'Ì': 'જ્જ',
@@ -108,25 +108,29 @@ export function convertHarikrishnaTemplateToUnicode(legacyText) {
   let out = '';
   for (let i = 0; i < s.length;) {
     // Check 3-char matches
-    let match3 = s.slice(i, i + 3);
-    if (REVERSE_INDEPENDENT_VOWELS[match3]) {
-      out += REVERSE_INDEPENDENT_VOWELS[match3];
-      i += 3; continue;
+    if (i + 3 <= s.length) {
+      let match3 = s.slice(i, i + 3);
+      if (REVERSE_INDEPENDENT_VOWELS[match3]) {
+        out += REVERSE_INDEPENDENT_VOWELS[match3];
+        i += 3; continue;
+      }
     }
 
     // Check 2-char matches
-    let match2 = s.slice(i, i + 2);
-    if (REVERSE_INDEPENDENT_VOWELS[match2]) {
-      out += REVERSE_INDEPENDENT_VOWELS[match2];
-      i += 2; continue;
-    }
-    if (REVERSE_MATRAS[match2]) {
-      out += REVERSE_MATRAS[match2];
-      i += 2; continue;
-    }
-    if (REVERSE_CONJUNCTS[match2]) {
-      out += REVERSE_CONJUNCTS[match2];
-      i += 2; continue;
+    if (i + 2 <= s.length) {
+      let match2 = s.slice(i, i + 2);
+      if (REVERSE_INDEPENDENT_VOWELS[match2]) {
+        out += REVERSE_INDEPENDENT_VOWELS[match2];
+        i += 2; continue;
+      }
+      if (REVERSE_MATRAS[match2]) {
+        out += REVERSE_MATRAS[match2];
+        i += 2; continue;
+      }
+      if (REVERSE_CONJUNCTS[match2]) {
+        out += REVERSE_CONJUNCTS[match2];
+        i += 2; continue;
+      }
     }
 
     // Check 1-char matches
