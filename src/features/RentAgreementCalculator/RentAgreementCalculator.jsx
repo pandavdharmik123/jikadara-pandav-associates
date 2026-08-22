@@ -105,7 +105,8 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
   const avgNYear = years > 0 ? totalRentForYears / years : 0;
   const totalRentForDeedAvej = avgNYear + deposit + gstInput + taxInput;
 
-  const regFee = totalRentForDeedAvej * 0.01;
+  const regFeePercent = years > 10 ? 2 : 1;
+  const regFee = totalRentForDeedAvej * (regFeePercent / 100);
   const stampDutyDeposit = deposit * 0.049;
 
   let stampDutyRentPercent = 0;
@@ -563,7 +564,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                   <tbody>
                     <tr>
                       <td style={tdStyle}>1</td>
-                      <td style={tdStyle}>Reg. Fee For Total Rent For Deed Avej = 1 %</td>
+                      <td style={tdStyle}>Reg. Fee For Total Rent For Deed Avej = {regFeePercent} %</td>
                       <td style={tdRightStyle}><strong>{formatCurrency(regFee)}</strong></td>
                     </tr>
                     <tr>
