@@ -58,7 +58,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
   const total = subTotal - discountVal;
   const balance = total - (jamaAmount || 0);
 
-  const formatMoney = (val) => Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatMoney = (val) => Math.round(Number(val || 0)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const addItem = () => setItems([...items, { id: Date.now(), description: '', qty: 1, price: 0 }]);
   const updateItem = (id, field, value) => {

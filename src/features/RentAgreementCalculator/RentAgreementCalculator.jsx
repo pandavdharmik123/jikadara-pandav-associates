@@ -74,11 +74,11 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     setPartyName('');
   };
 
-  // Helper for formatting currency
+  // Helper for formatting currency (always rounded to integer)
   const formatCurrency = (val) => {
-    if (isNaN(val)) return '0';
-    return Number(val.toFixed(2)).toLocaleString('en-IN', {
-      maximumFractionDigits: 2,
+    if (val === null || val === undefined || isNaN(Number(val))) return '0';
+    return Math.round(Number(val)).toLocaleString('en-IN', {
+      maximumFractionDigits: 0,
       minimumFractionDigits: 0
     });
   };
@@ -158,11 +158,18 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
       overflow: 'visible',
       pointerEvents: 'none',
       zIndex: '-1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     });
     Object.assign(clone.style, {
       overflow: 'visible',
       height: 'auto',
       maxHeight: 'none',
+      width: '754px',
+      maxWidth: '754px',
+      margin: '0 auto',
+      boxSizing: 'border-box',
     });
 
     // remove .no-print elements from clone
@@ -171,29 +178,30 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     container.appendChild(clone);
     document.body.appendChild(container);
 
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
     await new Promise((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
     });
 
-    // Shrink to fit one A4 page if content is just slightly too tall, to avoid awkward clipping
     const PAGE_WIDTH_PX = 794;
-    const PDF_MARGIN_IN = 0.15;
     const A4_HEIGHT_IN = 11.69;
-    const maxContentHeightPx = (A4_HEIGHT_IN - PDF_MARGIN_IN * 2) * 96 * 0.97;
+    const maxContentHeightPx = A4_HEIGHT_IN * 96 * 0.94;
 
-    let captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
-    let captureWidth = Math.max(clone.scrollWidth, clone.offsetWidth, PAGE_WIDTH_PX);
+    let naturalHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+    let captureHeight = naturalHeight + 20;
 
     // Only shrink if it's less than 2 pages worth of content. If it's a huge 30-year lease, we let it span multiple pages.
-    if (captureHeight > maxContentHeightPx && captureHeight < maxContentHeightPx * 1.5) {
-      const scale = maxContentHeightPx / captureHeight;
+    if (naturalHeight > maxContentHeightPx && naturalHeight < maxContentHeightPx * 1.5) {
+      const scale = maxContentHeightPx / naturalHeight;
       clone.style.transform = `scale(${scale})`;
       clone.style.transformOrigin = 'top center';
 
       await new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(resolve));
       });
-      captureHeight = maxContentHeightPx;
+      captureHeight = Math.ceil(naturalHeight * scale) + 20;
     }
 
     const originalBodyOverflow = document.body.style.overflow;
@@ -204,17 +212,22 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     const filename = partyName ? `${partyName}_ExpDetails.pdf` : 'ExpDetails.pdf';
 
     const opt = {
-      margin: [PDF_MARGIN_IN, 0.2, PDF_MARGIN_IN, 0.2],
+      margin: 0,
       filename,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'png' },
       html2canvas: {
-        scale: 2,
+        scale: 4,
         useCORS: true,
+        allowTaint: true,
+        logging: false,
+        letterRendering: true,
+        dpi: 300,
+        backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
-        width: captureWidth,
+        width: PAGE_WIDTH_PX,
         height: captureHeight,
-        windowWidth: captureWidth,
+        windowWidth: PAGE_WIDTH_PX,
         windowHeight: captureHeight,
         onclone: (doc) => {
           const clonedRoot = doc.querySelector('.pdf-container.pdf-mode');
@@ -222,12 +235,12 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
           clonedRoot.style.overflow = 'visible';
           clonedRoot.style.height = 'auto';
           clonedRoot.style.maxHeight = 'none';
-          clonedRoot.querySelectorAll('.ant-card, .ant-row, .ant-col, .table-responsive').forEach((node) => {
+          clonedRoot.querySelectorAll('.ant-card, .ant-row, .ant-col, .table-responsive, table, th, td').forEach((node) => {
             node.style.overflow = 'visible';
           });
         },
       },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true, precision: 16 },
       pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.ant-card-head', '.ant-card-body'] },
     };
 
@@ -246,6 +259,8 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
 
   // Render Table Style
   const tableBorderColor = themeMode === 'dark' ? '#30363d' : '#d9d9d9';
+  const tableHeaderBg = themeMode === 'dark' ? 'rgba(255, 255, 255, 0.06)' : '#f5f5f5';
+  const tableHighlightBg = themeMode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#eaeaea';
   const tableStyle = {
     width: '100%',
     borderCollapse: 'collapse',
@@ -258,12 +273,14 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     padding: '8px',
     textAlign: 'center',
     fontWeight: 'bold',
-    backgroundColor: themeMode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : '#fafafa'
+    backgroundColor: tableHeaderBg,
+    color: 'var(--text-primary)'
   };
   const tdStyle = {
     border: `1px solid ${tableBorderColor}`,
     padding: '8px',
-    textAlign: 'center'
+    textAlign: 'center',
+    color: 'var(--text-primary)'
   };
   const tdRightStyle = {
     ...tdStyle,
@@ -328,7 +345,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
 
                 <Col xs={24} sm={12}>
                   <Form.Item label="વર્ષ (Years)" name="years" style={{ marginBottom: 8 }}>
-                    <Input type="number" placeholder="Enter total years" />
+                    <Input type="number" min={0} placeholder="Enter total years" />
                   </Form.Item>
                 </Col>
 
@@ -426,16 +443,23 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
               <div className="table-responsive pdf-container" ref={componentRef}>
                 {/* PDF Only Header */}
                 <div className="pdf-header">
-                  <img src="/logo.png" alt="Company Logo" style={{ height: 50, marginBottom: 12 }} />
+                  <img src="/headingText.png" alt="Header Text" className="pdf-heading-text-img" style={{ maxWidth: 460, height: 'auto', marginBottom: 6 }} />
+                  <img src="/logo.png" alt="Company Logo" className="pdf-logo-img" style={{ height: 50, marginBottom: 8 }} />
                   <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Advocate and Legal Consultants</Title>
                   <Divider style={{ margin: '12px 0 20px' }} />
-                  <Text type="secondary" style={{ fontSize: 16, fontWeight: 'bold' }}>Rent Agreement Calculation</Text>
+                  <Text type="secondary" className="pdf-calculator-title" style={{ fontSize: 16, fontWeight: 'bolder', fontFamily: 'Cambria, Cochin, Georgia, Times, "Times New Roman", serif' }}>RENT AGREEMENT CALCULATOR</Text>
                   <Divider style={{ margin: '12px 0 20px' }} />
                 </div>
                 <table style={tableStyle}>
                   <thead>
                     <tr>
-                      <th colSpan={2} style={{ ...thStyle, backgroundColor: currentAccentColor, color: '#fff' }}>
+                      <th colSpan={2} style={{
+                        ...thStyle,
+                        backgroundColor: tableHighlightBg,
+                        color: 'var(--text-primary)',
+                        padding: '10px 8px',
+                        fontSize: '14px'
+                      }}>
                         પાર્ટીનું નામ (Party Name): {partyName || 'Party Name'}
                       </th>
                     </tr>
@@ -446,7 +470,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                       <td style={tdRightStyle}>{formatCurrency(totalStampDuty)}</td>
                     </tr>
                     <tr>
-                      <td style={tdStyle}>રજી. ફી (Reg. Fee)</td>
+                      <td style={tdStyle}>૨જી. ફી (Reg. Fee)</td>
                       <td style={tdRightStyle}>{formatCurrency(regFee)}</td>
                     </tr>
                     <tr>
@@ -458,7 +482,7 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                       <td style={tdRightStyle}>{formatCurrency(indexCopy)}</td>
                     </tr>
                     <tr>
-                      <td style={tdStyle}>સબ-રજિસ્ટ્રાર(Administrative Fee)</td>
+                      <td style={tdStyle}>સબ-રજિસ્ટ્રાર (Administrative Fee)</td>
                       <td style={tdRightStyle}>{formatCurrency(administrativeExp)}</td>
                     </tr>
                     <tr>
@@ -472,8 +496,25 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
                       </tr>
                     ) : null)}
                     <tr>
-                      <td style={{ ...thStyle, backgroundColor: currentAccentColor, color: '#fff' }}>કુલ ખર્ચ (Total Cost)</td>
-                      <td style={{ ...thStyle, backgroundColor: currentAccentColor, color: '#fff', textAlign: 'right' }}>{formatCurrency(totalCost)}</td>
+                      <td style={{
+                        ...thStyle,
+                        backgroundColor: tableHighlightBg,
+                        color: 'var(--text-primary)',
+                        padding: '10px 8px',
+                        fontSize: '15px'
+                      }}>
+                        કુલ ખર્ચ (Total Cost)
+                      </td>
+                      <td style={{
+                        ...thStyle,
+                        backgroundColor: tableHighlightBg,
+                        color: 'var(--text-primary)',
+                        textAlign: 'right',
+                        padding: '10px 8px',
+                        fontSize: '15px'
+                      }}>
+                        {formatCurrency(totalCost)}
+                      </td>
                     </tr>
                   </tbody>
                 </table>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const formatMoney = (val) => Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatMoney = (val) => Math.round(Number(val || 0)).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const themeBlue = '#333333';
 const tableHeaderBg = '#f4f4f4';
