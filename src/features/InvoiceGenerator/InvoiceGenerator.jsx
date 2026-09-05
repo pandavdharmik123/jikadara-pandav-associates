@@ -421,7 +421,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 }}
                 style={{ color: currentAccentColor, borderColor: currentAccentColor }}
               >
-                Preview Modal
+                Preview
               </Button>
               <Button 
                 size="large" 
@@ -445,86 +445,36 @@ export default function InvoiceGenerator({ currentAccentColor }) {
           </div>
         </Col>
 
-        {/* Right Column: Live Preview & Saved Invoices */}
+        {/* Saved Invoices Table */}
         <Col xs={24} lg={12}>
-          <Card
-            size="small"
-            className="glass-panel"
-            bordered={false}
-            title={
-              <Segmented
-                options={[
-                  { label: 'Live Preview', value: 'preview' },
-                  { label: `Saved Invoices (${invoices?.length || 0})`, value: 'saved' },
-                ]}
-                value={rightTab}
-                onChange={setRightTab}
-                size="small"
-              />
-            }
-            extra={
-              rightTab === 'preview' && (
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<Printer size={15} />}
-                  onClick={handlePrintOnly}
-                  style={{ backgroundColor: currentAccentColor }}
-                >
-                  Print PDF
-                </Button>
-              )
-            }
-            style={{ overflow: 'hidden' }}
-          >
-            {rightTab === 'preview' ? (
-              <div style={{ overflowX: 'auto', background: '#f1f5f9', padding: '16px 8px', borderRadius: 8, display: 'flex', justifyContent: 'center' }}>
-                <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', marginBottom: '-300px' }}>
-                  <InvoicePrintLayout
-                    ref={componentRef}
-                    clientName={clientName}
-                    invoiceNo={invoiceNo}
-                    displayDate={displayDate}
-                    items={items}
-                    subTotal={subTotal}
-                    discountVal={discountVal}
-                    total={total}
-                    jamaAmount={jamaAmount}
-                    balance={balance}
-                  />
-                </div>
-              </div>
-            ) : (
-              <Table
-                dataSource={invoices}
-                columns={invoiceColumns}
-                rowKey="id"
-                loading={invoicesLoading}
-                pagination={{ pageSize: 10 }}
-                size="small"
-              />
-            )}
+          <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Saved Invoices</span>}>
+            <Table
+              dataSource={invoices}
+              columns={invoiceColumns}
+              rowKey="id"
+              loading={invoicesLoading}
+              pagination={{ pageSize: 10 }}
+              size="small"
+            />
           </Card>
         </Col>
       </Row>
 
-      {/* Hidden Print Component fallback if on saved tab */}
-      {rightTab !== 'preview' && (
-        <div style={{ display: 'none' }}>
-          <InvoicePrintLayout
-            ref={componentRef}
-            clientName={clientName}
-            invoiceNo={invoiceNo}
-            displayDate={displayDate}
-            items={items}
-            subTotal={subTotal}
-            discountVal={discountVal}
-            total={total}
-            jamaAmount={jamaAmount}
-            balance={balance}
-          />
-        </div>
-      )}
+      {/* Hidden Print Component */}
+      <div style={{ display: 'none' }}>
+        <InvoicePrintLayout
+          ref={componentRef}
+          clientName={clientName}
+          invoiceNo={invoiceNo}
+          displayDate={displayDate}
+          items={items}
+          subTotal={subTotal}
+          discountVal={discountVal}
+          total={total}
+          jamaAmount={jamaAmount}
+          balance={balance}
+        />
+      </div>
 
       {/* Preview Modal for Invoices */}
       <Modal
