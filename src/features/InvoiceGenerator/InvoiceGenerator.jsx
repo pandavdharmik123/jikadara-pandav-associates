@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space } from 'antd';
+import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space, Segmented } from 'antd';
 import dayjs from 'dayjs';
 import { Plus, Trash2, FileSignature, Printer, Eye, Edit } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
@@ -13,15 +13,18 @@ const { TextArea } = Input;
 
 export default function InvoiceGenerator({ currentAccentColor }) {
   const componentRef = useRef();
+  const livePreviewRef = useRef();
 
   // Client Details
   const [clientName, setClientName] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
+  const [rightTab, setRightTab] = useState('preview'); // 'preview' | 'saved'
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const previewPrintRef = useRef();
+
 
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
 
@@ -120,10 +123,15 @@ export default function InvoiceGenerator({ currentAccentColor }) {
     const opt = {
       margin: 0,
       filename,
-      image: { type: 'jpeg', quality: 0.95 },
+      image: { type: 'jpeg', quality: 1.0 },
       html2canvas: {
-        scale: 2,
+        scale: 4,
         useCORS: true,
+        allowTaint: true,
+        logging: false,
+        letterRendering: true,
+        dpi: 300,
+        backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
         width: captureWidth,
@@ -131,14 +139,19 @@ export default function InvoiceGenerator({ currentAccentColor }) {
         windowWidth: captureWidth,
         windowHeight: captureHeight,
         onclone: (doc) => {
-          const clonedRoot = doc.querySelector('.invoice-print-wrapper.pdf-mode');
+          const clonedRoot = doc.querySelector('.invoice-print-wrapper');
           if (!clonedRoot) return;
           clonedRoot.style.overflow = 'visible';
-          clonedRoot.style.height = 'auto';
-          clonedRoot.style.maxHeight = 'none';
+          clonedRoot.style.margin = '0 auto';
+          clonedRoot.style.webkitFontSmoothing = 'antialiased';
+          clonedRoot.style.mozOsxFontSmoothing = 'grayscale';
+          clonedRoot.style.textRendering = 'geometricPrecision';
+          clonedRoot.querySelectorAll('img').forEach((img) => {
+            img.style.imageRendering = '-webkit-optimize-contrast';
+          });
         },
       },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true, precision: 16 },
       pagebreak: { mode: ['css', 'legacy'] },
     };
 
@@ -391,6 +404,27 @@ export default function InvoiceGenerator({ currentAccentColor }) {
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
               <Button 
                 size="large" 
+                icon={<Eye size={18} />} 
+                onClick={() => {
+                  setPreviewInvoice({
+                    clientName,
+                    invoiceNo,
+                    date: invoiceDate,
+                    items,
+                    subTotal,
+                    discountAmount: discountVal,
+                    total,
+                    jamaAmount,
+                    balance
+                  });
+                  setPreviewVisible(true);
+                }}
+                style={{ color: currentAccentColor, borderColor: currentAccentColor }}
+              >
+                Preview Modal
+              </Button>
+              <Button 
+                size="large" 
                 icon={<Printer size={18} />} 
                 onClick={handlePrintOnly} 
                 style={{ color: currentAccentColor, borderColor: currentAccentColor }}
@@ -411,38 +445,88 @@ export default function InvoiceGenerator({ currentAccentColor }) {
           </div>
         </Col>
 
-        {/* Saved Invoices Table */}
+        {/* Right Column: Live Preview & Saved Invoices */}
         <Col xs={24} lg={12}>
-          <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Saved Invoices</span>}>
-            <Table
-              dataSource={invoices}
-              columns={invoiceColumns}
-              rowKey="id"
-              loading={invoicesLoading}
-              pagination={{ pageSize: 10 }}
-              size="small"
-            />
+          <Card
+            size="small"
+            className="glass-panel"
+            bordered={false}
+            title={
+              <Segmented
+                options={[
+                  { label: 'Live Preview', value: 'preview' },
+                  { label: `Saved Invoices (${invoices?.length || 0})`, value: 'saved' },
+                ]}
+                value={rightTab}
+                onChange={setRightTab}
+                size="small"
+              />
+            }
+            extra={
+              rightTab === 'preview' && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<Printer size={15} />}
+                  onClick={handlePrintOnly}
+                  style={{ backgroundColor: currentAccentColor }}
+                >
+                  Print PDF
+                </Button>
+              )
+            }
+            style={{ overflow: 'hidden' }}
+          >
+            {rightTab === 'preview' ? (
+              <div style={{ overflowX: 'auto', background: '#f1f5f9', padding: '16px 8px', borderRadius: 8, display: 'flex', justifyContent: 'center' }}>
+                <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center', marginBottom: '-300px' }}>
+                  <InvoicePrintLayout
+                    ref={componentRef}
+                    clientName={clientName}
+                    invoiceNo={invoiceNo}
+                    displayDate={displayDate}
+                    items={items}
+                    subTotal={subTotal}
+                    discountVal={discountVal}
+                    total={total}
+                    jamaAmount={jamaAmount}
+                    balance={balance}
+                  />
+                </div>
+              </div>
+            ) : (
+              <Table
+                dataSource={invoices}
+                columns={invoiceColumns}
+                rowKey="id"
+                loading={invoicesLoading}
+                pagination={{ pageSize: 10 }}
+                size="small"
+              />
+            )}
           </Card>
         </Col>
       </Row>
 
-      {/* Hidden Print Component */}
-      <div style={{ display: 'none' }}>
-        <InvoicePrintLayout
-          ref={componentRef}
-          clientName={clientName}
-          invoiceNo={invoiceNo}
-          displayDate={displayDate}
-          items={items}
-          subTotal={subTotal}
-          discountVal={discountVal}
-          total={total}
-          jamaAmount={jamaAmount}
-          balance={balance}
-        />
-      </div>
+      {/* Hidden Print Component fallback if on saved tab */}
+      {rightTab !== 'preview' && (
+        <div style={{ display: 'none' }}>
+          <InvoicePrintLayout
+            ref={componentRef}
+            clientName={clientName}
+            invoiceNo={invoiceNo}
+            displayDate={displayDate}
+            items={items}
+            subTotal={subTotal}
+            discountVal={discountVal}
+            total={total}
+            jamaAmount={jamaAmount}
+            balance={balance}
+          />
+        </div>
+      )}
 
-      {/* Preview Modal for Saved Invoices */}
+      {/* Preview Modal for Invoices */}
       <Modal
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
@@ -453,7 +537,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
               onClick={() => handleGeneratePDF(previewPrintRef, previewInvoice?.clientName)}
               style={{ backgroundColor: currentAccentColor }}
             >
-              Print
+              Print PDF
             </Button>
           </div>
         }
@@ -461,6 +545,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
         onCancel={() => setPreviewVisible(false)}
         width={850}
         footer={null}
+        destroyOnClose
       >
         <div style={{ overflowX: 'auto', background: '#e0e0e0', padding: 20, borderRadius: 8, display: 'flex', justifyContent: 'center' }}>
           <InvoicePrintLayout

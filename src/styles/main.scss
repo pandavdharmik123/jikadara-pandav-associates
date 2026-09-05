@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anek+Gujarati:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;800&family=Noto+Serif+Gujarati:wght@400;600;800&family=Baloo+Bhai+2:wght@400;600;800&family=Mogra&family=Farsan&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anek+Gujarati:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;800&family=Noto+Serif+Gujarati:wght@400;600;800&family=Baloo+Bhai+2:wght@400;600;800&family=Mogra&family=Farsan&family=Roboto+Slab:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
 
 @font-face {
   font-family: 'Ghanshyam';
@@ -402,6 +402,13 @@ body {
   display: none;
 }
 
+.invoice-print-wrapper .pdf-header,
+.pdf-export-container .invoice-print-wrapper .pdf-header,
+.pdf-mode .invoice-print-wrapper .pdf-header {
+  display: flex !important;
+}
+
+
 .pdf-only-view {
   display: none !important;
 }
@@ -476,6 +483,19 @@ body {
   letter-spacing: 0.5px !important;
   font-weight: 700;
 }
+
+.invoice-firm-title,
+.invoice-firm-subtitle,
+.pdf-mode .invoice-firm-title,
+.pdf-mode .invoice-firm-subtitle,
+.pdf-export-container .invoice-firm-title,
+.pdf-export-container .invoice-firm-subtitle,
+.invoice-print-wrapper .invoice-firm-title,
+.invoice-print-wrapper .invoice-firm-subtitle {
+  font-family: 'Roboto Slab', serif !important;
+}
+
+
 
 .pdf-container.pdf-mode {
   background: white !important;
