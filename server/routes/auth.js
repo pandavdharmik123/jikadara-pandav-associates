@@ -4,12 +4,14 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
 import requireRole from '../middleware/requireRole.js';
+import crypto from 'crypto';
 import {
   generateTOTP,
   verifyTOTP,
   generateBackupCodes,
   verifyAndConsumeBackupCode,
 } from '../lib/twoFactor.js';
+import { sendEmailOtp, maskEmail } from '../lib/emailService.js';
 
 const router = Router();
 
@@ -39,13 +41,46 @@ function sanitizeUser(user) {
 }
 
 /**
+ * Format phone number to international E.164 (defaults to +91 if 10-digit Indian number)
+ */
+export function normalizePhoneNumber(rawNumber, defaultCountryCode = '+91') {
+  if (!rawNumber) return '';
+  let cleaned = rawNumber.toString().replace(/[\s\-()]/g, '');
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  if (cleaned.startsWith('00')) {
+    return '+' + cleaned.slice(2);
+  }
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = cleaned.slice(1);
+  }
+  if (cleaned.length === 10) {
+    return defaultCountryCode + cleaned;
+  }
+  return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+}
+
+/**
+ * Mask mobile number for safe display (e.g. +91 ••••••4567)
+ */
+export function maskMobile(phone) {
+  if (!phone) return '';
+  const trimmed = phone.toString().trim();
+  if (trimmed.length <= 4) return trimmed;
+  const last4 = trimmed.slice(-4);
+  const prefix = trimmed.startsWith('+91') ? '+91 ' : trimmed.startsWith('+') ? trimmed.slice(0, 3) + ' ' : '';
+  return `${prefix}••••••${last4}`;
+}
+
+/**
  * Generate JWT token for a user session
  */
 function generateToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '12h' }
+    { expiresIn: '2h' }
   );
 }
 
@@ -130,6 +165,9 @@ router.post('/login', async (req, res) => {
           id: user.id,
           email: user.email,
           name: user.name,
+          maskedEmail: maskEmail(user.email),
+          hasMobile: !!(user.mobileNumber && user.mobileNumber.trim().length >= 10),
+          maskedMobile: maskMobile(user.mobileNumber),
         },
       });
     }
@@ -217,6 +255,164 @@ router.post('/2fa/verify-login', async (req, res) => {
   } catch (err) {
     console.error('Verify 2FA login error:', err);
     res.status(500).json({ error: 'Failed to verify 2FA code' });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/send-email-otp
+ * Generate and send a 6-digit OTP to user's registered email address
+ */
+router.post('/2fa/send-email-otp', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const tempToken = req.body.tempToken || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
+
+    if (!tempToken) {
+      return res.status(400).json({ error: 'Verification session token is required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Verification session expired. Please log in again.' });
+    }
+
+    if (!decoded.is2faPending || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid verification session' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'User account not found or deactivated' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({
+        error: 'No email address registered on this account.',
+      });
+    }
+
+    // Rate-limiting cooldown: check if last OTP was generated within 60 seconds
+    if (user.emailOtpExpiresAt) {
+      const msRemaining = new Date(user.emailOtpExpiresAt).getTime() - Date.now();
+      // Total lifetime is 5 minutes (300,000ms); if > 240,000ms remaining, less than 60s has elapsed
+      if (msRemaining > 240000) {
+        const secondsToWait = Math.ceil((msRemaining - 240000) / 1000);
+        return res.status(429).json({
+          error: `Please wait ${secondsToWait} seconds before requesting a new OTP.`,
+        });
+      }
+    }
+
+    // Generate random cryptographically secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
+
+    // Save hash and expiration in database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailOtpHash: hashedOtp,
+        emailOtpExpiresAt: expiresAt,
+      },
+    });
+
+    // Dispatch via Nodemailer emailService
+    await sendEmailOtp({
+      email: user.email,
+      otp,
+      userName: user.name,
+    });
+
+    res.json({
+      success: true,
+      message: `OTP sent successfully to ${maskEmail(user.email)}`,
+      maskedEmail: maskEmail(user.email),
+    });
+  } catch (err) {
+    console.error('Send email OTP error:', err);
+    res.status(400).json({
+      error: err.message || 'Failed to send OTP to email. Please try again.',
+    });
+  }
+});
+
+/**
+ * POST /api/auth/2fa/verify-email-otp
+ * Verify 6-digit OTP sent to user's email and complete login
+ */
+router.post('/2fa/verify-email-otp', async (req, res) => {
+  try {
+    const { tempToken, code } = req.body;
+
+    if (!tempToken || !code) {
+      return res.status(400).json({ error: 'Verification session and 6-digit code are required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Verification session expired. Please log in again.' });
+    }
+
+    if (!decoded.is2faPending || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid verification session' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'User account not found or deactivated' });
+    }
+
+    if (!user.emailOtpHash || !user.emailOtpExpiresAt) {
+      return res.status(400).json({
+        error: 'No active OTP found. Please click "Send OTP via Email" first.',
+      });
+    }
+
+    if (new Date() > new Date(user.emailOtpExpiresAt)) {
+      return res.status(400).json({
+        error: 'OTP has expired. Please request a new code.',
+      });
+    }
+
+    const cleanCode = code.toString().trim();
+    const isValid = await bcrypt.compare(cleanCode, user.emailOtpHash);
+
+    if (!isValid) {
+      return res.status(400).json({
+        error: 'Invalid 6-digit code. Please check your email and try again.',
+      });
+    }
+
+    // Code is valid: clear OTP fields and issue session token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailOtpHash: null,
+        emailOtpExpiresAt: null,
+      },
+    });
+
+    const token = generateToken(user);
+
+    res.json({
+      message: 'Email OTP verified successfully',
+      user: sanitizeUser(user),
+      token,
+    });
+  } catch (err) {
+    console.error('Verify email OTP error:', err);
+    res.status(500).json({ error: 'Failed to verify email OTP' });
   }
 });
 
