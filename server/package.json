@@ -21,6 +21,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "nodemailer": "^10.0.9",
     "otplib": "^13.4.1",
     "pg": "^8.16.3",
     "prisma": "^7.8.0",
