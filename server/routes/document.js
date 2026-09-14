@@ -65,7 +65,7 @@ router.post('/read', upload.single('file'), async (req, res) => {
   }
 
   const tempFilePath = req.file.path;
-  const preferredLang = req.body.preferredLang || 'en';
+  const preferredLang = req.body.preferredLang || 'gu';
 
   try {
     // Validation 1: Magic Byte Check (%PDF-)

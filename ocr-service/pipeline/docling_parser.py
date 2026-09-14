@@ -34,10 +34,10 @@ def parse_with_docling_native(pdf_path: str) -> Dict[str, Any]:
         logger.warning(f"Docling native converter issue: {e}")
         return {"success": False, "error": str(e)}
 
-def render_page_to_pil(page: fitz.Page, dpi: int = 200) -> Image.Image:
+def render_page_to_pil(page: fitz.Page, dpi: int = 250) -> Image.Image:
     """
     Renders a PyMuPDF page directly into a PIL Image at specified DPI.
-    Fast, reliable, and requires 0 external C-library binary dependencies.
+    250 DPI ensures high accuracy for complex Indic & Gujarati matras and conjuncts.
     """
     pix = page.get_pixmap(dpi=dpi)
     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
@@ -54,13 +54,13 @@ def classify_block_type(text: str) -> tuple:
         h_lvl = 1 if len(clean) < 35 else 2
     elif clean.startswith(("- ", "* ", "• ")) or (len(clean) > 3 and clean[0].isdigit() and clean[1:3] in (". ", ") ")):
         b_kind = "list"
-    elif "IMPORTANT INSTRUCTIONS" in clean.upper() or "SELF DECLARATION" in clean.upper() or "ADMIT CARD" in clean.upper():
+    elif any(kw in clean for kw in ["વેચાણ દસ્તાવેજ", "દસ્તાવેજ", "બાનાખત", "કરાર", "સોગંદનામું", "જોગવાઈ", "IMPORTANT INSTRUCTIONS", "SELF DECLARATION"]):
         b_kind = "heading"
         h_lvl = 1
         
     return b_kind, h_lvl
 
-def process_pdf_full_pipeline(pdf_path: str, preferred_lang: str = "en") -> Dict[str, Any]:
+def process_pdf_full_pipeline(pdf_path: str, preferred_lang: str = "gu") -> Dict[str, Any]:
     """
     Hybrid Document AI processing pipeline:
     1. Extracts 100% of embedded vector text blocks (headings, paragraphs, lists) via PyMuPDF.
