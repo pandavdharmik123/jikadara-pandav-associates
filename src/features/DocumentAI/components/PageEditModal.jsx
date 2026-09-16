@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Modal,
   Button,
@@ -26,14 +26,7 @@ import {
   FileDown,
   X,
   Layers,
-  Sparkles,
-  RefreshCw,
-  Eye,
-  SlidersHorizontal,
-  Sun,
-  Contrast,
-  Zap,
-  Palette
+  Sparkles
 } from 'lucide-react';
 import {
   FILTER_PRESETS,
@@ -120,9 +113,8 @@ export default function PageEditModal({
   const [filterThumbnails, setFilterThumbnails] = useState({});
   const [isProcessingPreview, setIsProcessingPreview] = useState(false);
 
-  // Confirmation Modals
-  const [applyFilterAllModalVisible, setApplyFilterAllModalVisible] = useState(false);
-  const [applyCropAllModalVisible, setApplyCropAllModalVisible] = useState(false);
+  // Unified Confirmation Modal for Apply to All Pages
+  const [applyAllModalVisible, setApplyAllModalVisible] = useState(false);
 
   // Crop state: normalized coordinates (0.0 to 1.0) relative to rotated image
   const [crop, setCrop] = useState({ x: 0, y: 0, width: 1, height: 1 });
@@ -244,7 +236,7 @@ export default function PageEditModal({
         .finally(() => {
           setIsProcessingPreview(false);
         });
-    }, 30);
+    }, 25);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -462,7 +454,7 @@ export default function PageEditModal({
   };
 
   // Auto-save current page modifications before navigating
-  const saveCurrentChanges = (callback) => {
+  const saveCurrentChanges = async (callback) => {
     if (!page || !rotatedBaseUri) {
       callback && callback();
       return;
@@ -485,39 +477,47 @@ export default function PageEditModal({
     const isCropped = !isWholePage;
     const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
 
-    renderPipelineDataUrl({
-      sourceUri: page.originalImageUri || page.imageUri,
-      rotation,
-      crop: isCropped ? crop : null,
-      filterId,
-      adjustments: filterAdjustments,
-      scaleFactor
-    })
-      .then((finalImageUri) => {
-        onApply({
-          pageId: page.id,
-          imageUri: finalImageUri,
-          originalImageUri: page.originalImageUri || page.imageUri,
-          rotation,
-          cropBox: isCropped ? crop : null,
-          isCropped,
-          scaleFactor,
-          dimensionPreset,
-          targetWidth: customWidth,
-          targetHeight: customHeight,
-          width: customWidth,
-          height: customHeight,
-          filterId,
-          filterName: currentPreset.name,
-          filterAdjustments,
-          closeModal: false
-        });
-        callback && callback();
-      })
-      .catch((err) => {
-        console.error('Error saving current changes:', err);
-        callback && callback();
+    const naturalBaseW = page.originalWidth || page.width || 1000;
+    const naturalBaseH = page.originalHeight || page.height || 1400;
+    const isSideways = rotation === 90 || rotation === 270;
+    const rotW = isSideways ? naturalBaseH : naturalBaseW;
+    const rotH = isSideways ? naturalBaseW : naturalBaseH;
+    const outW = Math.round((isCropped ? crop.width * rotW : rotW) * scaleFactor);
+    const outH = Math.round((isCropped ? crop.height * rotH : rotH) * scaleFactor);
+
+    try {
+      const finalImageUri = await renderPipelineDataUrl({
+        sourceUri: page.originalImageUri || page.imageUri,
+        rotation,
+        crop: isCropped ? crop : null,
+        filterId,
+        adjustments: filterAdjustments,
+        scaleFactor
       });
+
+      onApply({
+        pageId: page.id,
+        imageUri: finalImageUri,
+        originalImageUri: page.originalImageUri || page.imageUri,
+        rotation,
+        cropBox: isCropped ? crop : null,
+        isCropped,
+        scaleFactor,
+        dimensionPreset,
+        targetWidth: outW,
+        targetHeight: outH,
+        width: outW,
+        height: outH,
+        filterId,
+        filterName: currentPreset.name,
+        filterAdjustments,
+        closeModal: false
+      });
+    } catch (err) {
+      console.error('Error saving current changes:', err);
+    } finally {
+      callback && callback();
+    }
   };
 
   // Navigation handlers
@@ -563,48 +563,59 @@ export default function PageEditModal({
   }, [visible, hasPrev, hasNext, prevPage, nextPage, rotatedBaseUri, crop, rotation, scaleFactor, dimensionPreset, filterId, filterAdjustments]);
 
   // Apply changes to single page (Save & Apply / Apply to Page)
-  const handleApplySinglePage = (closeModal = true) => {
+  const handleApplySinglePage = async (closeModal = true) => {
     if (!page || !rotatedBaseUri) return;
 
     const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
     const isCropped = !isWholePage;
     const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
 
-    renderPipelineDataUrl({
+    const naturalBaseW = page.originalWidth || page.width || 1000;
+    const naturalBaseH = page.originalHeight || page.height || 1400;
+    const isSideways = rotation === 90 || rotation === 270;
+    const rotW = isSideways ? naturalBaseH : naturalBaseW;
+    const rotH = isSideways ? naturalBaseW : naturalBaseH;
+    const outW = Math.round((isCropped ? crop.width * rotW : rotW) * scaleFactor);
+    const outH = Math.round((isCropped ? crop.height * rotH : rotH) * scaleFactor);
+
+    const finalImageUri = await renderPipelineDataUrl({
       sourceUri: page.originalImageUri || page.imageUri,
       rotation,
       crop: isCropped ? crop : null,
       filterId,
       adjustments: filterAdjustments,
       scaleFactor
-    }).then((finalImageUri) => {
-      onApply({
-        pageId: page.id,
-        imageUri: finalImageUri,
-        originalImageUri: page.originalImageUri || page.imageUri,
-        rotation,
-        cropBox: isCropped ? crop : null,
-        isCropped,
-        scaleFactor,
-        dimensionPreset,
-        targetWidth: customWidth,
-        targetHeight: customHeight,
-        width: customWidth,
-        height: customHeight,
-        filterId,
-        filterName: currentPreset.name,
-        filterAdjustments,
-        closeModal
-      });
+    });
+
+    onApply({
+      pageId: page.id,
+      imageUri: finalImageUri,
+      originalImageUri: page.originalImageUri || page.imageUri,
+      rotation,
+      cropBox: isCropped ? crop : null,
+      isCropped,
+      scaleFactor,
+      dimensionPreset,
+      targetWidth: outW,
+      targetHeight: outH,
+      width: outW,
+      height: outH,
+      filterId,
+      filterName: currentPreset.name,
+      filterAdjustments,
+      closeModal
     });
   };
 
-  // Apply Filter to All Pages (preserves each page's crop & rotation!)
-  const handleApplyFilterToAll = async () => {
+  // Apply ALL edits (Crop + Rotation + Filter + Adjustments) to all active pages
+  const handleApplyToAll = async () => {
     if (!pages || pages.length === 0) return;
     setApplyingAll(true);
 
     try {
+      const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
+      const isCropped = !isWholePage;
+      const targetCrop = isCropped ? crop : null;
       const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
       const updatedList = [];
 
@@ -615,24 +626,38 @@ export default function PageEditModal({
         }
 
         const pristineUri = p.originalImageUri || p.imageUri;
-        const pageRot = p.rotation || 0;
-        const pageCrop = p.cropBox || null;
-        const pageScale = p.scaleFactor || 1.0;
 
-        // Render through pipeline preserving page's own crop & rotation, but applying current filter & adjustments
+        // Render through pipeline with CURRENT crop, rotation, filter & adjustments
         const finalImageUri = await renderPipelineDataUrl({
           sourceUri: pristineUri,
-          rotation: pageRot,
-          crop: pageCrop,
+          rotation,
+          crop: targetCrop,
           filterId,
           adjustments: filterAdjustments,
-          scaleFactor: pageScale
+          scaleFactor
         });
+
+        const naturalBaseW = p.originalWidth || p.width || 1000;
+        const naturalBaseH = p.originalHeight || p.height || 1400;
+        const isSideways = rotation === 90 || rotation === 270;
+        const rotW = isSideways ? naturalBaseH : naturalBaseW;
+        const rotH = isSideways ? naturalBaseW : naturalBaseH;
+        const outW = Math.round((targetCrop ? targetCrop.width * rotW : rotW) * scaleFactor);
+        const outH = Math.round((targetCrop ? targetCrop.height * rotH : rotH) * scaleFactor);
 
         updatedList.push({
           ...p,
           imageUri: finalImageUri,
           originalImageUri: pristineUri,
+          rotation,
+          cropBox: targetCrop,
+          isCropped: Boolean(targetCrop),
+          scaleFactor,
+          dimensionPreset,
+          targetWidth: outW,
+          targetHeight: outH,
+          width: outW,
+          height: outH,
           filterId,
           filterName: currentPreset.name,
           filterAdjustments: { ...filterAdjustments }
@@ -642,67 +667,11 @@ export default function PageEditModal({
       if (onApplyToAll) {
         onApplyToAll(updatedList);
       }
-      setApplyFilterAllModalVisible(false);
-      message.success(`Applied "${currentPreset.name}" filter to all ${activePages.length} pages!`);
+      setApplyAllModalVisible(false);
+      message.success(`Applied crop, rotation & filter to all ${activePages.length} pages!`);
     } catch (err) {
-      console.error('Error applying filter to all pages:', err);
-      message.error('Failed to apply filter to all pages.');
-    } finally {
-      setApplyingAll(false);
-    }
-  };
-
-  // Apply Framing/Crop to All Pages
-  const handleApplyCropToAll = async () => {
-    if (!pages || pages.length === 0) return;
-    setApplyingAll(true);
-
-    try {
-      const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
-      const isCropped = !isWholePage;
-      const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
-      const updatedList = [];
-
-      for (const p of pages) {
-        if (p.isDeleted) {
-          updatedList.push(p);
-          continue;
-        }
-
-        const pristineUri = p.originalImageUri || p.imageUri;
-        const finalImageUri = await renderPipelineDataUrl({
-          sourceUri: pristineUri,
-          rotation,
-          crop: isCropped ? crop : null,
-          filterId: p.filterId || filterId,
-          adjustments: p.filterAdjustments || filterAdjustments,
-          scaleFactor
-        });
-
-        updatedList.push({
-          ...p,
-          imageUri: finalImageUri,
-          originalImageUri: pristineUri,
-          rotation,
-          cropBox: isCropped ? crop : null,
-          isCropped,
-          scaleFactor,
-          dimensionPreset,
-          targetWidth: customWidth,
-          targetHeight: customHeight,
-          width: customWidth,
-          height: customHeight
-        });
-      }
-
-      if (onApplyToAll) {
-        onApplyToAll(updatedList);
-      }
-      setApplyCropAllModalVisible(false);
-      message.success(`Applied crop framing to all ${activePages.length} pages!`);
-    } catch (err) {
-      console.error('Error applying crop to all pages:', err);
-      message.error('Failed to apply crop to all pages.');
+      console.error('Error applying edits to all pages:', err);
+      message.error('Failed to apply edits to all pages.');
     } finally {
       setApplyingAll(false);
     }
@@ -923,7 +892,7 @@ export default function PageEditModal({
                     <button
                       type="button"
                       className="subbar-replicate-btn"
-                      onClick={() => setApplyCropAllModalVisible(true)}
+                      onClick={() => setApplyAllModalVisible(true)}
                     >
                       <CopyCheck size={13} />
                       <span>Apply Crop to All</span>
@@ -934,9 +903,8 @@ export default function PageEditModal({
 
               {/* Viewport Darkroom Stage */}
               <div
-                className={`studio-darkroom-container ${
-                  showFilmstrip && activePages.length > 1 ? 'with-filmstrip' : 'no-filmstrip'
-                }`}
+                className={`studio-darkroom-container ${showFilmstrip && activePages.length > 1 ? 'with-filmstrip' : 'no-filmstrip'
+                  }`}
                 ref={containerRef}
               >
                 {/* Floating Navigation Chevrons */}
@@ -1023,10 +991,10 @@ export default function PageEditModal({
                         onMouseDown={(e) => handleCropMouseDown(e, 'move')}
                       >
                         {/* Live dimensions indicator */}
-                        <div className="crop-live-pill inside">
+                        {/* <div className="crop-live-pill inside">
                           <span>{liveCropPixelW} × {liveCropPixelH} px</span>
                           <span className="pct-badge">{Math.round(crop.width * 100)}%</span>
-                        </div>
+                        </div> */}
 
                         {/* Thirds Guides */}
                         <div className="frame-rule-h rule-h-1" />
@@ -1407,7 +1375,7 @@ export default function PageEditModal({
                     type="button"
                     className="panel-btn apply"
                     onClick={() => handleApplySinglePage(false)}
-                    title="Apply current filter to this page"
+                    title="Apply current filter & edits to this page"
                   >
                     <Check size={13} />
                     <span>Apply to Page</span>
@@ -1498,7 +1466,7 @@ export default function PageEditModal({
                 {activePages.length > 1 && (
                   <Button
                     icon={<CopyCheck size={14} />}
-                    onClick={() => setApplyFilterAllModalVisible(true)}
+                    onClick={() => setApplyAllModalVisible(true)}
                     className="studio-secondary-btn"
                   >
                     Apply to All Pages ({activePages.length})
@@ -1508,8 +1476,8 @@ export default function PageEditModal({
                 {onOpenExportPdf && (
                   <Button
                     icon={<FileDown size={14} />}
-                    onClick={() => {
-                      handleApplySinglePage(true);
+                    onClick={async () => {
+                      await handleApplySinglePage(true);
                       onOpenExportPdf();
                     }}
                     className="studio-secondary-btn"
@@ -1537,94 +1505,11 @@ export default function PageEditModal({
       </Modal>
 
       {/* ============================================================ */}
-      {/* DIALOG: Apply Filter to All Pages Confirmation               */}
+      {/* DIALOG: Apply All Edits (Crop, Rotation & Filter) to All Pages*/}
       {/* ============================================================ */}
       <Modal
-        open={applyFilterAllModalVisible}
-        onCancel={() => !applyingAll && setApplyFilterAllModalVisible(false)}
-        centered
-        width={480}
-        destroyOnClose
-        title={null}
-        footer={null}
-        className="apply-all-dialog-modal"
-        styles={{
-          content: {
-            borderRadius: '16px',
-            padding: '24px',
-            background: '#ffffff',
-            boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.22)'
-          }
-        }}
-      >
-        <div className="apply-all-dialog-shell">
-          <div className="dialog-header">
-            <div className="dialog-icon-badge filter-badge">
-              <Sparkles size={22} />
-            </div>
-            <div className="dialog-title-group">
-              <h3 className="dialog-heading">Apply Filter to All Pages?</h3>
-              <p className="dialog-sub">
-                Apply the current filter and adjustments to all {activePages.length} pages?
-              </p>
-            </div>
-          </div>
-
-          <div className="dialog-specs-card">
-            <div className="spec-item">
-              <span className="spec-label">Selected Filter</span>
-              <span className="spec-val highlight-filter">{currentFilterPreset.name}</span>
-            </div>
-            <div className="spec-item">
-              <span className="spec-label">Brightness / Contrast</span>
-              <span className="spec-val">
-                {filterAdjustments.brightness > 0 ? `+${filterAdjustments.brightness}` : filterAdjustments.brightness} /{' '}
-                {filterAdjustments.contrast > 0 ? `+${filterAdjustments.contrast}` : filterAdjustments.contrast}
-              </span>
-            </div>
-            <div className="spec-item">
-              <span className="spec-label">Sharpness</span>
-              <span className="spec-val">{filterAdjustments.sharpness}</span>
-            </div>
-            <div className="spec-item highlight">
-              <span className="spec-label">Pages Affected</span>
-              <span className="spec-val badge">{activePages.length} Pages</span>
-            </div>
-          </div>
-
-          <div className="dialog-info-box">
-            <span>
-              💡 <strong>Note:</strong> Each page's individual crop and rotation will be preserved. Only the filter configuration will be applied.
-            </span>
-          </div>
-
-          <div className="dialog-footer-actions">
-            <Button
-              onClick={() => setApplyFilterAllModalVisible(false)}
-              disabled={applyingAll}
-              className="dialog-cancel-btn"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              loading={applyingAll}
-              icon={<Check size={15} />}
-              onClick={handleApplyFilterToAll}
-              className="dialog-confirm-btn"
-            >
-              Apply to All Pages
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ============================================================ */}
-      {/* DIALOG: Apply Crop Framing to All Pages Confirmation         */}
-      {/* ============================================================ */}
-      <Modal
-        open={applyCropAllModalVisible}
-        onCancel={() => !applyingAll && setApplyCropAllModalVisible(false)}
+        open={applyAllModalVisible}
+        onCancel={() => !applyingAll && setApplyAllModalVisible(false)}
         centered
         width={480}
         destroyOnClose
@@ -1646,9 +1531,9 @@ export default function PageEditModal({
               <CopyCheck size={22} />
             </div>
             <div className="dialog-title-group">
-              <h3 className="dialog-heading">Apply Framing to All Pages</h3>
+              <h3 className="dialog-heading">Apply to All Pages</h3>
               <p className="dialog-sub">
-                Replicate this page's framing and orientation across all {activePages.length} active pages.
+                Replicate this page's crop framing, rotation, and filter across all {activePages.length} active pages.
               </p>
             </div>
           </div>
@@ -1657,9 +1542,25 @@ export default function PageEditModal({
             <div className="spec-item">
               <span className="spec-label">Crop Framing</span>
               <span className="spec-val">
-                {liveCropPixelW} × {liveCropPixelH} px ({Math.round(crop.width * 100)}% scale)
+                {isCropModified
+                  ? `${liveCropPixelW} × ${liveCropPixelH} px (${Math.round(crop.width * 100)}% crop)`
+                  : 'Full Page (No Crop)'}
               </span>
             </div>
+            <div className="spec-item">
+              <span className="spec-label">Selected Filter</span>
+              <span className="spec-val highlight-filter">{currentFilterPreset.name}</span>
+            </div>
+            {isFilterActive && (
+              <div className="spec-item">
+                <span className="spec-label">Adjustments</span>
+                <span className="spec-val">
+                  B:{filterAdjustments.brightness > 0 ? '+' : ''}{filterAdjustments.brightness}{' '}
+                  C:{filterAdjustments.contrast > 0 ? '+' : ''}{filterAdjustments.contrast}{' '}
+                  S:{filterAdjustments.sharpness}
+                </span>
+              </div>
+            )}
             <div className="spec-item">
               <span className="spec-label">Orientation</span>
               <span className="spec-val">{rotation}° {rotation === 0 ? '(Original)' : ''}</span>
@@ -1670,9 +1571,15 @@ export default function PageEditModal({
             </div>
           </div>
 
+          <div className="dialog-info-box">
+            <span>
+              💡 <strong>All {activePages.length} pages</strong> will receive this page's exact crop framing, rotation, and filter styling for preview and PDF export.
+            </span>
+          </div>
+
           <div className="dialog-footer-actions">
             <Button
-              onClick={() => setApplyCropAllModalVisible(false)}
+              onClick={() => setApplyAllModalVisible(false)}
               disabled={applyingAll}
               className="dialog-cancel-btn"
             >
@@ -1682,10 +1589,10 @@ export default function PageEditModal({
               type="primary"
               loading={applyingAll}
               icon={<Check size={15} />}
-              onClick={handleApplyCropToAll}
+              onClick={handleApplyToAll}
               className="dialog-confirm-btn"
             >
-              Apply Crop to All Pages
+              Apply to All {activePages.length} Pages
             </Button>
           </div>
         </div>
