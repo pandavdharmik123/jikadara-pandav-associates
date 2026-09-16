@@ -1,16 +1,14 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Modal,
   Button,
   Radio,
-  InputNumber,
   Slider,
-  Segmented,
   Space,
-  Tag,
   Typography,
   Tooltip,
-  Divider
+  Divider,
+  message
 } from 'antd';
 import {
   Scissors,
@@ -19,7 +17,6 @@ import {
   RotateCcw,
   Check,
   Undo2,
-  Maximize2,
   Sliders,
   Rotate3D,
   FileSpreadsheet,
@@ -30,8 +27,20 @@ import {
   X,
   Layers,
   Sparkles,
-  Ratio
+  RefreshCw,
+  Eye,
+  SlidersHorizontal,
+  Sun,
+  Contrast,
+  Zap,
+  Palette
 } from 'lucide-react';
+import {
+  FILTER_PRESETS,
+  generateFilteredDataUrl,
+  generateFilterThumbnail,
+  renderPipelineDataUrl
+} from '../utils/imageFilters';
 
 const { Text } = Typography;
 
@@ -97,7 +106,23 @@ export default function PageEditModal({
   const [rotatedBaseUri, setRotatedBaseUri] = useState('');
   const [applyingAll, setApplyingAll] = useState(false);
   const [showFilmstrip, setShowFilmstrip] = useState(true);
-  const [applyAllModalVisible, setApplyAllModalVisible] = useState(false);
+
+  // Filter State
+  const [filterId, setFilterId] = useState('original');
+  const [filterAdjustments, setFilterAdjustments] = useState({
+    brightness: 0,
+    contrast: 0,
+    sharpness: 0,
+    saturation: 0,
+    exposure: 0
+  });
+  const [filteredPreviewUri, setFilteredPreviewUri] = useState('');
+  const [filterThumbnails, setFilterThumbnails] = useState({});
+  const [isProcessingPreview, setIsProcessingPreview] = useState(false);
+
+  // Confirmation Modals
+  const [applyFilterAllModalVisible, setApplyFilterAllModalVisible] = useState(false);
+  const [applyCropAllModalVisible, setApplyCropAllModalVisible] = useState(false);
 
   // Crop state: normalized coordinates (0.0 to 1.0) relative to rotated image
   const [crop, setCrop] = useState({ x: 0, y: 0, width: 1, height: 1 });
@@ -113,6 +138,7 @@ export default function PageEditModal({
   const containerRef = useRef(null);
   const cropImageRef = useRef(null);
   const filmstripRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
   // Determine active pages and current page position
   const activePages = pages && pages.length > 0 ? pages : (page ? [page] : []);
@@ -140,12 +166,92 @@ export default function PageEditModal({
       setCustomHeight(page.targetHeight || page.height || 842);
       setScaleFactor(page.scaleFactor || 1.0);
 
+      // Load Filter settings
+      const initFilterId = page.filterId || 'original';
+      const initAdjustments = page.filterAdjustments || {
+        brightness: 0,
+        contrast: 0,
+        sharpness: 0,
+        saturation: 0,
+        exposure: 0
+      };
+      setFilterId(initFilterId);
+      setFilterAdjustments(initAdjustments);
+
       const pristineUri = page.originalImageUri || page.imageUri;
       generateRotatedDataUrl(pristineUri, initRotation).then((uri) => {
         setRotatedBaseUri(uri);
+        setFilteredPreviewUri(uri);
       });
     }
   }, [visible, page, defaultTab]);
+
+  // Generate lightweight thumbnails for filter cards whenever the rotated source changes
+  useEffect(() => {
+    if (!rotatedBaseUri) return;
+    let isCancelled = false;
+
+    const generateAllThumbnails = async () => {
+      const thumbs = {};
+      for (const preset of FILTER_PRESETS) {
+        if (isCancelled) break;
+        try {
+          const thumbUri = await generateFilterThumbnail(rotatedBaseUri, preset.id);
+          thumbs[preset.id] = thumbUri;
+        } catch (err) {
+          console.warn('Error generating filter thumbnail:', err);
+        }
+      }
+      if (!isCancelled) {
+        setFilterThumbnails(thumbs);
+      }
+    };
+
+    generateAllThumbnails();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [rotatedBaseUri]);
+
+  // Live filter preview update with responsive debouncing for sliders
+  useEffect(() => {
+    if (!rotatedBaseUri) return;
+
+    const isOriginal =
+      filterId === 'original' &&
+      !filterAdjustments.brightness &&
+      !filterAdjustments.contrast &&
+      !filterAdjustments.sharpness &&
+      !filterAdjustments.saturation &&
+      !filterAdjustments.exposure;
+
+    if (isOriginal) {
+      setFilteredPreviewUri(rotatedBaseUri);
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      setIsProcessingPreview(true);
+      generateFilteredDataUrl(rotatedBaseUri, filterId, filterAdjustments)
+        .then((uri) => {
+          setFilteredPreviewUri(uri);
+        })
+        .finally(() => {
+          setIsProcessingPreview(false);
+        });
+    }, 30);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [rotatedBaseUri, filterId, filterAdjustments]);
 
   // Scroll active filmstrip thumbnail into view
   useEffect(() => {
@@ -156,6 +262,53 @@ export default function PageEditModal({
       }
     }
   }, [currentIndex]);
+
+  // Filter Selection Handler
+  const handleSelectFilter = (presetId) => {
+    setFilterId(presetId);
+    const preset = FILTER_PRESETS.find((p) => p.id === presetId) || FILTER_PRESETS[0];
+    const newAdjustments = {
+      brightness: preset.defaults.brightness || 0,
+      contrast: preset.defaults.contrast || 0,
+      sharpness: preset.defaults.sharpness || 0,
+      saturation: preset.defaults.saturation || 0,
+      exposure: preset.defaults.exposure || 0
+    };
+    setFilterAdjustments(newAdjustments);
+
+    // Immediate preview update on click without waiting for debounce
+    if (rotatedBaseUri) {
+      if (presetId === 'original') {
+        setFilteredPreviewUri(rotatedBaseUri);
+      } else {
+        generateFilteredDataUrl(rotatedBaseUri, presetId, newAdjustments).then((uri) => {
+          setFilteredPreviewUri(uri);
+        });
+      }
+    }
+  };
+
+  // Slider change handler
+  const handleAdjustmentChange = (prop, val) => {
+    setFilterAdjustments((prev) => ({
+      ...prev,
+      [prop]: val
+    }));
+  };
+
+  // Reset Filter only (does NOT undo crop or rotation)
+  const handleResetFilter = () => {
+    setFilterId('original');
+    setFilterAdjustments({
+      brightness: 0,
+      contrast: 0,
+      sharpness: 0,
+      saturation: 0,
+      exposure: 0
+    });
+    setFilteredPreviewUri(rotatedBaseUri);
+    message.info('Filter reset to Original');
+  };
 
   // Rotation handlers
   const handleUpdateRotation = (newAngle) => {
@@ -180,12 +333,10 @@ export default function PageEditModal({
   };
 
   const handleTrimMargins = () => {
-    // 5% margin trim
     setCrop({ x: 0.05, y: 0.05, width: 0.9, height: 0.9 });
   };
 
   const handleCenterFocus = () => {
-    // 10% margin trim
     setCrop({ x: 0.1, y: 0.1, width: 0.8, height: 0.8 });
   };
 
@@ -295,9 +446,19 @@ export default function PageEditModal({
     setCustomWidth(page.originalWidth || page.width || 595);
     setCustomHeight(page.originalHeight || page.height || 842);
     setScaleFactor(1.0);
+    setFilterId('original');
+    setFilterAdjustments({
+      brightness: 0,
+      contrast: 0,
+      sharpness: 0,
+      saturation: 0,
+      exposure: 0
+    });
 
     const pristineUri = page.originalImageUri || page.imageUri;
     setRotatedBaseUri(pristineUri);
+    setFilteredPreviewUri(pristineUri);
+    message.success('Page reset to original state.');
   };
 
   // Auto-save current page modifications before navigating
@@ -311,64 +472,52 @@ export default function PageEditModal({
     const isRotChanged = rotation !== (page.rotation || 0);
     const isScaleChanged = scaleFactor !== (page.scaleFactor || 1.0);
     const isPresetChanged = dimensionPreset !== (page.dimensionPreset || 'current');
+    const isFilterChanged =
+      filterId !== (page.filterId || 'original') ||
+      JSON.stringify(filterAdjustments) !== JSON.stringify(page.filterAdjustments || {});
 
-    if (!isCropChanged && !isRotChanged && !isScaleChanged && !isPresetChanged) {
+    if (!isCropChanged && !isRotChanged && !isScaleChanged && !isPresetChanged && !isFilterChanged) {
       callback && callback();
       return;
     }
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const naturalW = img.naturalWidth;
-      const naturalH = img.naturalHeight;
+    const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
+    const isCropped = !isWholePage;
+    const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
 
-      const sx = Math.max(0, Math.floor(crop.x * naturalW));
-      const sy = Math.max(0, Math.floor(crop.y * naturalH));
-      const sw = Math.min(naturalW - sx, Math.floor(crop.width * naturalW));
-      const sh = Math.min(naturalH - sy, Math.floor(crop.height * naturalH));
-
-      if (sw <= 0 || sh <= 0) {
+    renderPipelineDataUrl({
+      sourceUri: page.originalImageUri || page.imageUri,
+      rotation,
+      crop: isCropped ? crop : null,
+      filterId,
+      adjustments: filterAdjustments,
+      scaleFactor
+    })
+      .then((finalImageUri) => {
+        onApply({
+          pageId: page.id,
+          imageUri: finalImageUri,
+          originalImageUri: page.originalImageUri || page.imageUri,
+          rotation,
+          cropBox: isCropped ? crop : null,
+          isCropped,
+          scaleFactor,
+          dimensionPreset,
+          targetWidth: customWidth,
+          targetHeight: customHeight,
+          width: customWidth,
+          height: customHeight,
+          filterId,
+          filterName: currentPreset.name,
+          filterAdjustments,
+          closeModal: false
+        });
         callback && callback();
-        return;
-      }
-
-      const isWholePage =
-        crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
-      const isCropped = !isWholePage;
-
-      const canvas = document.createElement('canvas');
-      const outW = Math.round(sw * scaleFactor);
-      const outH = Math.round(sh * scaleFactor);
-      canvas.width = outW;
-      canvas.height = outH;
-
-      const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-      const finalImageUri = canvas.toDataURL('image/jpeg', 0.95);
-
-      onApply({
-        pageId: page.id,
-        imageUri: finalImageUri,
-        originalImageUri: page.originalImageUri || page.imageUri,
-        rotation,
-        cropBox: isCropped ? crop : null,
-        isCropped,
-        scaleFactor,
-        dimensionPreset,
-        targetWidth: customWidth,
-        targetHeight: customHeight,
-        width: outW,
-        height: outH,
-        closeModal: false
+      })
+      .catch((err) => {
+        console.error('Error saving current changes:', err);
+        callback && callback();
       });
-
-      callback && callback();
-    };
-    img.onerror = () => callback && callback();
-    img.src = rotatedBaseUri;
   };
 
   // Navigation handlers
@@ -411,42 +560,24 @@ export default function PageEditModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [visible, hasPrev, hasNext, prevPage, nextPage, rotatedBaseUri, crop, rotation, scaleFactor, dimensionPreset]);
+  }, [visible, hasPrev, hasNext, prevPage, nextPage, rotatedBaseUri, crop, rotation, scaleFactor, dimensionPreset, filterId, filterAdjustments]);
 
-  // Apply changes to single page
-  const handleApplyAll = () => {
+  // Apply changes to single page (Save & Apply / Apply to Page)
+  const handleApplySinglePage = (closeModal = true) => {
     if (!page || !rotatedBaseUri) return;
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const naturalW = img.naturalWidth;
-      const naturalH = img.naturalHeight;
+    const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
+    const isCropped = !isWholePage;
+    const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
 
-      const sx = Math.max(0, Math.floor(crop.x * naturalW));
-      const sy = Math.max(0, Math.floor(crop.y * naturalH));
-      const sw = Math.min(naturalW - sx, Math.floor(crop.width * naturalW));
-      const sh = Math.min(naturalH - sy, Math.floor(crop.height * naturalH));
-
-      if (sw <= 0 || sh <= 0) return;
-
-      const isWholePage =
-        crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
-      const isCropped = !isWholePage;
-
-      const canvas = document.createElement('canvas');
-      const outW = Math.round(sw * scaleFactor);
-      const outH = Math.round(sh * scaleFactor);
-      canvas.width = outW;
-      canvas.height = outH;
-
-      const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-      const finalImageUri = canvas.toDataURL('image/jpeg', 0.95);
-
+    renderPipelineDataUrl({
+      sourceUri: page.originalImageUri || page.imageUri,
+      rotation,
+      crop: isCropped ? crop : null,
+      filterId,
+      adjustments: filterAdjustments,
+      scaleFactor
+    }).then((finalImageUri) => {
       onApply({
         pageId: page.id,
         imageUri: finalImageUri,
@@ -458,24 +589,23 @@ export default function PageEditModal({
         dimensionPreset,
         targetWidth: customWidth,
         targetHeight: customHeight,
-        width: outW,
-        height: outH,
-        closeModal: true
+        width: customWidth,
+        height: customHeight,
+        filterId,
+        filterName: currentPreset.name,
+        filterAdjustments,
+        closeModal
       });
-    };
-    img.src = rotatedBaseUri;
+    });
   };
 
-  // Batch apply to all pages
-  const handleApplyToAll = async () => {
+  // Apply Filter to All Pages (preserves each page's crop & rotation!)
+  const handleApplyFilterToAll = async () => {
     if (!pages || pages.length === 0) return;
     setApplyingAll(true);
 
     try {
-      const isWholePage =
-        crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
-      const isCropped = !isWholePage;
-
+      const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
       const updatedList = [];
 
       for (const p of pages) {
@@ -485,64 +615,94 @@ export default function PageEditModal({
         }
 
         const pristineUri = p.originalImageUri || p.imageUri;
-        const rotatedUri = await generateRotatedDataUrl(pristineUri, rotation);
+        const pageRot = p.rotation || 0;
+        const pageCrop = p.cropBox || null;
+        const pageScale = p.scaleFactor || 1.0;
 
-        const processed = await new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const naturalW = img.naturalWidth;
-            const naturalH = img.naturalHeight;
-
-            const sx = Math.max(0, Math.floor(crop.x * naturalW));
-            const sy = Math.max(0, Math.floor(crop.y * naturalH));
-            const sw = Math.min(naturalW - sx, Math.floor(crop.width * naturalW));
-            const sh = Math.min(naturalH - sy, Math.floor(crop.height * naturalH));
-
-            if (sw <= 0 || sh <= 0) {
-              resolve(p);
-              return;
-            }
-
-            const canvas = document.createElement('canvas');
-            const outW = Math.round(sw * scaleFactor);
-            const outH = Math.round(sh * scaleFactor);
-            canvas.width = outW;
-            canvas.height = outH;
-
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-            const finalImageUri = canvas.toDataURL('image/jpeg', 0.95);
-
-            resolve({
-              ...p,
-              imageUri: finalImageUri,
-              originalImageUri: pristineUri,
-              rotation,
-              cropBox: isCropped ? crop : null,
-              isCropped,
-              scaleFactor,
-              dimensionPreset,
-              targetWidth: customWidth,
-              targetHeight: customHeight,
-              width: outW,
-              height: outH
-            });
-          };
-          img.onerror = () => resolve(p);
-          img.src = rotatedUri;
+        // Render through pipeline preserving page's own crop & rotation, but applying current filter & adjustments
+        const finalImageUri = await renderPipelineDataUrl({
+          sourceUri: pristineUri,
+          rotation: pageRot,
+          crop: pageCrop,
+          filterId,
+          adjustments: filterAdjustments,
+          scaleFactor: pageScale
         });
 
-        updatedList.push(processed);
+        updatedList.push({
+          ...p,
+          imageUri: finalImageUri,
+          originalImageUri: pristineUri,
+          filterId,
+          filterName: currentPreset.name,
+          filterAdjustments: { ...filterAdjustments }
+        });
       }
 
       if (onApplyToAll) {
         onApplyToAll(updatedList);
       }
+      setApplyFilterAllModalVisible(false);
+      message.success(`Applied "${currentPreset.name}" filter to all ${activePages.length} pages!`);
     } catch (err) {
-      console.error('Error applying to all pages:', err);
+      console.error('Error applying filter to all pages:', err);
+      message.error('Failed to apply filter to all pages.');
+    } finally {
+      setApplyingAll(false);
+    }
+  };
+
+  // Apply Framing/Crop to All Pages
+  const handleApplyCropToAll = async () => {
+    if (!pages || pages.length === 0) return;
+    setApplyingAll(true);
+
+    try {
+      const isWholePage = crop.x === 0 && crop.y === 0 && crop.width >= 0.999 && crop.height >= 0.999;
+      const isCropped = !isWholePage;
+      const currentPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
+      const updatedList = [];
+
+      for (const p of pages) {
+        if (p.isDeleted) {
+          updatedList.push(p);
+          continue;
+        }
+
+        const pristineUri = p.originalImageUri || p.imageUri;
+        const finalImageUri = await renderPipelineDataUrl({
+          sourceUri: pristineUri,
+          rotation,
+          crop: isCropped ? crop : null,
+          filterId: p.filterId || filterId,
+          adjustments: p.filterAdjustments || filterAdjustments,
+          scaleFactor
+        });
+
+        updatedList.push({
+          ...p,
+          imageUri: finalImageUri,
+          originalImageUri: pristineUri,
+          rotation,
+          cropBox: isCropped ? crop : null,
+          isCropped,
+          scaleFactor,
+          dimensionPreset,
+          targetWidth: customWidth,
+          targetHeight: customHeight,
+          width: customWidth,
+          height: customHeight
+        });
+      }
+
+      if (onApplyToAll) {
+        onApplyToAll(updatedList);
+      }
+      setApplyCropAllModalVisible(false);
+      message.success(`Applied crop framing to all ${activePages.length} pages!`);
+    } catch (err) {
+      console.error('Error applying crop to all pages:', err);
+      message.error('Failed to apply crop to all pages.');
     } finally {
       setApplyingAll(false);
     }
@@ -553,6 +713,16 @@ export default function PageEditModal({
   const isCropModified = crop.x > 0 || crop.y > 0 || crop.width < 0.999 || crop.height < 0.999;
   const isRotationModified = rotation !== 0;
   const isResizeModified = scaleFactor !== 1.0 || dimensionPreset !== 'current';
+  const isFilterActive =
+    filterId !== 'original' ||
+    Boolean(
+      filterAdjustments.brightness ||
+      filterAdjustments.contrast ||
+      filterAdjustments.sharpness ||
+      filterAdjustments.saturation ||
+      filterAdjustments.exposure
+    );
+  const currentFilterPreset = FILTER_PRESETS.find((p) => p.id === filterId) || FILTER_PRESETS[0];
 
   // Dimension helpers for live chip
   const naturalBaseW = page.originalWidth || page.width || 1000;
@@ -568,7 +738,7 @@ export default function PageEditModal({
       <Modal
         open={visible}
         onCancel={onCancel}
-        width={1060}
+        width={1160}
         destroyOnClose
         centered
         className="modern-studio-modal"
@@ -588,8 +758,7 @@ export default function PageEditModal({
             background: '#ffffff'
           }
         }}
-        bodyStyle={{ padding: 0 }}
-        style={{ maxWidth: '96vw', top: 20 }}
+        style={{ maxWidth: '98vw', top: 15 }}
       >
         <div className="modern-studio-shell">
           {/* ============================================================ */}
@@ -631,7 +800,11 @@ export default function PageEditModal({
               <div className="studio-status-tags">
                 {isCropModified && <span className="glass-tag cyan">Cropped</span>}
                 {isRotationModified && <span className="glass-tag purple">{rotation}°</span>}
-                {scaleFactor !== 1.0 && <span className="glass-tag indigo">{scaleFactor}x DPI</span>}
+                {isFilterActive && (
+                  <span className="glass-tag emerald">
+                    ✨ {currentFilterPreset.name}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -649,21 +822,21 @@ export default function PageEditModal({
                 </button>
                 <button
                   type="button"
-                  className={`tool-dock-btn ${activeTab === 'resize' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('resize')}
-                >
-                  <Scaling size={14} />
-                  <span>Resize</span>
-                  {isResizeModified && <span className="dock-dot" />}
-                </button>
-                <button
-                  type="button"
                   className={`tool-dock-btn ${activeTab === 'rotate' ? 'active' : ''}`}
                   onClick={() => setActiveTab('rotate')}
                 >
                   <RotateCw size={14} />
                   <span>Rotate</span>
                   {isRotationModified && <span className="dock-dot" />}
+                </button>
+                <button
+                  type="button"
+                  className={`tool-dock-btn ${activeTab === 'resize' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('resize')}
+                >
+                  <Scaling size={14} />
+                  <span>Resize</span>
+                  {isResizeModified && <span className="dock-dot" />}
                 </button>
               </div>
             </div>
@@ -710,354 +883,538 @@ export default function PageEditModal({
           </div>
 
           {/* ============================================================ */}
-          {/* CONTEXTUAL ACTION SUB-BAR (For active tool presets)         */}
+          {/* MAIN TWO-COLUMN STUDIO WORKBENCH                             */}
+          {/* (Left: Document Preview | Right: Filters Panel)              */}
           {/* ============================================================ */}
-          {activeTab === 'crop' && (
-            <div className="studio-context-subbar">
-              <div className="subbar-presets-group">
-                <span className="subbar-section-label">Presets:</span>
-                <button
-                  type="button"
-                  className={`subbar-chip ${!isCropModified ? 'active' : ''}`}
-                  onClick={handleResetFullCrop}
-                >
-                  Full Page
-                </button>
-                <button
-                  type="button"
-                  className="subbar-chip"
-                  onClick={handleTrimMargins}
-                >
-                  Trim Margins (-10%)
-                </button>
-                <button
-                  type="button"
-                  className="subbar-chip"
-                  onClick={handleCenterFocus}
-                >
-                  Center Focus (-20%)
-                </button>
-              </div>
-
-              {/* Quick action: Apply Crop to All */}
-              {activePages.length > 1 && (
-                <button
-                  type="button"
-                  className="subbar-replicate-btn"
-                  onClick={() => setApplyAllModalVisible(true)}
-                >
-                  <CopyCheck size={13} />
-                  <span>Apply Crop to All Pages</span>
-                  <span className="page-count-badge">{activePages.length}</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* MAIN CANVAS VIEWPORT (THE DARKROOM)                         */}
-          {/* ============================================================ */}
-          <div
-            className={`studio-darkroom-container ${showFilmstrip && activePages.length > 1 ? 'with-filmstrip' : 'no-filmstrip'
-              }`}
-            ref={containerRef}
-          >
-            {/* Floating Left Side Navigation Button */}
-            {activePages.length > 1 && (
-              <button
-                type="button"
-                className={`studio-floating-nav nav-left ${!hasPrev ? 'disabled' : ''}`}
-                onClick={handlePrevPage}
-                disabled={!hasPrev}
-                title={hasPrev ? `Previous: Page ${prevPage?.pageNumber}` : 'First Page'}
-              >
-                <ChevronLeft size={22} strokeWidth={2.5} />
-                {hasPrev && <span className="nav-page-indicator">P{prevPage?.pageNumber}</span>}
-              </button>
-            )}
-
-            {/* Floating Right Side Navigation Button */}
-            {activePages.length > 1 && (
-              <button
-                type="button"
-                className={`studio-floating-nav nav-right ${!hasNext ? 'disabled' : ''}`}
-                onClick={handleNextPage}
-                disabled={!hasNext}
-                title={hasNext ? `Next: Page ${nextPage?.pageNumber}` : 'Last Page'}
-              >
-                <ChevronRight size={22} strokeWidth={2.5} />
-                {hasNext && <span className="nav-page-indicator">P{nextPage?.pageNumber}</span>}
-              </button>
-            )}
-
-            {/* 1. CROP MODE CANVAS */}
-            {activeTab === 'crop' && (
-              <div className="crop-darkroom-stage">
-                <div className="crop-image-wrapper">
-                  <img
-                    ref={cropImageRef}
-                    src={rotatedBaseUri || page.originalImageUri || page.imageUri}
-                    alt={`Page ${page.pageNumber}`}
-                    className="stage-target-image"
-                    draggable={false}
-                  />
-
-                  {/* Dark Vignette Shades outside crop box */}
-                  <div
-                    className="crop-shade top"
-                    style={{ top: 0, left: 0, right: 0, height: `${crop.y * 100}%` }}
-                  />
-                  <div
-                    className="crop-shade bottom"
-                    style={{
-                      top: `${(crop.y + crop.height) * 100}%`,
-                      left: 0,
-                      right: 0,
-                      bottom: 0
-                    }}
-                  />
-                  <div
-                    className="crop-shade left"
-                    style={{
-                      top: `${crop.y * 100}%`,
-                      left: 0,
-                      width: `${crop.x * 100}%`,
-                      height: `${crop.height * 100}%`
-                    }}
-                  />
-                  <div
-                    className="crop-shade right"
-                    style={{
-                      top: `${crop.y * 100}%`,
-                      left: `${(crop.x + crop.width) * 100}%`,
-                      right: 0,
-                      height: `${crop.height * 100}%`
-                    }}
-                  />
-
-                  {/* Active Crop Box with Modern Precision Corner Brackets */}
-                  <div
-                    className="active-crop-frame"
-                    style={{
-                      top: `${crop.y * 100}%`,
-                      left: `${crop.x * 100}%`,
-                      width: `${crop.width * 100}%`,
-                      height: `${crop.height * 100}%`
-                    }}
-                    onMouseDown={(e) => handleCropMouseDown(e, 'move')}
-                  >
-                    {/* Rule of Thirds Guides */}
-                    <div className="frame-rule-h rule-h-1" />
-                    <div className="frame-rule-h rule-h-2" />
-                    <div className="frame-rule-v rule-v-1" />
-                    <div className="frame-rule-v rule-v-2" />
-
-
-                    {/* Corner L-Brackets (Professional Camera / Photoshop style) */}
-                    <div
-                      className="corner-bracket corner-nw"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'nw')}
-                    />
-                    <div
-                      className="corner-bracket corner-ne"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'ne')}
-                    />
-                    <div
-                      className="corner-bracket corner-se"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'se')}
-                    />
-                    <div
-                      className="corner-bracket corner-sw"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'sw')}
-                    />
-
-                    {/* Middle Edge Bars */}
-                    <div
-                      className="edge-grip edge-n"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'n')}
-                    />
-                    <div
-                      className="edge-grip edge-s"
-                      onMouseDown={(e) => handleCropMouseDown(e, 's')}
-                    />
-                    <div
-                      className="edge-grip edge-w"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'w')}
-                    />
-                    <div
-                      className="edge-grip edge-e"
-                      onMouseDown={(e) => handleCropMouseDown(e, 'e')}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 2. RESIZE MODE CANVAS */}
-            {activeTab === 'resize' && (
-              <div className="studio-tool-split-stage">
-                <div className="split-stage-preview">
-                  <div className="preview-canvas-box">
-                    <img
-                      src={rotatedBaseUri || page.originalImageUri || page.imageUri}
-                      alt="Resize Preview"
-                      className="preview-canvas-img"
-                    />
-                  </div>
-                  <div className="preview-meta-chips">
-                    <span className="meta-chip">Rotation: {rotation}°</span>
-                    <span className="meta-chip active">DPI: {scaleFactor}x</span>
-                    <span className="meta-chip">Format: {dimensionPreset.toUpperCase()}</span>
-                  </div>
-                </div>
-
-                <div className="split-stage-controls">
-                  <div className="control-card-pane">
-                    <div className="pane-title">
-                      <FileSpreadsheet size={16} className="pane-icon" />
-                      <span>Target Paper Format</span>
-                    </div>
-
-                    <Radio.Group
-                      value={dimensionPreset}
-                      onChange={handlePresetChange}
-                      className="modern-radio-grid"
+          <div className="studio-main-workbench">
+            {/* ---------------------------------------------------------- */}
+            {/* LEFT COLUMN: DOCUMENT PREVIEW (72% width)                  */}
+            {/* ---------------------------------------------------------- */}
+            <div className="studio-preview-col">
+              {/* Context subbar for active tool presets */}
+              {activeTab === 'crop' && (
+                <div className="studio-context-subbar">
+                  <div className="subbar-presets-group">
+                    <span className="subbar-section-label">Crop:</span>
+                    <button
+                      type="button"
+                      className={`subbar-chip ${!isCropModified ? 'active' : ''}`}
+                      onClick={handleResetFullCrop}
                     >
-                      <Radio.Button value="current" className="radio-card">
-                        <span className="card-label">Current Dimensions</span>
-                        <span className="card-sub">{naturalBaseW} × {naturalBaseH} pt</span>
-                      </Radio.Button>
-                      <Radio.Button value="a4" className="radio-card">
-                        <span className="card-label">Standard A4</span>
-                        <span className="card-sub">595 × 842 pt</span>
-                      </Radio.Button>
-                      <Radio.Button value="letter" className="radio-card">
-                        <span className="card-label">US Letter</span>
-                        <span className="card-sub">612 × 792 pt</span>
-                      </Radio.Button>
-                      <Radio.Button value="legal" className="radio-card">
-                        <span className="card-label">Legal Format</span>
-                        <span className="card-sub">612 × 1008 pt</span>
-                      </Radio.Button>
-                    </Radio.Group>
+                      Full Page
+                    </button>
+                    <button
+                      type="button"
+                      className="subbar-chip"
+                      onClick={handleTrimMargins}
+                    >
+                      Trim Margins (-10%)
+                    </button>
+                    <button
+                      type="button"
+                      className="subbar-chip"
+                      onClick={handleCenterFocus}
+                    >
+                      Center Focus (-20%)
+                    </button>
+                  </div>
 
-                    <Divider style={{ margin: '16px 0' }} />
+                  {activePages.length > 1 && (
+                    <button
+                      type="button"
+                      className="subbar-replicate-btn"
+                      onClick={() => setApplyCropAllModalVisible(true)}
+                    >
+                      <CopyCheck size={13} />
+                      <span>Apply Crop to All</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
-                    <div className="pane-title between">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Scaling size={16} className="pane-icon" />
-                        <span>Resolution / OCR Density Scale</span>
+              {/* Viewport Darkroom Stage */}
+              <div
+                className={`studio-darkroom-container ${
+                  showFilmstrip && activePages.length > 1 ? 'with-filmstrip' : 'no-filmstrip'
+                }`}
+                ref={containerRef}
+              >
+                {/* Floating Navigation Chevrons */}
+                {activePages.length > 1 && (
+                  <button
+                    type="button"
+                    className={`studio-floating-nav nav-left ${!hasPrev ? 'disabled' : ''}`}
+                    onClick={handlePrevPage}
+                    disabled={!hasPrev}
+                    title={hasPrev ? `Previous: Page ${prevPage?.pageNumber}` : 'First Page'}
+                  >
+                    <ChevronLeft size={20} strokeWidth={2.5} />
+                    {hasPrev && <span className="nav-page-indicator">P{prevPage?.pageNumber}</span>}
+                  </button>
+                )}
+
+                {activePages.length > 1 && (
+                  <button
+                    type="button"
+                    className={`studio-floating-nav nav-right ${!hasNext ? 'disabled' : ''}`}
+                    onClick={handleNextPage}
+                    disabled={!hasNext}
+                    title={hasNext ? `Next: Page ${nextPage?.pageNumber}` : 'Last Page'}
+                  >
+                    <ChevronRight size={20} strokeWidth={2.5} />
+                    {hasNext && <span className="nav-page-indicator">P{nextPage?.pageNumber}</span>}
+                  </button>
+                )}
+
+                {/* 1. CROP MODE STAGE */}
+                {activeTab === 'crop' && (
+                  <div className="crop-darkroom-stage">
+                    <div className="crop-image-wrapper">
+                      <img
+                        ref={cropImageRef}
+                        src={filteredPreviewUri || rotatedBaseUri || page.originalImageUri || page.imageUri}
+                        alt={`Page ${page.pageNumber}`}
+                        className="stage-target-image"
+                        draggable={false}
+                      />
+
+                      {/* Dark Vignette Shades outside crop box */}
+                      <div
+                        className="crop-shade top"
+                        style={{ top: 0, left: 0, right: 0, height: `${crop.y * 100}%` }}
+                      />
+                      <div
+                        className="crop-shade bottom"
+                        style={{
+                          top: `${(crop.y + crop.height) * 100}%`,
+                          left: 0,
+                          right: 0,
+                          bottom: 0
+                        }}
+                      />
+                      <div
+                        className="crop-shade left"
+                        style={{
+                          top: `${crop.y * 100}%`,
+                          left: 0,
+                          width: `${crop.x * 100}%`,
+                          height: `${crop.height * 100}%`
+                        }}
+                      />
+                      <div
+                        className="crop-shade right"
+                        style={{
+                          top: `${crop.y * 100}%`,
+                          left: `${(crop.x + crop.width) * 100}%`,
+                          right: 0,
+                          height: `${crop.height * 100}%`
+                        }}
+                      />
+
+                      {/* Active Crop Box with Corner Brackets & Edges */}
+                      <div
+                        className="active-crop-frame"
+                        style={{
+                          top: `${crop.y * 100}%`,
+                          left: `${crop.x * 100}%`,
+                          width: `${crop.width * 100}%`,
+                          height: `${crop.height * 100}%`
+                        }}
+                        onMouseDown={(e) => handleCropMouseDown(e, 'move')}
+                      >
+                        {/* Live dimensions indicator */}
+                        <div className="crop-live-pill inside">
+                          <span>{liveCropPixelW} × {liveCropPixelH} px</span>
+                          <span className="pct-badge">{Math.round(crop.width * 100)}%</span>
+                        </div>
+
+                        {/* Thirds Guides */}
+                        <div className="frame-rule-h rule-h-1" />
+                        <div className="frame-rule-h rule-h-2" />
+                        <div className="frame-rule-v rule-v-1" />
+                        <div className="frame-rule-v rule-v-2" />
+
+                        {/* Corners */}
+                        <div
+                          className="corner-bracket corner-nw"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'nw')}
+                        />
+                        <div
+                          className="corner-bracket corner-ne"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'ne')}
+                        />
+                        <div
+                          className="corner-bracket corner-se"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'se')}
+                        />
+                        <div
+                          className="corner-bracket corner-sw"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'sw')}
+                        />
+
+                        {/* Edge Grips */}
+                        <div
+                          className="edge-grip edge-n"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'n')}
+                        />
+                        <div
+                          className="edge-grip edge-s"
+                          onMouseDown={(e) => handleCropMouseDown(e, 's')}
+                        />
+                        <div
+                          className="edge-grip edge-w"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'w')}
+                        />
+                        <div
+                          className="edge-grip edge-e"
+                          onMouseDown={(e) => handleCropMouseDown(e, 'e')}
+                        />
                       </div>
-                      <span className="dpi-highlight">{scaleFactor}x Scale</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. ROTATE MODE STAGE */}
+                {activeTab === 'rotate' && (
+                  <div className="studio-tool-split-stage">
+                    <div className="split-stage-preview">
+                      <div className="preview-canvas-box">
+                        <img
+                          src={filteredPreviewUri || rotatedBaseUri || page.originalImageUri || page.imageUri}
+                          alt="Rotate Preview"
+                          className="preview-canvas-img"
+                        />
+                      </div>
+                      <div className="preview-meta-chips">
+                        <span className="meta-chip active" style={{ fontSize: 13 }}>
+                          Orientation: {rotation}°
+                        </span>
+                      </div>
                     </div>
 
-                    <Slider
-                      min={0.75}
-                      max={2.0}
-                      step={0.25}
-                      value={scaleFactor}
-                      onChange={(val) => setScaleFactor(val)}
-                      marks={{
-                        0.75: '0.75x',
-                        1.0: '1.0x (Standard)',
-                        1.5: '1.5x (Crisp)',
-                        2.0: '2.0x (High DPI)'
-                      }}
-                      className="modern-studio-slider"
-                    />
-                    <Text type="secondary" style={{ fontSize: 11, marginTop: 8, display: 'block' }}>
-                      Boosts OCR character edge clarity for fine Gujarati fonts.
-                    </Text>
-                  </div>
-                </div>
-              </div>
-            )}
+                    <div className="split-stage-controls">
+                      <div className="control-card-pane">
+                        <div className="pane-title">
+                          <Rotate3D size={16} className="pane-icon" />
+                          <span>Page Orientation Controls</span>
+                        </div>
 
-            {/* 3. ROTATE MODE CANVAS */}
-            {activeTab === 'rotate' && (
-              <div className="studio-tool-split-stage">
-                <div className="split-stage-preview">
-                  <div className="preview-canvas-box">
-                    <img
-                      src={rotatedBaseUri || page.originalImageUri || page.imageUri}
-                      alt="Rotate Preview"
-                      className="preview-canvas-img"
-                    />
-                  </div>
-                  <div className="preview-meta-chips">
-                    <span className="meta-chip active" style={{ fontSize: 13 }}>
-                      Orientation: {rotation}°
-                    </span>
-                  </div>
-                </div>
+                        <div className="rotate-interactive-grid">
+                          <button
+                            type="button"
+                            className="rotate-tile-btn"
+                            onClick={handleRotateCCW}
+                          >
+                            <RotateCcw size={18} />
+                            <span className="tile-title">Rotate Left</span>
+                            <span className="tile-desc">-90° Counter-Clockwise</span>
+                          </button>
 
-                <div className="split-stage-controls">
-                  <div className="control-card-pane">
-                    <div className="pane-title">
-                      <Rotate3D size={16} className="pane-icon" />
-                      <span>Page Orientation Controls</span>
+                          <button
+                            type="button"
+                            className="rotate-tile-btn primary-tint"
+                            onClick={handleRotateCW}
+                          >
+                            <RotateCw size={18} />
+                            <span className="tile-title">Rotate Right</span>
+                            <span className="tile-desc">+90° Clockwise</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="rotate-tile-btn"
+                            onClick={handleRotate180}
+                          >
+                            <Rotate3D size={18} />
+                            <span className="tile-title">Flip 180°</span>
+                            <span className="tile-desc">Invert Upside Down</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="rotate-tile-btn"
+                            onClick={handleResetRotation}
+                            disabled={rotation === 0}
+                          >
+                            <Undo2 size={18} />
+                            <span className="tile-title">Reset 0°</span>
+                            <span className="tile-desc">Original Angle</span>
+                          </button>
+                        </div>
+
+                        <div className="angle-quick-bar">
+                          <span style={{ fontSize: 12, color: '#64748b' }}>Quick Jump:</span>
+                          {[0, 90, 180, 270].map((deg) => (
+                            <button
+                              key={deg}
+                              type="button"
+                              className={`angle-chip ${rotation === deg ? 'active' : ''}`}
+                              onClick={() => handleUpdateRotation(deg)}
+                            >
+                              {deg}°
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. RESIZE MODE STAGE */}
+                {activeTab === 'resize' && (
+                  <div className="studio-tool-split-stage">
+                    <div className="split-stage-preview">
+                      <div className="preview-canvas-box">
+                        <img
+                          src={filteredPreviewUri || rotatedBaseUri || page.originalImageUri || page.imageUri}
+                          alt="Resize Preview"
+                          className="preview-canvas-img"
+                        />
+                      </div>
+                      <div className="preview-meta-chips">
+                        <span className="meta-chip">Rotation: {rotation}°</span>
+                        <span className="meta-chip active">DPI: {scaleFactor}x</span>
+                        <span className="meta-chip">Format: {dimensionPreset.toUpperCase()}</span>
+                      </div>
                     </div>
 
-                    <div className="rotate-interactive-grid">
-                      <button
-                        type="button"
-                        className="rotate-tile-btn"
-                        onClick={handleRotateCCW}
-                      >
-                        <RotateCcw size={18} />
-                        <span className="tile-title">Rotate Left</span>
-                        <span className="tile-desc">-90° Counter-Clockwise</span>
-                      </button>
+                    <div className="split-stage-controls">
+                      <div className="control-card-pane">
+                        <div className="pane-title">
+                          <FileSpreadsheet size={16} className="pane-icon" />
+                          <span>Target Paper Format</span>
+                        </div>
 
-                      <button
-                        type="button"
-                        className="rotate-tile-btn primary-tint"
-                        onClick={handleRotateCW}
-                      >
-                        <RotateCw size={18} />
-                        <span className="tile-title">Rotate Right</span>
-                        <span className="tile-desc">+90° Clockwise</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="rotate-tile-btn"
-                        onClick={handleRotate180}
-                      >
-                        <Rotate3D size={18} />
-                        <span className="tile-title">Flip 180°</span>
-                        <span className="tile-desc">Invert Upside Down</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="rotate-tile-btn"
-                        onClick={handleResetRotation}
-                        disabled={rotation === 0}
-                      >
-                        <Undo2 size={18} />
-                        <span className="tile-title">Reset 0°</span>
-                        <span className="tile-desc">Original Angle</span>
-                      </button>
-                    </div>
-
-                    <div className="angle-quick-bar">
-                      <span style={{ fontSize: 12, color: '#64748b' }}>Quick Jump:</span>
-                      {[0, 90, 180, 270].map((deg) => (
-                        <button
-                          key={deg}
-                          type="button"
-                          className={`angle-chip ${rotation === deg ? 'active' : ''}`}
-                          onClick={() => handleUpdateRotation(deg)}
+                        <Radio.Group
+                          value={dimensionPreset}
+                          onChange={handlePresetChange}
+                          className="modern-radio-grid"
                         >
-                          {deg}°
-                        </button>
-                      ))}
+                          <Radio.Button value="current" className="radio-card">
+                            <span className="card-label">Current Dimensions</span>
+                            <span className="card-sub">{naturalBaseW} × {naturalBaseH} pt</span>
+                          </Radio.Button>
+                          <Radio.Button value="a4" className="radio-card">
+                            <span className="card-label">Standard A4</span>
+                            <span className="card-sub">595 × 842 pt</span>
+                          </Radio.Button>
+                          <Radio.Button value="letter" className="radio-card">
+                            <span className="card-label">US Letter</span>
+                            <span className="card-sub">612 × 792 pt</span>
+                          </Radio.Button>
+                          <Radio.Button value="legal" className="radio-card">
+                            <span className="card-label">Legal Format</span>
+                            <span className="card-sub">612 × 1008 pt</span>
+                          </Radio.Button>
+                        </Radio.Group>
+
+                        <Divider style={{ margin: '16px 0' }} />
+
+                        <div className="pane-title between">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Scaling size={16} className="pane-icon" />
+                            <span>Resolution / OCR Density Scale</span>
+                          </div>
+                          <span className="dpi-highlight">{scaleFactor}x Scale</span>
+                        </div>
+
+                        <Slider
+                          min={0.75}
+                          max={2.0}
+                          step={0.25}
+                          value={scaleFactor}
+                          onChange={(val) => setScaleFactor(val)}
+                          marks={{
+                            0.75: '0.75x',
+                            1.0: '1.0x',
+                            1.5: '1.5x',
+                            2.0: '2.0x'
+                          }}
+                          className="modern-studio-slider"
+                        />
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* ---------------------------------------------------------- */}
+            {/* RIGHT COLUMN: DOCUMENT FILTERS & ADJUSTMENTS (28% width)    */}
+            {/* ---------------------------------------------------------- */}
+            <div className="studio-filters-panel">
+              <div className="filters-panel-header">
+                <div className="filters-header-title">
+                  <Sparkles size={16} className="title-icon" />
+                  <span>FILTERS</span>
+                </div>
+                <span className="filters-active-badge">
+                  {currentFilterPreset.name}
+                </span>
+              </div>
+
+              {/* 2-Column Compact Filter Grid with Real Page Thumbnails */}
+              <div className="filters-preset-grid">
+                {FILTER_PRESETS.map((preset) => {
+                  const isSelected = filterId === preset.id;
+                  const thumbSrc = filterThumbnails[preset.id] || rotatedBaseUri;
+
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className={`filter-card-btn ${isSelected ? 'active' : ''}`}
+                      onClick={() => handleSelectFilter(preset.id)}
+                      title={`${preset.name}: ${preset.desc}`}
+                    >
+                      <div className="filter-card-thumb-wrap">
+                        {thumbSrc ? (
+                          <img src={thumbSrc} alt={preset.name} loading="lazy" />
+                        ) : (
+                          <div className="filter-thumb-placeholder" />
+                        )}
+                        {isSelected && (
+                          <div className="filter-active-check">
+                            <Check size={11} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                      <span className="filter-card-name">{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Manual Adjustments Sliders */}
+              <div className="filters-adjustments-section">
+                <div className="adjustments-header">
+                  <div className="adjustments-title-wrap">
+                    <Sliders size={13} />
+                    <span>Adjustments</span>
+                  </div>
+                  {isFilterActive && (
+                    <button
+                      type="button"
+                      className="reset-mini-link"
+                      onClick={handleResetFilter}
+                      title="Reset filter adjustments to 0"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                <div className="adjustments-slider-list">
+                  {/* 1. Brightness */}
+                  <div className="adjustment-row">
+                    <div className="adj-label-bar">
+                      <span className="adj-name">Brightness</span>
+                      <span className={`adj-val ${filterAdjustments.brightness !== 0 ? 'active' : ''}`}>
+                        {filterAdjustments.brightness > 0 ? `+${filterAdjustments.brightness}` : filterAdjustments.brightness}
+                      </span>
+                    </div>
+                    <Slider
+                      min={-100}
+                      max={100}
+                      value={filterAdjustments.brightness}
+                      onChange={(val) => handleAdjustmentChange('brightness', val)}
+                      className="studio-sub-slider"
+                    />
+                  </div>
+
+                  {/* 2. Contrast */}
+                  <div className="adjustment-row">
+                    <div className="adj-label-bar">
+                      <span className="adj-name">Contrast</span>
+                      <span className={`adj-val ${filterAdjustments.contrast !== 0 ? 'active' : ''}`}>
+                        {filterAdjustments.contrast > 0 ? `+${filterAdjustments.contrast}` : filterAdjustments.contrast}
+                      </span>
+                    </div>
+                    <Slider
+                      min={-100}
+                      max={100}
+                      value={filterAdjustments.contrast}
+                      onChange={(val) => handleAdjustmentChange('contrast', val)}
+                      className="studio-sub-slider"
+                    />
+                  </div>
+
+                  {/* 3. Sharpness */}
+                  <div className="adjustment-row">
+                    <div className="adj-label-bar">
+                      <span className="adj-name">Sharpness</span>
+                      <span className={`adj-val ${filterAdjustments.sharpness > 0 ? 'active' : ''}`}>
+                        {filterAdjustments.sharpness > 0 ? `+${filterAdjustments.sharpness}` : filterAdjustments.sharpness}
+                      </span>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={100}
+                      value={filterAdjustments.sharpness}
+                      onChange={(val) => handleAdjustmentChange('sharpness', val)}
+                      className="studio-sub-slider"
+                    />
+                  </div>
+
+                  {/* 4. Saturation */}
+                  <div className="adjustment-row">
+                    <div className="adj-label-bar">
+                      <span className="adj-name">Saturation</span>
+                      <span className={`adj-val ${filterAdjustments.saturation !== 0 ? 'active' : ''}`}>
+                        {filterAdjustments.saturation > 0 ? `+${filterAdjustments.saturation}` : filterAdjustments.saturation}
+                      </span>
+                    </div>
+                    <Slider
+                      min={-100}
+                      max={100}
+                      value={filterAdjustments.saturation}
+                      onChange={(val) => handleAdjustmentChange('saturation', val)}
+                      className="studio-sub-slider"
+                    />
+                  </div>
+
+                  {/* 5. Exposure */}
+                  <div className="adjustment-row">
+                    <div className="adj-label-bar">
+                      <span className="adj-name">Exposure</span>
+                      <span className={`adj-val ${filterAdjustments.exposure !== 0 ? 'active' : ''}`}>
+                        {filterAdjustments.exposure > 0 ? `+${filterAdjustments.exposure}` : filterAdjustments.exposure}
+                      </span>
+                    </div>
+                    <Slider
+                      min={-100}
+                      max={100}
+                      value={filterAdjustments.exposure}
+                      onChange={(val) => handleAdjustmentChange('exposure', val)}
+                      className="studio-sub-slider"
+                    />
+                  </div>
+                </div>
+
+                {/* Panel Action Buttons */}
+                <div className="panel-quick-actions">
+                  <button
+                    type="button"
+                    className="panel-btn reset"
+                    onClick={handleResetFilter}
+                    title="Reset only the filter and adjustments"
+                  >
+                    <Undo2 size={13} />
+                    <span>Reset Filter</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="panel-btn apply"
+                    onClick={() => handleApplySinglePage(false)}
+                    title="Apply current filter to this page"
+                  >
+                    <Check size={13} />
+                    <span>Apply to Page</span>
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* ============================================================ */}
@@ -1066,10 +1423,11 @@ export default function PageEditModal({
           {showFilmstrip && activePages.length > 1 && (
             <div className="studio-filmstrip-bar" ref={filmstripRef}>
               <div className="filmstrip-scroll-area">
-                {activePages.map((p, idx) => {
+                {activePages.map((p) => {
                   const isActive = p.id === page.id;
                   const isPageCropped = Boolean(p.isCropped || p.cropBox);
                   const isPageRotated = Boolean(p.rotation && p.rotation !== 0);
+                  const isPageFiltered = Boolean(p.filterName && p.filterName !== 'Original' && p.filterId !== 'original');
 
                   return (
                     <div
@@ -1085,6 +1443,7 @@ export default function PageEditModal({
                         <span className="thumb-num">P{p.pageNumber}</span>
                         {isPageCropped && <span className="dot crop-dot" title="Cropped" />}
                         {isPageRotated && <span className="dot rot-dot" title="Rotated" />}
+                        {isPageFiltered && <span className="dot filter-dot" title={`Filter: ${p.filterName}`} />}
                       </div>
                     </div>
                   );
@@ -1097,16 +1456,40 @@ export default function PageEditModal({
           {/* STUDIO FOOTER BAR                                            */}
           {/* ============================================================ */}
           <div className="studio-bottom-footer">
-            {/* Left Action: Revert page */}
+            {/* Left Action: Revert entire page to original */}
             <div className="footer-left-col">
               <PopconfirmReset onConfirm={handleResetToOriginal} />
             </div>
 
-            {/* Center: Keyboard hint */}
+            {/* Center: Quick Tool shortcuts & Reset Filter */}
             <div className="footer-center-col">
-              <span className="kbd-hint">
-                <kbd>←</kbd> <kbd>→</kbd> Navigate pages
-              </span>
+              <Space size={6}>
+                <button
+                  type="button"
+                  className={`footer-tool-chip ${activeTab === 'crop' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('crop')}
+                >
+                  <Scissors size={12} />
+                  <span>Crop</span>
+                </button>
+                <button
+                  type="button"
+                  className={`footer-tool-chip ${activeTab === 'rotate' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('rotate')}
+                >
+                  <RotateCw size={12} />
+                  <span>Rotate</span>
+                </button>
+                <button
+                  type="button"
+                  className="footer-tool-chip"
+                  onClick={handleResetFilter}
+                  title="Remove filter effects"
+                >
+                  <Undo2 size={12} />
+                  <span>Reset Filter</span>
+                </button>
+              </Space>
             </div>
 
             {/* Right: Actions */}
@@ -1115,7 +1498,7 @@ export default function PageEditModal({
                 {activePages.length > 1 && (
                   <Button
                     icon={<CopyCheck size={14} />}
-                    onClick={() => setApplyAllModalVisible(true)}
+                    onClick={() => setApplyFilterAllModalVisible(true)}
                     className="studio-secondary-btn"
                   >
                     Apply to All Pages ({activePages.length})
@@ -1126,7 +1509,7 @@ export default function PageEditModal({
                   <Button
                     icon={<FileDown size={14} />}
                     onClick={() => {
-                      handleApplyAll();
+                      handleApplySinglePage(true);
                       onOpenExportPdf();
                     }}
                     className="studio-secondary-btn"
@@ -1142,7 +1525,7 @@ export default function PageEditModal({
                 <Button
                   type="primary"
                   icon={<Check size={14} />}
-                  onClick={handleApplyAll}
+                  onClick={() => handleApplySinglePage(true)}
                   className="studio-primary-action-btn"
                 >
                   Save & Apply
@@ -1153,10 +1536,95 @@ export default function PageEditModal({
         </div>
       </Modal>
 
-      {/* Batch Apply Style to All Pages Confirmation Modal */}
+      {/* ============================================================ */}
+      {/* DIALOG: Apply Filter to All Pages Confirmation               */}
+      {/* ============================================================ */}
       <Modal
-        open={applyAllModalVisible}
-        onCancel={() => !applyingAll && setApplyAllModalVisible(false)}
+        open={applyFilterAllModalVisible}
+        onCancel={() => !applyingAll && setApplyFilterAllModalVisible(false)}
+        centered
+        width={480}
+        destroyOnClose
+        title={null}
+        footer={null}
+        className="apply-all-dialog-modal"
+        styles={{
+          content: {
+            borderRadius: '16px',
+            padding: '24px',
+            background: '#ffffff',
+            boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.22)'
+          }
+        }}
+      >
+        <div className="apply-all-dialog-shell">
+          <div className="dialog-header">
+            <div className="dialog-icon-badge filter-badge">
+              <Sparkles size={22} />
+            </div>
+            <div className="dialog-title-group">
+              <h3 className="dialog-heading">Apply Filter to All Pages?</h3>
+              <p className="dialog-sub">
+                Apply the current filter and adjustments to all {activePages.length} pages?
+              </p>
+            </div>
+          </div>
+
+          <div className="dialog-specs-card">
+            <div className="spec-item">
+              <span className="spec-label">Selected Filter</span>
+              <span className="spec-val highlight-filter">{currentFilterPreset.name}</span>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">Brightness / Contrast</span>
+              <span className="spec-val">
+                {filterAdjustments.brightness > 0 ? `+${filterAdjustments.brightness}` : filterAdjustments.brightness} /{' '}
+                {filterAdjustments.contrast > 0 ? `+${filterAdjustments.contrast}` : filterAdjustments.contrast}
+              </span>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">Sharpness</span>
+              <span className="spec-val">{filterAdjustments.sharpness}</span>
+            </div>
+            <div className="spec-item highlight">
+              <span className="spec-label">Pages Affected</span>
+              <span className="spec-val badge">{activePages.length} Pages</span>
+            </div>
+          </div>
+
+          <div className="dialog-info-box">
+            <span>
+              💡 <strong>Note:</strong> Each page's individual crop and rotation will be preserved. Only the filter configuration will be applied.
+            </span>
+          </div>
+
+          <div className="dialog-footer-actions">
+            <Button
+              onClick={() => setApplyFilterAllModalVisible(false)}
+              disabled={applyingAll}
+              className="dialog-cancel-btn"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              loading={applyingAll}
+              icon={<Check size={15} />}
+              onClick={handleApplyFilterToAll}
+              className="dialog-confirm-btn"
+            >
+              Apply to All Pages
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ============================================================ */}
+      {/* DIALOG: Apply Crop Framing to All Pages Confirmation         */}
+      {/* ============================================================ */}
+      <Modal
+        open={applyCropAllModalVisible}
+        onCancel={() => !applyingAll && setApplyCropAllModalVisible(false)}
         centered
         width={480}
         destroyOnClose
@@ -1180,7 +1648,7 @@ export default function PageEditModal({
             <div className="dialog-title-group">
               <h3 className="dialog-heading">Apply Framing to All Pages</h3>
               <p className="dialog-sub">
-                Replicate this page's framing and orientation across all active pages.
+                Replicate this page's framing and orientation across all {activePages.length} active pages.
               </p>
             </div>
           </div>
@@ -1196,23 +1664,15 @@ export default function PageEditModal({
               <span className="spec-label">Orientation</span>
               <span className="spec-val">{rotation}° {rotation === 0 ? '(Original)' : ''}</span>
             </div>
-            <div className="spec-item">
-              <span className="spec-label">Target Format</span>
-              <span className="spec-val">{dimensionPreset.toUpperCase()} ({scaleFactor}x DPI)</span>
-            </div>
             <div className="spec-item highlight">
               <span className="spec-label">Pages Affected</span>
               <span className="spec-val badge">{activePages.length} Pages</span>
             </div>
           </div>
 
-          <div className="dialog-info-box">
-            <span>💡 All {activePages.length} pages will be framed proportionally to preserve margins uniformly across scanned pages.</span>
-          </div>
-
           <div className="dialog-footer-actions">
             <Button
-              onClick={() => setApplyAllModalVisible(false)}
+              onClick={() => setApplyCropAllModalVisible(false)}
               disabled={applyingAll}
               className="dialog-cancel-btn"
             >
@@ -1222,13 +1682,10 @@ export default function PageEditModal({
               type="primary"
               loading={applyingAll}
               icon={<Check size={15} />}
-              onClick={async () => {
-                await handleApplyToAll();
-                setApplyAllModalVisible(false);
-              }}
+              onClick={handleApplyCropToAll}
               className="dialog-confirm-btn"
             >
-              Apply to All {activePages.length} Pages
+              Apply Crop to All Pages
             </Button>
           </div>
         </div>
@@ -1245,7 +1702,7 @@ function PopconfirmReset({ onConfirm }) {
       type="text"
       icon={<Undo2 size={13} />}
       onClick={() => {
-        if (window.confirm('Revert this page to its original state (reset crop, rotation, resize)?')) {
+        if (window.confirm('Revert this page to its original state (reset crop, rotation, resize, and filters)?')) {
           onConfirm();
         }
       }}

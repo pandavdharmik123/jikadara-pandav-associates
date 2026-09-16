@@ -180,6 +180,11 @@ export default function PagePreviewGrid({
                         {page.rotation}°
                       </span>
                     )}
+                    {Boolean(page.filterName && page.filterName !== 'Original' && page.filterId !== 'original') && !isDeleted && (
+                      <span className="status-tag status-filter">
+                        ✨ {page.filterName}
+                      </span>
+                    )}
                     {isDeleted && (
                       <span className="status-tag status-excluded">
                         Excluded

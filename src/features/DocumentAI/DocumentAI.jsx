@@ -45,6 +45,7 @@ import { PDFDocument } from 'pdf-lib';
 import PageEditModal from './components/PageEditModal';
 import ExportPdfModal from './components/ExportPdfModal';
 import PagePreviewGrid from './components/PagePreviewGrid';
+import { convertUnicodeToGhanshyamLegacy } from '../../utils/ghanshyamLegacy';
 import './DocumentAI.scss';
 
 // Configure PDF.js worker
@@ -54,7 +55,7 @@ const { Title, Text } = Typography;
 
 export default function DocumentAI() {
   const [fileList, setFileList] = useState([]);
-  const [preferredLang, setPreferredLang] = useState('en');
+  const [preferredLang, setPreferredLang] = useState('gu');
   const [fontStyle, setFontStyle] = useState("'Inter', system-ui, sans-serif");
   const [loading, setLoading] = useState(false);
   const [renderingPdf, setRenderingPdf] = useState(false);
@@ -79,13 +80,50 @@ export default function DocumentAI() {
 
   const fontOptions = [
     { value: "'Inter', system-ui, sans-serif", label: 'English (Inter / System)' },
-    { value: "'Ghanshyam', 'Anek Gujarati', sans-serif", label: 'Ghanshyam (Gujarati)' },
-    { value: "'Nil', 'Anek Gujarati', sans-serif", label: 'Nil (Gujarati)' },
-    { value: "'Nilkanth', 'Anek Gujarati', sans-serif", label: 'Nilkanth (Gujarati)' },
-    { value: "'Anek Gujarati', sans-serif", label: 'Anek Gujarati (Modern)' },
-    { value: "'Baloo Bhai 2', cursive", label: 'Baloo Bhai 2 (Rounded)' },
-    { value: "'Noto Sans Gujarati', sans-serif", label: 'Noto Sans Gujarati' }
+    { value: "'Ghanshyam', sans-serif", label: 'Ghanshyam (Legacy Font)' },
+    { value: "'Nil', sans-serif", label: 'Nil (Legacy Font)' },
+    { value: "'Nilkanth', sans-serif", label: 'Nilkanth (Legacy Font)' },
+    { value: "'Anek Gujarati', sans-serif", label: 'Anek Gujarati (Modern Unicode)' },
+    { value: "'Noto Sans Gujarati', sans-serif", label: 'Noto Sans Gujarati (Unicode)' },
+    { value: "'Baloo Bhai 2', cursive", label: 'Baloo Bhai 2 (Unicode)' }
   ];
+
+  // Check if current selected preview font is part of the legacy Harikrishna/Ghanshyam family
+  const isLegacyFont = useMemo(() => {
+    return (
+      fontStyle.includes('Ghanshyam') ||
+      fontStyle.includes('Nil') ||
+      fontStyle.includes('Nilkanth')
+    );
+  }, [fontStyle]);
+
+  // Transform Unicode text for display when a legacy Harikrishna font (Nil/Ghanshyam/Nilkanth) is selected
+  const formatTextForPreview = (text) => {
+    if (!text) return '';
+    if (isLegacyFont) {
+      return convertUnicodeToGhanshyamLegacy(text);
+    }
+    return text;
+  };
+
+  // Helper to dynamically format processing time into seconds or minutes based on the duration value
+  const formatDuration = (ms) => {
+    if (!ms && ms !== 0) return '';
+    const totalSeconds = ms / 1000;
+    if (totalSeconds < 1) {
+      return `${ms}ms`;
+    }
+    if (totalSeconds < 60) {
+      const formattedSec = totalSeconds.toFixed(1).replace(/\.0$/, '');
+      return `${formattedSec} sec`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSecs = Math.round(totalSeconds % 60);
+    if (remainingSecs === 0) {
+      return `${minutes} min`;
+    }
+    return `${minutes} min ${remainingSecs} sec`;
+  };
 
   const processingSteps = [
     { title: 'Assembling Document Pages', desc: 'Preparing curated pages' },
@@ -282,6 +320,9 @@ export default function DocumentAI() {
     targetHeight,
     width,
     height,
+    filterId,
+    filterName,
+    filterAdjustments,
     closeModal = true
   }) => {
     setPages((prev) =>
@@ -299,7 +340,10 @@ export default function DocumentAI() {
             targetWidth,
             targetHeight,
             width,
-            height
+            height,
+            filterId: filterId || p.filterId || 'original',
+            filterName: filterName || p.filterName || 'Original',
+            filterAdjustments: filterAdjustments || p.filterAdjustments || {}
           }
           : p
       )
@@ -396,7 +440,7 @@ export default function DocumentAI() {
         setDocumentResult(response.data);
         setActiveTab('text');
         setSelectedTextPageNumber(1);
-        message.success(`Document processed in ${response.data.processingTimeMs}ms!`);
+        message.success(`Document processed in ${formatDuration(response.data.processingTimeMs)}!`);
       } else {
         throw new Error(response.data?.error || 'Document extraction failed.');
       }
@@ -414,34 +458,46 @@ export default function DocumentAI() {
   const handleCopyPageText = (pageNumber) => {
     if (!documentResult?.output?.json?.blocks) return;
     const pageBlocks = documentResult.output.json.blocks.filter((b) => b.pageNumber === pageNumber);
-    const pageText = pageBlocks.map((b) => b.content).join('\n\n');
+    let pageText = pageBlocks.map((b) => b.content).join('\n\n');
 
     if (!pageText.trim()) {
       message.warning(`No text content found on Page ${pageNumber}`);
       return;
     }
 
+    if (isLegacyFont) {
+      pageText = convertUnicodeToGhanshyamLegacy(pageText);
+    }
+
     navigator.clipboard.writeText(pageText);
     setCopiedPage(pageNumber);
-    message.success(`Page ${pageNumber} content copied!`);
+    message.success(`Page ${pageNumber} text copied${isLegacyFont ? ' (converted for Ghanshyam/Nil)' : ''}!`);
     setTimeout(() => setCopiedPage(null), 2500);
   };
 
   const handleCopyAllText = () => {
     if (!documentResult?.output?.markdown) return;
-    navigator.clipboard.writeText(documentResult.output.markdown);
+    let allText = documentResult.output.markdown;
+    if (isLegacyFont) {
+      allText = convertUnicodeToGhanshyamLegacy(allText);
+    }
+    navigator.clipboard.writeText(allText);
     setCopiedAll(true);
-    message.success('Entire document content copied!');
+    message.success(`Entire document copied${isLegacyFont ? ' (converted for Ghanshyam/Nil)' : ''}!`);
     setTimeout(() => setCopiedAll(false), 2500);
   };
 
   const handleDownloadTxt = () => {
     if (!documentResult?.output?.markdown) return;
-    const blob = new Blob([documentResult.output.markdown], { type: 'text/plain;charset=utf-8' });
+    let content = documentResult.output.markdown;
+    if (isLegacyFont) {
+      content = convertUnicodeToGhanshyamLegacy(content);
+    }
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${documentResult.fileName || 'extracted'}_content.txt`;
+    link.download = `${documentResult.fileName || 'extracted'}_${isLegacyFont ? 'ghanshyam' : 'unicode'}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -728,9 +784,11 @@ export default function DocumentAI() {
               </div>
 
               <div className="banner-right">
-                <span className="processing-time-tag">
-                  {documentResult.processingTimeMs}ms
-                </span>
+                <Tooltip title={`Exact duration: ${documentResult.processingTimeMs}ms`}>
+                  <span className="processing-time-tag">
+                    {formatDuration(documentResult.processingTimeMs)}
+                  </span>
+                </Tooltip>
               </div>
             </div>
           )}
@@ -845,6 +903,11 @@ export default function DocumentAI() {
                   <div className="viewer-left-info">
                     <span className="viewer-page-title">Page {selectedTextPageNumber} Text</span>
                     <span className="viewer-confidence-badge">Confidence: 96%</span>
+                    {isLegacyFont && (
+                      <span className="legacy-conversion-tag">
+                        Converted to {fontStyle.includes('Ghanshyam') ? 'Ghanshyam' : fontStyle.includes('Nilkanth') ? 'Nilkanth' : 'Nil'}
+                      </span>
+                    )}
                   </div>
                   <div className="viewer-actions">
                     <Button
@@ -875,27 +938,48 @@ export default function DocumentAI() {
                   </div>
                 </div>
 
-                <div className="viewer-content-body" style={{ fontFamily: fontStyle }}>
+                <div
+                  className={`viewer-content-body ${isLegacyFont ? 'font-ghanshyam' : ''}`}
+                  style={{
+                    fontFamily: fontStyle,
+                    fontSize: isLegacyFont ? '17px' : '14px',
+                    letterSpacing: isLegacyFont ? '0.01em' : 'normal',
+                    lineHeight: isLegacyFont ? '1.85' : '1.7'
+                  }}
+                >
                   {currentOcrBlocks.length > 0 ? (
                     currentOcrBlocks.map((block) => {
+                      const displayContent = formatTextForPreview(block.content);
                       if (block.type === 'heading') {
                         const level = block.level || 2;
                         const HeadingTag = `h${level <= 6 ? level : 2}`;
                         return (
-                          <HeadingTag key={block.id} className="clean-heading" style={{ fontFamily: fontStyle }}>
-                            {block.content}
+                          <HeadingTag
+                            key={block.id}
+                            className={`clean-heading ${isLegacyFont ? 'font-ghanshyam' : ''}`}
+                            style={{ fontFamily: fontStyle }}
+                          >
+                            {displayContent}
                           </HeadingTag>
                         );
                       } else if (block.type === 'list') {
                         return (
-                          <li key={block.id} className="clean-list-item" style={{ fontFamily: fontStyle }}>
-                            {block.content}
+                          <li
+                            key={block.id}
+                            className={`clean-list-item ${isLegacyFont ? 'font-ghanshyam' : ''}`}
+                            style={{ fontFamily: fontStyle }}
+                          >
+                            {displayContent}
                           </li>
                         );
                       } else {
                         return (
-                          <p key={block.id} className="clean-paragraph" style={{ fontFamily: fontStyle }}>
-                            {block.content}
+                          <p
+                            key={block.id}
+                            className={`clean-paragraph ${isLegacyFont ? 'font-ghanshyam' : ''}`}
+                            style={{ fontFamily: fontStyle }}
+                          >
+                            {displayContent}
                           </p>
                         );
                       }
@@ -927,8 +1011,14 @@ export default function DocumentAI() {
                       <span className="block-page-tag">Page {block.pageNumber}</span>
                       <span className="block-conf-tag">Confidence: 96%</span>
                     </div>
-                    <div className="block-content-text" style={{ fontFamily: fontStyle }}>
-                      {block.content}
+                    <div
+                      className={`block-content-text ${isLegacyFont ? 'font-ghanshyam' : ''}`}
+                      style={{
+                        fontFamily: fontStyle,
+                        fontSize: isLegacyFont ? '16px' : '13px'
+                      }}
+                    >
+                      {formatTextForPreview(block.content)}
                     </div>
                   </div>
                 ))}
