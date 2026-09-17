@@ -4,6 +4,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { scanPdfWithGemini } from '../services/googleDocumentScanner.js';
 
 const router = express.Router();
 
@@ -52,9 +53,10 @@ async function handlePostProcessingHooks(documentResult) {
  * 
  * 1. Accepts PDF file upload
  * 2. Validates PDF format & magic bytes (%PDF-)
- * 3. Forwards PDF payload to Python OCR microservice
- * 4. Deletes local temporary file immediately in finally block
- * 5. Returns structured JSON, HTML, and Markdown result to React
+ * 3. Primary Scanner: If GEMINI_API_KEY is provided, uses Google Gemini AI Scanner (Node.js)
+ * 4. Fallback Scanner: Forwards PDF payload to Python OCR microservice (PaddleOCR / Tesseract)
+ * 5. Deletes local temporary file immediately in finally block
+ * 6. Returns structured JSON, HTML, and Markdown result to React
  */
 router.post('/read', upload.single('file'), async (req, res) => {
   if (!req.file) {
@@ -65,7 +67,7 @@ router.post('/read', upload.single('file'), async (req, res) => {
   }
 
   const tempFilePath = req.file.path;
-  const preferredLang = req.body.preferredLang || 'en';
+  const preferredLang = req.body.preferredLang || 'gu';
 
   try {
     // Validation 1: Magic Byte Check (%PDF-)
@@ -81,15 +83,24 @@ router.post('/read', upload.single('file'), async (req, res) => {
       });
     }
 
-    // Prepare FormData payload for Python OCR microservice
+    // Step 1: Attempt Google Gemini Vision Scanning if API key is present
+    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
+      try {
+        console.log(`[Document Read Route] GEMINI_API_KEY found. Scanning '${req.file.originalname}' via Google Gemini Vision API...`);
+        const geminiResult = await scanPdfWithGemini(tempFilePath, req.file.originalname, preferredLang);
+        await handlePostProcessingHooks(geminiResult);
+        return res.json(geminiResult);
+      } catch (geminiError) {
+        console.warn(`[Document Read Route] Google Gemini scanning failed (${geminiError.message}). Falling back to Python OCR microservice...`);
+      }
+    }
+
+    // Step 2: Fallback to existing Python OCR microservice
     const pythonServiceUrl = process.env.PYTHON_OCR_URL || 'http://localhost:8000';
     const targetEndpoint = `${pythonServiceUrl}/api/v1/ocr/process`;
 
     // Create standard FormData
     const formData = new FormData();
-    const fileStream = fs.createReadStream(tempFilePath);
-
-    // Convert stream to Blob / File for fetch / axios compatibility
     const fileBuffer = fs.readFileSync(tempFilePath);
     const blob = new Blob([fileBuffer], { type: 'application/pdf' });
     formData.append('file', blob, req.file.originalname);

@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-deva \
     fonts-gujr \
     fonts-freefont-ttf \
+    tesseract-ocr \
+    tesseract-ocr-guj \
+    tesseract-ocr-hin \
+    tesseract-ocr-eng \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
