@@ -43,7 +43,7 @@ def health_check():
 @app.post("/api/v1/ocr/process")
 async def process_document(
     file: UploadFile = File(...),
-    preferred_lang: str = Form("en")
+    preferred_lang: str = Form("gu")
 ):
     """
     Processes an uploaded PDF file and returns structured JSON, HTML, and Markdown.
