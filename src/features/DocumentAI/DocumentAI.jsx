@@ -79,22 +79,14 @@ export default function DocumentAI() {
   const [exportPdfModalVisible, setExportPdfModalVisible] = useState(false);
 
   const fontOptions = [
-    { value: "'Inter', system-ui, sans-serif", label: 'English (Inter / System)' },
+    { value: "'Noto Sans Gujarati', sans-serif", label: 'Gujarati Unicode (Standard)' },
     { value: "'Ghanshyam', sans-serif", label: 'Ghanshyam (Legacy Font)' },
-    { value: "'Nil', sans-serif", label: 'Nil (Legacy Font)' },
-    { value: "'Nilkanth', sans-serif", label: 'Nilkanth (Legacy Font)' },
-    { value: "'Anek Gujarati', sans-serif", label: 'Anek Gujarati (Modern Unicode)' },
-    { value: "'Noto Sans Gujarati', sans-serif", label: 'Noto Sans Gujarati (Unicode)' },
-    { value: "'Baloo Bhai 2', cursive", label: 'Baloo Bhai 2 (Unicode)' }
+    { value: "'Inter', system-ui, sans-serif", label: 'English (Inter / System)' }
   ];
 
   // Check if current selected preview font is part of the legacy Harikrishna/Ghanshyam family
   const isLegacyFont = useMemo(() => {
-    return (
-      fontStyle.includes('Ghanshyam') ||
-      fontStyle.includes('Nil') ||
-      fontStyle.includes('Nilkanth')
-    );
+    return fontStyle.includes('Ghanshyam');
   }, [fontStyle]);
 
   // Transform Unicode text for display when a legacy Harikrishna font (Nil/Ghanshyam/Nilkanth) is selected
@@ -905,7 +897,7 @@ export default function DocumentAI() {
                     <span className="viewer-confidence-badge">Confidence: 96%</span>
                     {isLegacyFont && (
                       <span className="legacy-conversion-tag">
-                        Converted to {fontStyle.includes('Ghanshyam') ? 'Ghanshyam' : fontStyle.includes('Nilkanth') ? 'Nilkanth' : 'Nil'}
+                        Converted to Ghanshyam
                       </span>
                     )}
                   </div>
