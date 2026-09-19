@@ -87,6 +87,7 @@ export default function FamilyTreeEditor({
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
+
   const handleSelect = (id) => {
     setActiveSelectedId(id);
     if (onSelectNode) {
@@ -94,12 +95,12 @@ export default function FamilyTreeEditor({
     }
   };
 
-  // Open Add Node Modal
-  const openAddModal = () => {
+  // Open Add Node Modal with presets
+  const openAddModal = (defaultRel = 'પુત્ર', defaultGender = 'male') => {
     addForm.resetFields();
     addForm.setFieldsValue({
-      relationship: 'પુત્ર',
-      gender: 'male',
+      relationship: defaultRel,
+      gender: defaultGender,
       deceased: false
     });
     setAddModalVisible(true);
@@ -130,14 +131,14 @@ export default function FamilyTreeEditor({
     }
   };
 
-  // Open Edit Modal
+  // Open Edit Node Modal
   const openEditModal = () => {
     editForm.resetFields();
     editForm.setFieldsValue({
       name: selectedNode.name,
       age: selectedNode.age,
-      gender: selectedNode.gender || 'male',
-      relationship: selectedNode.relationship || '',
+      gender: selectedNode.gender || (selectedNode.relationship === 'પત્ની' || selectedNode.relationship === 'પુત્રી' ? 'female' : 'male'),
+      relationship: selectedNode.relationship || (selectedNode.id === rootNode.id ? 'મુખ્ય વ્યક્તિ' : 'પુત્ર'),
       deceased: !!selectedNode.deceased,
       deathDate: selectedNode.deathDate || ''
     });
@@ -148,16 +149,16 @@ export default function FamilyTreeEditor({
   const handleEditSubmit = async () => {
     try {
       const values = await editForm.validateFields();
-      const updates = {
+      const updatedFields = {
         name: values.name.trim(),
         age: values.age ? String(values.age).trim() : '',
         gender: values.gender,
-        relationship: selectedNode.id === rootNode.id ? 'મુખ્ય વ્યક્તિ' : values.relationship,
+        relationship: values.relationship,
         deceased: !!values.deceased,
         deathDate: values.deceased ? (values.deathDate ? String(values.deathDate).trim() : '') : ''
       };
 
-      const updatedRoot = updateNodeInTree(rootNode, selectedNode.id, updates);
+      const updatedRoot = updateNodeInTree(rootNode, selectedNode.id, updatedFields);
       onChange({ rootNode: updatedRoot });
       setEditModalVisible(false);
     } catch (err) {
@@ -169,14 +170,13 @@ export default function FamilyTreeEditor({
   const handleDeleteNode = () => {
     if (selectedNode.id === rootNode.id) {
       Modal.warning({
-        title: 'Cannot Delete Root Node',
-        content: 'The root person (deceased ancestor) cannot be deleted. You can edit their name in the Deceased tab.'
+        title: 'Cannot Delete Root Member',
+        content: 'મુખ્ય વ્યક્તિ (Root Person) ને ડિલીટ કરી શકાતો નથી.'
       });
       return;
     }
 
     const descendantCount = countDescendants(selectedNode);
-
     const performDelete = () => {
       const updatedRoot = deleteNodeFromTree(rootNode, selectedNode.id);
       onChange({ rootNode: updatedRoot });
@@ -185,16 +185,21 @@ export default function FamilyTreeEditor({
 
     if (descendantCount > 0) {
       Modal.confirm({
-        title: 'Delete Node and Descendants?',
+        title: 'Delete Member and Descendants?',
         icon: <AlertTriangle color="#ef4444" />,
         content: (
-          <span>
-            "<span className="font-ghanshyam" style={{ fontFamily: "'Ghanshyam', sans-serif" }}>{toFont(selectedNode.name || 'This node')}</span>" has {descendantCount} child node(s). Deleting it will also remove all its descendant nodes.
-          </span>
+          <div>
+            <p>
+              "<strong>{selectedNode.name}</strong>" ના આગળના{' '}
+              <strong>{descendantCount}</strong> વંશજો પણ સાથે ડિલીટ થઈ જશે!
+            </p>
+            <p style={{ color: '#ef4444', fontWeight: 600 }}>
+              Are you sure you want to proceed?
+            </p>
+          </div>
         ),
-        okText: 'Delete node and its descendants',
+        okText: 'Delete All',
         okType: 'danger',
-        cancelText: 'Cancel',
         onOk: performDelete
       });
     } else {
@@ -212,104 +217,93 @@ export default function FamilyTreeEditor({
     }
   };
 
-  // Build Antd Tree Data recursively
+  // Build Antd Tree Data recursively with modern row items and search filtering
   const buildAntdTreeData = (node, index = 0, level = 0) => {
     if (!node) return [];
 
     const isRoot = level === 0;
     const isSelected = activeSelectedId && node.id === activeSelectedId;
     const siblingIndex = isRoot ? null : index + 1;
+    const isFemale = node.gender === 'female' || node.relationship === 'પત્ની' || node.relationship === 'પુત્રી';
 
     const titleContent = (
       <div
+        className="tree-node-row-item"
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '2px 6px',
-          borderRadius: 4,
-          background: isSelected ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
-          fontWeight: isSelected ? 600 : 400
+          background: isSelected ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
+          padding: '4px 8px',
+          borderRadius: 8,
+          border: isSelected ? '1px solid rgba(79, 70, 229, 0.25)' : '1px solid transparent'
         }}
       >
-        {siblingIndex && (
-          <span
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              fontSize: 10,
-              fontWeight: 700,
-              background: '#e2e8f0',
-              color: '#1e293b',
-              border: '1px solid #cbd5e1',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'system-ui, sans-serif'
-            }}
-          >
-            {siblingIndex}
-          </span>
-        )}
-        {node.name ? (
-          <span
-            className="font-ghanshyam"
-            style={{
-              fontFamily: "'Ghanshyam', sans-serif",
-              fontSize: '15px',
-              lineHeight: 1.25
-            }}
-          >
-            {toFont(node.name)}
-          </span>
-        ) : (
-          <span style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
-            (નામ વગર)
-          </span>
-        )}
-        {node.relationship && (
-          <Tag
-            color={isRoot ? 'gold' : node.gender === 'female' ? 'magenta' : 'blue'}
-            className="font-ghanshyam"
-            style={{
-              fontFamily: "'Ghanshyam', sans-serif",
-              fontSize: '12.5px',
-              padding: '0 6px',
-              lineHeight: '20px',
-              margin: 0
-            }}
-          >
-            {toFont(node.relationship)}
-          </Tag>
-        )}
-        {node.deceased && (
-          <Tag
-            color="default"
-            className="font-ghanshyam"
-            style={{
-              fontFamily: "'Ghanshyam', sans-serif",
-              fontSize: '11.5px',
-              padding: '0 5px',
-              lineHeight: '20px',
-              margin: 0
-            }}
-          >
-            {toFont('સ્વ.')}
-          </Tag>
-        )}
-        {node.age && (
-          <span
-            className="font-ghanshyam"
-            style={{
-              fontFamily: "'Ghanshyam', sans-serif",
-              fontSize: '12.5px',
-              color: '#64748b'
-            }}
-          >
-            {toFont(`(${node.age} વ.)`)}
-          </span>
-        )}
+        <div className="node-row-left">
+          {siblingIndex && (
+            <span className="node-row-order">
+              {siblingIndex}
+            </span>
+          )}
+          {node.name ? (
+            <span
+              className="node-row-name font-ghanshyam"
+              style={{
+                fontFamily: "'Ghanshyam', sans-serif",
+                fontSize: '15px'
+              }}
+            >
+              {toFont(node.name)}
+            </span>
+          ) : (
+            <span style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>
+              (નામ વગર)
+            </span>
+          )}
+        </div>
+
+        <div className="node-row-right">
+          {node.relationship && (
+            <Tag
+              color={isRoot ? 'gold' : isFemale ? 'magenta' : 'blue'}
+              className="font-ghanshyam"
+              style={{
+                fontFamily: "'Ghanshyam', sans-serif",
+                fontSize: '12px',
+                padding: '0 6px',
+                lineHeight: '18px',
+                margin: 0,
+                borderRadius: 4
+              }}
+            >
+              {toFont(node.relationship)}
+            </Tag>
+          )}
+          {node.deceased ? (
+            <Tag
+              color="default"
+              className="font-ghanshyam"
+              style={{
+                fontFamily: "'Ghanshyam', sans-serif",
+                fontSize: '11px',
+                padding: '0 4px',
+                lineHeight: '18px',
+                margin: 0,
+                borderRadius: 4
+              }}
+            >
+              {toFont('સ્વ.')}
+            </Tag>
+          ) : node.age ? (
+            <span
+              className="font-ghanshyam"
+              style={{
+                fontFamily: "'Ghanshyam', sans-serif",
+                fontSize: '12px',
+                color: '#64748b'
+              }}
+            >
+              {toFont(`(${node.age} વ.)`)}
+            </span>
+          ) : null}
+        </div>
       </div>
     );
 
@@ -321,103 +315,99 @@ export default function FamilyTreeEditor({
   };
 
   const antdTreeData = buildAntdTreeData(rootNode);
+  const isSelectedFemale = selectedNode.gender === 'female' || selectedNode.relationship === 'પત્ની' || selectedNode.relationship === 'પુત્રી';
 
   return (
     <div className="family-tree-editor">
       {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <Text strong style={{ fontSize: 13.5 }}>
-          કુટુંબ વૃક્ષ વારસદારોની વિગત (Family Tree Nodes)
-        </Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Text strong style={{ fontSize: 13.5, color: '#0f172a' }}>
+            કુટુંબ વૃક્ષ વારસદારોની વિગત
+          </Text>
+          <div style={{ fontSize: 11.5, color: '#64748b' }}>Family Tree Nodes & Hierarchy</div>
+        </div>
         <Button size="small" icon={<RefreshCw size={13} />} onClick={onAutoArrange}>
           Auto Arrange
         </Button>
       </div>
 
-      {/* Selected Node Action Card */}
-      <Card
-        size="small"
-        style={{
-          background: '#f8fafc',
-          border: '1px solid #cbd5e1',
-          borderRadius: 8,
-          marginBottom: 14
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              Selected Person / પસંદ કરેલ વ્યક્તિ:
+      {/* Selected Person Hero Profile Card */}
+      <div className="selected-person-hero-card">
+        <div className="hero-top-row">
+          <div className="hero-avatar-group">
+            <div className={`hero-avatar ${isSelectedFemale ? 'female' : ''} ${selectedNode.deceased ? 'deceased' : ''}`}>
+              {selectedNode.deceased ? 'સ્વ.' : isSelectedFemale ? '♀' : '♂'}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <User size={16} />
-              <span
-                className="font-ghanshyam"
-                style={{
-                  fontFamily: "'Ghanshyam', sans-serif",
-                  fontSize: '16px'
-                }}
-              >
+            <div className="hero-info">
+              <span className="hero-name font-ghanshyam" style={{ fontFamily: "'Ghanshyam', sans-serif" }}>
                 {selectedNode.deceased ? `${toFont('સ્વ.')} ${toFont(selectedNode.name)}` : toFont(selectedNode.name)}
               </span>
-              {selectedNode.relationship && (
-                <Tag
-                  color={selectedNode.id === rootNode.id ? 'gold' : 'blue'}
-                  className="font-ghanshyam"
-                  style={{
-                    fontFamily: "'Ghanshyam', sans-serif",
-                    fontSize: '13px'
-                  }}
-                >
-                  {toFont(selectedNode.relationship)}
-                </Tag>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-              {selectedNode.deceased ? (
-                selectedNode.deathDate ? (
-                  <span>
-                    અવસાન તારીખ:{' '}
-                    <span
-                      className="font-ghanshyam"
-                      style={{ fontFamily: "'Ghanshyam', sans-serif", fontSize: '13px' }}
-                    >
-                      {toFont(selectedNode.deathDate)}
-                    </span>
-                  </span>
-                ) : (
-                  'અવસાન થયેલ'
-                )
-              ) : selectedNode.age ? (
-                <span>
-                  ઉંમર:{' '}
-                  <span
+              <div className="hero-badges">
+                {selectedNode.relationship && (
+                  <Tag
+                    color={selectedNode.id === rootNode.id ? 'gold' : isSelectedFemale ? 'magenta' : 'blue'}
                     className="font-ghanshyam"
-                    style={{ fontFamily: "'Ghanshyam', sans-serif", fontSize: '13px' }}
+                    style={{ fontFamily: "'Ghanshyam', sans-serif", fontSize: '12px', margin: 0, borderRadius: 4 }}
                   >
-                    {toFont(selectedNode.age)}
-                  </span>{' '}
-                  વર્ષ
-                </span>
-              ) : (
-                ''
-              )}
-              &nbsp;•&nbsp; Direct Children: <strong>{selectedNode.children?.length || 0}</strong>
+                    {toFont(selectedNode.relationship)}
+                  </Tag>
+                )}
+                <Tag
+                  color={selectedNode.deceased ? 'default' : 'success'}
+                  style={{ fontSize: '11px', margin: 0, borderRadius: 4 }}
+                >
+                  {selectedNode.deceased ? 'સ્વર્ગસ્થ (Deceased)' : 'હયાત (Alive)'}
+                </Tag>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons: Add Node, Edit, Delete */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #e2e8f0', paddingTop: 8 }}>
+        {/* Hero Meta Grid */}
+        <div className="hero-meta-grid">
+          <div className="meta-item">
+            {selectedNode.deceased ? (
+              <span>
+                અવસાન તારીખ:
+                <strong className="font-ghanshyam" style={{ fontFamily: "'Ghanshyam', sans-serif" }}>
+                  {selectedNode.deathDate ? toFont(selectedNode.deathDate) : 'તારીખ નથી'}
+                </strong>
+              </span>
+            ) : (
+              <span>
+                ઉંમર:
+                <strong className="font-ghanshyam" style={{ fontFamily: "'Ghanshyam', sans-serif" }}>
+                  {selectedNode.age ? `${toFont(selectedNode.age)} વર્ષ` : 'વિગત નથી'}
+                </strong>
+              </span>
+            )}
+          </div>
+          <div className="meta-item" style={{ textAlign: 'right' }}>
+            વારસદારો (Children): <strong>{selectedNode.children?.length || 0}</strong>
+          </div>
+        </div>
+
+        {/* Quick Action Shortcuts on Hero Card */}
+        <div className="hero-actions">
           <Button
             type="primary"
-            size="small"
-            icon={<UserPlus size={14} />}
-            onClick={openAddModal}
-            style={{ backgroundColor: '#4f46e5' }}
+            className="btn-add-child"
+            icon={<UserPlus size={13} />}
+            onClick={() => openAddModal('પુત્ર', 'male')}
           >
-            + Add Node (નોડ ઉમેરો)
+            + વારસદાર ઉમેરો (+ Child)
           </Button>
+
+          {selectedNode.id === rootNode.id && (
+            <Button
+              size="small"
+              icon={<UserPlus size={13} />}
+              onClick={() => openAddModal('પત્ની', 'female')}
+            >
+              + પત્ની ઉમેરો (+ Wife)
+            </Button>
+          )}
 
           <Button
             size="small"
@@ -438,13 +428,19 @@ export default function FamilyTreeEditor({
             </Button>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Tree Hierarchy Navigator */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>
-          Tree Hierarchy (વંશાવળી ક્રમ):
+      <div className="hierarchy-tree-container">
+        <div className="hierarchy-header">
+          <span className="hierarchy-title">
+            <GitCommit size={14} color="#4f46e5" /> Tree Hierarchy (વંશાવળી ક્રમ)
+          </span>
+          <span style={{ fontSize: 11, color: '#64748b' }}>
+            Click node to select
+          </span>
         </div>
+
         <Tree
           treeData={antdTreeData}
           selectedKeys={activeSelectedId ? [activeSelectedId] : []}

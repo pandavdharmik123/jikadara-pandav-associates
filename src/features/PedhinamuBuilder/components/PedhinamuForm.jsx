@@ -460,12 +460,47 @@ export default function PedhinamuForm({
     }
   ];
 
+  // Calculate family tree stats
+  const countStats = (node) => {
+    if (!node) return { total: 0, alive: 0, deceased: 0 };
+    let total = 1;
+    let alive = node.deceased ? 0 : 1;
+    let deceased = node.deceased ? 1 : 0;
+    if (node.children && node.children.length > 0) {
+      node.children.forEach((child) => {
+        const sub = countStats(child);
+        total += sub.total;
+        alive += sub.alive;
+        deceased += sub.deceased;
+      });
+    }
+    return { total, alive, deceased };
+  };
+
+  const stats = countStats(data.tree?.rootNode);
+
   return (
     <div className="pedhinamu-form-container">
+      {/* Quick Summary Stats Strip */}
+      <div className="pedhinamu-stats-strip">
+        <div className="stat-card">
+          <span className="stat-label">કુલ સભ્યો (Members)</span>
+          <span className="stat-value primary">{stats.total}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">હયાત (Alive)</span>
+          <span className="stat-value success">{stats.alive}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">સ્વર્ગસ્થ (Deceased)</span>
+          <span className="stat-value neutral">{stats.deceased}</span>
+        </div>
+      </div>
+
       <Tabs
         defaultActiveKey="tree"
         items={tabItems}
-        className="pedhinamu-custom-tabs"
+        className="pedhinamu-segmented-tabs"
       />
     </div>
   );

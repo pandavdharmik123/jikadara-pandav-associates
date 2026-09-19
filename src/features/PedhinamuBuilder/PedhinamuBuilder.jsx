@@ -21,7 +21,11 @@ import {
   ZoomOut,
   Maximize2,
   FileCheck,
-  ChevronDown
+  ChevronDown,
+  PanelLeft,
+  PanelLeftClose,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -85,6 +89,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   });
   const [zoom, setZoom] = useState(0.8);
   const [activePage, setActivePage] = useState('all'); // 'all' | '1' | '2'
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draftsModalVisible, setDraftsModalVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -102,14 +107,27 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     localStorage.setItem('pedhinamu_font_mode', fontMode);
   }, [fontMode]);
 
-  // Fit to screen width on mount
-  useEffect(() => {
+  // Fit to screen width helper
+  const handleFitToScreen = useCallback(() => {
     if (viewportRef.current) {
-      const containerWidth = viewportRef.current.clientWidth - 48;
-      const targetScale = Math.min(1, Math.max(0.4, (containerWidth / 1344) * 0.95));
+      const containerWidth = viewportRef.current.clientWidth - 64;
+      const targetScale = Math.min(1.2, Math.max(0.35, (containerWidth / 1344) * 0.95));
       setZoom(Number(targetScale.toFixed(2)));
     }
   }, []);
+
+  // Fit to screen width on mount
+  useEffect(() => {
+    handleFitToScreen();
+  }, [handleFitToScreen]);
+
+  // Auto fit when toggling sidebar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleFitToScreen();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [isSidebarCollapsed, handleFitToScreen]);
 
   // Handle Ctrl/Cmd + Wheel zoom in preview section with focal point preservation
   useEffect(() => {
@@ -397,6 +415,17 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       {/* Top Header & Actions Bar */}
       <div className="pedhinamu-header-toolbar">
         <div className="pedhinamu-header-left">
+          {/* Collapsible Sidebar Toggle */}
+          <Tooltip title={isSidebarCollapsed ? "Expand Editor Panel" : "Collapse Editor Panel (Full Width Canvas)"}>
+            <button
+              type="button"
+              className={`btn-sidebar-toggle ${isSidebarCollapsed ? 'active' : ''}`}
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            >
+              {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          </Tooltip>
+
           <div className="pedhinamu-header-title-group">
             <div
               className="pedhinamu-header-icon-badge"
@@ -411,6 +440,9 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             <span className="pedhinamu-header-title-text">
               પેઢીનામું
             </span>
+            <span className="pedhinamu-header-type-pill">
+              2 Pages
+            </span>
           </div>
 
           <div className="pedhinamu-header-divider" />
@@ -422,155 +454,212 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               onChange={(e) => setDraftTitle(e.target.value)}
             />
           </div>
+
+          <Tooltip title="All changes automatically saved to local storage">
+            <div className="pedhinamu-autosave-indicator">
+              <div className="autosave-dot" />
+              <span className="autosave-text">Saved</span>
+            </div>
+          </Tooltip>
         </div>
 
         <div className="pedhinamu-header-right">
-          <Button
-            className="btn-sample-data"
-            icon={<Sparkles size={14} />}
-            onClick={handleLoadSample}
-          >
-            Sample Data
-          </Button>
-
-          <Button
-            icon={<FolderOpen size={14} />}
-            onClick={() => setDraftsModalVisible(true)}
-          >
-            Saved Drafts
-          </Button>
-
-          <Button
-            type="default"
-            icon={<Save size={14} />}
-            loading={isSaving}
-            onClick={handleSaveDraft}
-          >
-            Save Draft
-          </Button>
-
-          <Button
-            type="primary"
-            className="btn-download-pdf"
-            icon={<Download size={14} />}
-            loading={isExporting}
-            onClick={handleDownloadPDF}
-            style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
-          >
-            Download PDF
-          </Button>
-
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'auto-arrange',
-                  label: 'Auto-Arrange Tree',
-                  onClick: handleAutoArrange
-                },
-                {
-                  type: 'divider'
-                },
-                {
-                  key: 'reset',
-                  label: 'Reset Form to Blank',
-                  danger: true,
-                  onClick: handleReset
-                }
-              ]
-            }}
-          >
+          <Tooltip title="Load sample pedigree data">
             <Button
-              icon={<ChevronDown size={14} />}
-              style={{ width: 34, padding: 0 }}
-            />
-          </Dropdown>
+              className="btn-sample-data"
+              icon={<Sparkles size={14} />}
+              onClick={handleLoadSample}
+            >
+              <span className="btn-label">Sample</span>
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="View saved drafts">
+            <Button
+              className="btn-saved-drafts"
+              icon={<FolderOpen size={14} />}
+              onClick={() => setDraftsModalVisible(true)}
+            >
+              <span className="btn-label">Drafts</span>
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Save current draft">
+            <Button
+              type="default"
+              icon={<Save size={14} />}
+              loading={isSaving}
+              onClick={handleSaveDraft}
+            >
+              <span className="btn-label">Save</span>
+            </Button>
+          </Tooltip>
+
+          <Space.Compact className="btn-download-group">
+            <Button
+              type="primary"
+              className="btn-download-pdf"
+              icon={<Download size={14} />}
+              loading={isExporting}
+              onClick={handleDownloadPDF}
+              style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
+            >
+              Download PDF
+            </Button>
+
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'auto-arrange',
+                    label: 'Auto-Arrange Tree',
+                    onClick: handleAutoArrange
+                  },
+                  {
+                    type: 'divider'
+                  },
+                  {
+                    key: 'reset',
+                    label: 'Reset Form to Blank',
+                    danger: true,
+                    onClick: handleReset
+                  }
+                ]
+              }}
+              placement="bottomRight"
+            >
+              <Button
+                type="primary"
+                className="btn-download-arrow"
+                icon={<ChevronDown size={14} />}
+                style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
+              />
+            </Dropdown>
+          </Space.Compact>
         </div>
       </div>
 
       {/* Main Workspace (Split View) */}
       <div className="pedhinamu-main-workspace">
-        {/* Left Side: Form Editor */}
-        <div className="pedhinamu-editor-pane">
+        {/* Left Side: Form Editor (Smooth Collapsible) */}
+        <div className={`pedhinamu-editor-pane ${isSidebarCollapsed ? 'collapsed' : ''}`}>
           <PedhinamuForm
             data={data}
             onChange={setData}
             onAutoArrangeTree={handleAutoArrange}
             selectedNodeId={selectedNodeId}
-            onSelectNode={setSelectedNodeId}
+            onSelectNode={handleSelectNode}
           />
         </div>
 
         {/* Right Side: Live Canvas Preview Viewport */}
         <div className="pedhinamu-preview-pane" ref={previewPaneRef}>
-          {/* Viewport Floating Controls */}
-          <div className="pedhinamu-preview-controls">
-            <Space size={16}>
-              <Space>
-                <Text style={{ color: '#fff', fontSize: 12 }}>Font:</Text>
-                <Select
-                  size="small"
-                  value={fontMode}
-                  style={{ width: 170 }}
-                  onChange={setFontMode}
-                  options={[
-                    { value: 'ghanshyam', label: 'Ghanshyam (ઘનશ્યામ)' },
-                    { value: 'unicode', label: 'Gujarati Unicode' }
-                  ]}
-                />
-              </Space>
+          {/* Floating trigger to restore editor when collapsed */}
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              className="pedhinamu-floating-expand-btn"
+              onClick={() => setIsSidebarCollapsed(false)}
+            >
+              <PanelLeft size={15} />
+              <span>Expand Editor</span>
+            </button>
+          )}
 
-              <Space>
-                <Text style={{ color: '#fff', fontSize: 12 }}>Page View:</Text>
-                <Select
-                  size="small"
-                  value={activePage}
-                  style={{ width: 120 }}
-                  onChange={setActivePage}
-                  options={[
-                    { value: 'all', label: 'All (2 Pages)' },
-                    { value: '1', label: 'Page 1 (Tree)' },
-                    { value: '2', label: 'Page 2 (Panch)' }
-                  ]}
-                />
-              </Space>
-            </Space>
+          {/* Modern Floating Glassmorphism Control Dock */}
+          <div className="pedhinamu-floating-control-dock">
+            {/* Segmented Page Switcher */}
+            <div className="dock-pill-switcher">
+              <button
+                type="button"
+                className={`dock-pill-btn ${activePage === 'all' ? 'active' : ''}`}
+                onClick={() => setActivePage('all')}
+              >
+                All (2 Pages)
+              </button>
+              <button
+                type="button"
+                className={`dock-pill-btn ${activePage === '1' ? 'active' : ''}`}
+                onClick={() => setActivePage('1')}
+              >
+                Page 1 (Tree)
+              </button>
+              <button
+                type="button"
+                className={`dock-pill-btn ${activePage === '2' ? 'active' : ''}`}
+                onClick={() => setActivePage('2')}
+              >
+                Page 2 (Panch)
+              </button>
+            </div>
 
-            <Space>
-              <Tooltip title="Zoom Out">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ZoomOut size={15} color="#fff" />}
-                  onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
-                />
-              </Tooltip>
-              <Text style={{ color: '#fff', minWidth: 44, textAlign: 'center', fontSize: 12 }}>
+            <div className="dock-divider" />
+
+            {/* Font Selector */}
+            <div className="dock-group">
+              <Select
+                size="small"
+                value={fontMode}
+                className="dock-select"
+                style={{ width: 154 }}
+                onChange={setFontMode}
+                options={[
+                  { value: 'ghanshyam', label: 'Ghanshyam (ઘનશ્યામ)' },
+                  { value: 'unicode', label: 'Gujarati Unicode' }
+                ]}
+              />
+            </div>
+
+            <div className="dock-divider" />
+
+            {/* Zoom Controls */}
+            <div className="dock-group">
+              <button
+                type="button"
+                className="dock-zoom-btn"
+                onClick={() => setZoom((z) => Math.max(0.35, Number((z - 0.1).toFixed(2))))}
+              >
+                <ZoomOut size={14} />
+              </button>
+
+              <span
+                className="dock-zoom-badge"
+                onClick={handleFitToScreen}
+              >
                 {Math.round(zoom * 100)}%
-              </Text>
-              <Tooltip title="Zoom In">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ZoomIn size={15} color="#fff" />}
-                  onClick={() => setZoom((z) => Math.min(1.5, Number((z + 0.1).toFixed(2))))}
-                />
+              </span>
+
+              <button
+                type="button"
+                className="dock-zoom-btn"
+                onClick={() => setZoom((z) => Math.min(1.8, Number((z + 0.1).toFixed(2))))}
+              >
+                <ZoomIn size={14} />
+              </button>
+
+              <Tooltip title="Fit Canvas to Screen Width">
+                <button
+                  type="button"
+                  className="dock-fit-btn"
+                  onClick={handleFitToScreen}
+                >
+                  Fit
+                </button>
               </Tooltip>
-              <Tooltip title="Fit to Width">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Maximize2 size={14} color="#fff" />}
-                  onClick={() => {
-                    if (viewportRef.current) {
-                      const containerWidth = viewportRef.current.clientWidth - 48;
-                      const targetScale = Math.min(1, Math.max(0.4, (containerWidth / 1344) * 0.95));
-                      setZoom(Number(targetScale.toFixed(2)));
-                    }
-                  }}
-                />
-              </Tooltip>
-            </Space>
+            </div>
+
+            <div className="dock-divider" />
+
+            {/* Quick Auto-Arrange Shortcut */}
+            <Tooltip title="Auto-Arrange Tree Nodes">
+              <button
+                type="button"
+                className="dock-zoom-btn auto-btn"
+                onClick={handleAutoArrange}
+              >
+                <RefreshCw size={13} />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Scrollable Viewport */}
