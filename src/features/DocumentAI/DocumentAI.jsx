@@ -230,12 +230,32 @@ export default function DocumentAI() {
     message.info('Page excluded from processing.');
   };
 
+  const handleDeletePages = (pageIds) => {
+    if (!pageIds || pageIds.length === 0) return;
+    const idSet = new Set(pageIds);
+    setPages((prev) => {
+      const updated = prev.map((p) => (idSet.has(p.id) ? { ...p, isDeleted: true } : p));
+      return recomputePageNumbers(updated);
+    });
+    message.info(`${pageIds.length} ${pageIds.length === 1 ? 'page' : 'pages'} excluded from processing.`);
+  };
+
   const handleRestorePage = (pageId) => {
     setPages((prev) => {
       const updated = prev.map((p) => (p.id === pageId ? { ...p, isDeleted: false } : p));
       return recomputePageNumbers(updated);
     });
     message.success('Page restored.');
+  };
+
+  const handleRestorePages = (pageIds) => {
+    if (!pageIds || pageIds.length === 0) return;
+    const idSet = new Set(pageIds);
+    setPages((prev) => {
+      const updated = prev.map((p) => (idSet.has(p.id) ? { ...p, isDeleted: false } : p));
+      return recomputePageNumbers(updated);
+    });
+    message.success(`${pageIds.length} ${pageIds.length === 1 ? 'page' : 'pages'} restored.`);
   };
 
   const handleRestoreAllPages = () => {
@@ -679,7 +699,7 @@ export default function DocumentAI() {
             >
               {loading
                 ? `Processing... ${ocrProgressPages} / ${activePagesCount} pages`
-                : 'Run OCR'}
+                : 'Scan PDF and Extact'}
             </Button>
 
             <span className="action-status-sub">
@@ -759,7 +779,7 @@ export default function DocumentAI() {
               <div className="banner-left">
                 <span className="status-indicator-badge">
                   <CheckCheck size={14} />
-                  OCR completed
+                  Scan completed
                 </span>
                 <span className="status-separator">•</span>
                 <span className="status-detail">
@@ -851,7 +871,9 @@ export default function DocumentAI() {
               onOpenExportPdf={() => setExportPdfModalVisible(true)}
               onQuickRotate={handleQuickRotate}
               onDeletePage={handleDeletePage}
+              onDeletePages={handleDeletePages}
               onRestorePage={handleRestorePage}
+              onRestorePages={handleRestorePages}
               onResetAllPages={handleResetAllPages}
               onRestoreAllPages={handleRestoreAllPages}
             />

@@ -15,6 +15,7 @@ import invoiceRoutes from './routes/invoices.js';
 import documentRoutes from './routes/document.js';
 import upadRoutes from './routes/upad.js';
 import recycleBinRoutes from './routes/recycleBin.js';
+import pedhinamuRoutes from './routes/pedhinamu.js';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/document', documentRoutes);
 app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
+app.use('/api/pedhinamu', pedhinamuRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {

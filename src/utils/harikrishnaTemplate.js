@@ -167,6 +167,15 @@ export function convertUnicodeToHarikrishnaTemplate(gujaratiUnicode) {
       out += '`'; i += 1; continue;
     }
 
+    // Guard: in Ghanshyam legacy text, ')' after a consonant is deergh-ee matra and '(' before a consonant is hrasva-i matra.
+    // They must NEVER be corrupted into '{' or '}' brackets.
+    if (ch === ')' && i > 0 && /[a-zA-Z\u00b1-\u00c7\$\~xX]/.test(s[i - 1])) {
+      out += ')'; i += 1; continue;
+    }
+    if (ch === '(' && i + 1 < s.length && /[a-zA-Z\u00b1-\u00c7\$\~xX]/.test(s[i + 1])) {
+      out += '('; i += 1; continue;
+    }
+
     if (DIGIT_KEYS[ch]) {
       out += DIGIT_KEYS[ch]; i += 1; continue;
     }

@@ -1,0 +1,320 @@
+.pedhinamu-builder-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 84px);
+  background-color: #f1f5f9;
+  overflow: hidden;
+
+  .pedhinamu-header-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 10;
+  }
+
+  .pedhinamu-main-workspace {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pedhinamu-editor-pane {
+    width: 530px;
+    min-width: 460px;
+    max-width: 620px;
+    background: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    overflow-y: auto;
+    padding: 14px 16px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+  }
+
+  .pedhinamu-preview-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #525659; // Classic PDF viewer dark gray background
+    position: relative;
+  }
+
+  .pedhinamu-preview-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #323639;
+    color: #fff;
+    border-bottom: 1px solid #202224;
+    z-index: 5;
+  }
+
+  .pedhinamu-preview-viewport {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .pedhinamu-preview-sheet-wrapper {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    background: #fff;
+    transform-origin: top center;
+    transition: transform 0.15s ease-out;
+  }
+}
+
+// Form Section Cards & Modern Layout
+.form-section-card {
+  margin-bottom: 12px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.2s ease !important;
+
+  &:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .ant-card-head {
+    min-height: 38px !important;
+    padding: 0 12px !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-radius: 10px 10px 0 0 !important;
+  }
+
+  .ant-card-body {
+    padding: 12px 14px !important;
+  }
+}
+
+// Form Labels with vertical stacked design
+.pedhinamu-form-container {
+  .ant-form-item {
+    margin-bottom: 12px;
+  }
+
+  .ant-form-item-label {
+    padding-bottom: 3px !important;
+
+    > label {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #475569 !important;
+      height: auto !important;
+      line-height: 1.3 !important;
+    }
+  }
+}
+
+// Custom modern tabs
+.pedhinamu-custom-tabs {
+  .ant-tabs-nav {
+    margin-bottom: 12px !important;
+
+    &::before {
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+  }
+
+  .ant-tabs-tab {
+    padding: 8px 10px !important;
+    margin: 0 2px !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+
+    &.ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: #4f46e5 !important;
+      font-weight: 700 !important;
+    }
+  }
+
+  .ant-tabs-ink-bar {
+    background: #4f46e5 !important;
+    height: 3px !important;
+    border-radius: 3px !important;
+  }
+}
+
+// Ghanshyam font styling for form inputs & textareas
+input.font-ghanshyam,
+.ant-input.font-ghanshyam {
+  font-family: 'Ghanshyam', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.4 !important;
+  height: 38px !important;
+  padding: 6px 11px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  width: 100% !important;
+  transition: all 0.15s ease !important;
+
+  &:focus, &:hover {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  }
+
+  &::placeholder {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 12.5px !important;
+    color: #94a3b8 !important;
+    opacity: 0.7 !important;
+  }
+}
+
+textarea.font-ghanshyam,
+.ant-input.font-ghanshyam[type="textarea"],
+textarea.ant-input.font-ghanshyam {
+  font-family: 'Ghanshyam', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  padding: 8px 11px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  width: 100% !important;
+  transition: all 0.15s ease !important;
+
+  &:focus, &:hover {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+  }
+
+  &::placeholder {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 12.5px !important;
+    color: #94a3b8 !important;
+    opacity: 0.7 !important;
+  }
+}
+
+// Family Tree Editor Tree Hierarchy styling
+.family-tree-editor {
+  .ant-tree {
+    .ant-tree-treenode {
+      padding: 2px 0;
+      align-items: center;
+    }
+
+    .ant-tree-node-content-wrapper {
+      min-height: 28px;
+      line-height: normal;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 4px;
+    }
+  }
+}
+
+// Tree Node Hover & Drag styling
+.pedhinamu-family-tree-canvas {
+  .tree-node {
+    transition: background-color 0.2s, box-shadow 0.2s;
+    user-select: none;
+
+    &.draggable {
+      &:hover {
+        background-color: rgba(99, 102, 241, 0.12);
+        box-shadow: 0 0 0 1px #6366f1;
+        cursor: grab;
+      }
+      &:active {
+        cursor: grabbing;
+        background-color: rgba(99, 102, 241, 0.22);
+      }
+    }
+  }
+}
+
+// Print & PDF Styling
+@media print {
+  @page {
+    size: 14in 8.5in landscape;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  // Hide UI chrome during print
+  .ant-layout-header,
+  .ant-layout-sider,
+  .pedhinamu-header-toolbar,
+  .pedhinamu-editor-pane,
+  .pedhinamu-preview-controls,
+  .photo-remove-btn,
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  .pedhinamu-builder-container,
+  .pedhinamu-main-workspace,
+  .pedhinamu-preview-pane,
+  .pedhinamu-preview-viewport {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    display: block !important;
+    height: auto !important;
+    position: static !important;
+  }
+
+  .pedhinamu-preview-sheet-wrapper {
+    box-shadow: none !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .pedhinamu-print-document {
+    width: 1008pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .pedhinamu-page {
+    width: 1008pt !important;
+    height: 612pt !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 24pt 36pt 16pt 36pt !important;
+    overflow: hidden !important;
+  }
+}
+
+.pedhinamu-print-document {
+  .photo-remove-btn {
+    display: none !important;
+  }
+
+  .pedhinamu-page-footer {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  }
+}
+
+

@@ -25,7 +25,8 @@ import {
   Files,
   Sparkles,
   Wallet,
-  Trash2
+  Trash2,
+  GitFork
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -99,6 +100,49 @@ export default function MainLayout() {
 
   let menuItems = [];
 
+  const rawToolItems = [
+    {
+      key: '/app/tools/translator',
+      icon: <Languages size={20} />,
+      label: 'Eng to Guj',
+    },
+    {
+      key: '/app/tools/universal',
+      icon: <Palette size={20} />,
+      label: 'Universal Converter',
+    },
+    {
+      key: '/app/tools/jantri',
+      icon: <Calculator size={20} />,
+      label: 'Jantri Calculator',
+    },
+    {
+      key: '/app/tools/rent_agreement',
+      icon: <FileSignature size={20} />,
+      label: 'Rent Agreement',
+    },
+    {
+      key: '/app/tools/invoice',
+      icon: <FileText size={20} />,
+      label: 'Invoice Generator',
+    },
+    {
+      key: '/app/tools/number_to_words',
+      icon: <Hash size={20} />,
+      label: 'Numbers to Words',
+    },
+    {
+      key: '/app/tools/document-ai',
+      icon: <Sparkles size={20} />,
+      label: 'Document AI & OCR',
+    },
+    {
+      key: '/app/tools/pedhinamu',
+      icon: <GitFork size={20} />,
+      label: 'Pedhinamu Builder',
+    },
+  ];
+
   if (user?.role === 'ADMIN') {
     menuItems = [
       {
@@ -122,6 +166,15 @@ export default function MainLayout() {
             label: 'Recycle Bin',
           },
         ],
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'tools-group',
+        type: 'group',
+        label: 'Tools & Utilities',
+        children: rawToolItems,
       },
     ];
   } else {
@@ -163,43 +216,6 @@ export default function MainLayout() {
       },
     ];
 
-    const rawToolItems = [
-      {
-        key: '/app/tools/translator',
-        icon: <Languages size={20} />,
-        label: 'Eng to Guj',
-      },
-      {
-        key: '/app/tools/universal',
-        icon: <Palette size={20} />,
-        label: 'Universal Converter',
-      },
-      {
-        key: '/app/tools/jantri',
-        icon: <Calculator size={20} />,
-        label: 'Jantri Calculator',
-      },
-      {
-        key: '/app/tools/rent_agreement',
-        icon: <FileSignature size={20} />,
-        label: 'Rent Agreement',
-      },
-      {
-        key: '/app/tools/invoice',
-        icon: <FileText size={20} />,
-        label: 'Invoice Generator',
-      },
-      {
-        key: '/app/tools/number_to_words',
-        icon: <Hash size={20} />,
-        label: 'Numbers to Words',
-      },
-      {
-        key: '/app/tools/document-ai',
-        icon: <Sparkles size={20} />,
-        label: 'Document AI & OCR',
-      },
-    ];
 
     const allowedAdvocate = rawAdvocateItems.filter((item) => hasPageAccess(user, item.key));
     const allowedTools = rawToolItems.filter((item) => hasPageAccess(user, item.key));

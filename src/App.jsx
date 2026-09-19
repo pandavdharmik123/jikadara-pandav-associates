@@ -30,6 +30,7 @@ import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgre
 import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
 import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWordsConverter';
 import DocumentAI from './features/DocumentAI/DocumentAI';
+import PedhinamuBuilder from './features/PedhinamuBuilder/PedhinamuBuilder';
 
 // Styles
 import './styles/main.scss';
@@ -216,9 +217,16 @@ export default function App() {
                   <Route element={<ProtectedRoute pageKey="/app/tools/document-ai" />}>
                     <Route path="document-ai" element={<DocumentAI />} />
                   </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/pedhinamu" />}>
+                    <Route path="pedhinamu" element={<PedhinamuBuilder currentAccentColor={currentAccentColor} />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
+
+            {/* Direct alias for Pedhinamu */}
+            <Route path="/pedhinamu/create" element={<Navigate to="/app/tools/pedhinamu" replace />} />
 
             {/* Default Redirect */}
             <Route path="*" element={<AppIndexRedirect />} />

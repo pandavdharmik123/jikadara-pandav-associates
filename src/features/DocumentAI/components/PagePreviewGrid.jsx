@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Button, Tag, Typography, Tooltip, Popconfirm, Space, Input, Segmented } from 'antd';
+import { Button, Tag, Typography, Tooltip, Popconfirm, Space, Input, Segmented, Checkbox, Modal } from 'antd';
 import {
   RotateCw,
   Trash2,
@@ -10,7 +10,8 @@ import {
   Search,
   CheckCircle2,
   Layers,
-  Sparkles
+  Sparkles,
+  CheckSquare
 } from 'lucide-react';
 
 const { Text } = Typography;
@@ -23,12 +24,16 @@ export default function PagePreviewGrid({
   onOpenExportPdf,
   onQuickRotate,
   onDeletePage,
+  onDeletePages,
   onRestorePage,
+  onRestorePages,
   onResetAllPages,
   onRestoreAllPages
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'active' | 'excluded'
+  const [selectedPageIds, setSelectedPageIds] = useState(new Set());
+  const [excludeModalVisible, setExcludeModalVisible] = useState(false);
 
   const activeCount = useMemo(() => pages.filter((p) => !p.isDeleted).length, [pages]);
   const deletedCount = useMemo(() => pages.filter((p) => p.isDeleted).length, [pages]);
@@ -50,6 +55,70 @@ export default function PagePreviewGrid({
       return true;
     });
   }, [pages, filterMode, searchTerm]);
+
+  // Selection states
+  const isAllSelected = useMemo(() => {
+    return filteredPages.length > 0 && filteredPages.every((p) => selectedPageIds.has(p.id));
+  }, [filteredPages, selectedPageIds]);
+
+  const isIndeterminate = useMemo(() => {
+    return filteredPages.some((p) => selectedPageIds.has(p.id)) && !isAllSelected;
+  }, [filteredPages, selectedPageIds, isAllSelected]);
+
+  const selectedActiveCount = useMemo(() => {
+    return pages.filter((p) => selectedPageIds.has(p.id) && !p.isDeleted).length;
+  }, [pages, selectedPageIds]);
+
+  const selectedDeletedCount = useMemo(() => {
+    return pages.filter((p) => selectedPageIds.has(p.id) && p.isDeleted).length;
+  }, [pages, selectedPageIds]);
+
+  const toggleSelectPage = (pageId) => {
+    setSelectedPageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pageId)) next.delete(pageId);
+      else next.add(pageId);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedPageIds(new Set(filteredPages.map((p) => p.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedPageIds(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    const idsToDelete = pages
+      .filter((p) => selectedPageIds.has(p.id) && !p.isDeleted)
+      .map((p) => p.id);
+
+    if (idsToDelete.length > 0) {
+      if (onDeletePages) {
+        onDeletePages(idsToDelete);
+      } else {
+        idsToDelete.forEach((id) => onDeletePage(id));
+      }
+    }
+    setSelectedPageIds(new Set());
+  };
+
+  const handleRestoreSelected = () => {
+    const idsToRestore = pages
+      .filter((p) => selectedPageIds.has(p.id) && p.isDeleted)
+      .map((p) => p.id);
+
+    if (idsToRestore.length > 0) {
+      if (onRestorePages) {
+        onRestorePages(idsToRestore);
+      } else {
+        idsToRestore.forEach((id) => onRestorePage(id));
+      }
+    }
+    setSelectedPageIds(new Set());
+  };
 
   const handlePageClick = (page) => {
     if (page.isDeleted) return;
@@ -78,8 +147,22 @@ export default function PagePreviewGrid({
           </div>
         </div>
 
-        {/* Center: Search & Filter */}
+        {/* Center: Search, Filter & Select All */}
         <div className="header-center">
+          {filteredPages.length > 0 && (
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onChange={(e) => {
+                if (e.target.checked) selectAllVisible();
+                else deselectAll();
+              }}
+              className="select-all-header-checkbox"
+            >
+              Select All
+            </Checkbox>
+          )}
+
           <Input
             placeholder="Search page #..."
             prefix={<Search size={14} className="search-icon" />}
@@ -143,6 +226,108 @@ export default function PagePreviewGrid({
         </div>
       </div>
 
+      {/* Multiple Selection Batch Action Bar */}
+      {selectedPageIds.size > 0 && (
+        <div className="batch-selection-bar">
+          <div className="batch-info">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onChange={(e) => {
+                if (e.target.checked) selectAllVisible();
+                else deselectAll();
+              }}
+            >
+              <span className="batch-count-text">
+                <strong>{selectedPageIds.size}</strong> {selectedPageIds.size === 1 ? 'page' : 'pages'} selected
+              </span>
+            </Checkbox>
+          </div>
+
+          <div className="batch-actions">
+            <Space size={8}>
+              {selectedActiveCount > 0 && (
+                <Button
+                  type="primary"
+                  danger
+                  icon={<Trash2 size={14} />}
+                  className="batch-delete-btn"
+                  onClick={() => setExcludeModalVisible(true)}
+                >
+                  Exclude Selected ({selectedActiveCount})
+                </Button>
+              )}
+
+              {selectedDeletedCount > 0 && (
+                <Button
+                  icon={<Undo2 size={14} />}
+                  onClick={handleRestoreSelected}
+                  className="batch-restore-btn"
+                >
+                  Restore Selected ({selectedDeletedCount})
+                </Button>
+              )}
+
+              <Button
+                type="text"
+                onClick={deselectAll}
+                className="batch-cancel-btn"
+              >
+                Clear Selection
+              </Button>
+            </Space>
+
+            {/* Confirmation Modal for Exclude Selected */}
+            <Modal
+              title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      backgroundColor: '#fee2e2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#dc2626'
+                    }}
+                  >
+                    <Trash2 size={18} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+                      Exclude Selected Pages
+                    </span>
+                  </div>
+                </div>
+              }
+              open={excludeModalVisible}
+              onOk={() => {
+                handleDeleteSelected();
+                setExcludeModalVisible(false);
+              }}
+              onCancel={() => setExcludeModalVisible(false)}
+              okText={`Exclude ${selectedActiveCount} ${selectedActiveCount === 1 ? 'Page' : 'Pages'}`}
+              cancelText="Cancel"
+              okButtonProps={{ danger: true, size: 'middle', style: { fontWeight: 600 } }}
+              cancelButtonProps={{ size: 'middle' }}
+              centered
+              width={440}
+            >
+              <div style={{ padding: '12px 0 6px 0' }}>
+                <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.6, margin: '0 0 8px 0' }}>
+                  Are you sure you want to exclude <strong>{selectedActiveCount}</strong> selected {selectedActiveCount === 1 ? 'page' : 'pages'}?
+                </p>
+                <p style={{ fontSize: 12.5, color: '#64748b', margin: 0 }}>
+                  Excluded pages will be omitted from OCR text recognition and PDF export. You can restore them anytime using the "Restore" action.
+                </p>
+              </div>
+            </Modal>
+          </div>
+        </div>
+      )}
+
       {/* Pages Grid - Desktop 3 Columns */}
       {filteredPages.length > 0 ? (
         <div className="pages-grid">
@@ -150,15 +335,29 @@ export default function PagePreviewGrid({
             const isDeleted = page.isDeleted;
             const isCropped = Boolean(page.isCropped || page.cropBox);
             const isRotated = Boolean(page.rotation && page.rotation !== 0);
+            const isSelected = selectedPageIds.has(page.id);
 
             return (
               <div
                 key={page.id}
-                className={`page-thumbnail-card ${isDeleted ? 'deleted-page' : ''}`}
+                className={`page-thumbnail-card ${isDeleted ? 'deleted-page' : ''} ${isSelected ? 'selected-page' : ''}`}
               >
-                {/* Card Top: Page number badge & status tags */}
-                <div className="card-top-bar">
+                {/* Card Top: Selection Checkbox, Page number badge & status tags */}
+                <div
+                  className="card-top-bar"
+                  onClick={() => toggleSelectPage(page.id)}
+                  title={isSelected ? "Click to deselect page" : "Click to select page"}
+                >
                   <div className="page-badge-wrap">
+                    <Checkbox
+                      checked={isSelected}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleSelectPage(page.id);
+                      }}
+                      className="page-select-checkbox"
+                    />
                     <span className={`page-number-pill ${isDeleted ? 'pill-muted' : ''}`}>
                       Page {page.pageNumber}
                     </span>

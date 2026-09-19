@@ -27,6 +27,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/invoice', label: 'Invoice Generator', description: 'Professional legal billing' },
       { key: '/app/tools/number_to_words', label: 'Numbers to Words', description: 'Cheque/legal word formatting' },
       { key: '/app/tools/document-ai', label: 'Document AI & OCR', description: 'Gujarati OCR & text extraction' },
+      { key: '/app/tools/pedhinamu', label: 'Pedhinamu Builder', description: 'Dynamic 2-Page Legal Landscape Family Tree' },
     ],
   },
 ];
@@ -52,9 +53,9 @@ export function hasPageAccess(user, pageKey) {
   // Profile is universally accessible
   if (pageKey === '/app/profile') return true;
 
-  // ADMIN role access: strictly user management, document types, and recycle bin
+  // ADMIN role access: user management, document types, recycle bin, and tools
   if (user.role === 'ADMIN') {
-    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/recycle-bin';
+    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/recycle-bin' || pageKey.startsWith('/app/tools/');
   }
 
   // Non-admin cannot access admin panel users
