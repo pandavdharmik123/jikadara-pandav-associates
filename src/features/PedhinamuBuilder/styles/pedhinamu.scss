@@ -1027,7 +1027,7 @@ textarea.ant-input.font-ghanshyam {
       width: 100% !important;
       max-width: 100% !important;
       box-sizing: border-box !important;
-      overflow: hidden !important;
+      overflow: visible !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: center !important;
@@ -1049,7 +1049,7 @@ textarea.ant-input.font-ghanshyam {
       line-break: anywhere !important;
       overflow-wrap: anywhere !important;
       white-space: normal !important;
-      overflow: hidden !important;
+      overflow: visible !important;
     }
 
     &.draggable {

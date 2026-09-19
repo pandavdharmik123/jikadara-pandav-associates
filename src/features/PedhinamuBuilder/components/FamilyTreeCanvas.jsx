@@ -345,7 +345,8 @@ export default function FamilyTreeCanvas({
       lineBreak: 'anywhere',
       overflowWrap: 'anywhere',
       whiteSpace: 'normal',
-      overflow: 'hidden'
+      overflow: 'visible',
+      paddingBottom: '2px'
     };
 
     if (words.length <= 1) {
@@ -361,7 +362,8 @@ export default function FamilyTreeCanvas({
           style={{
             ...wrapStyle,
             fontSize: singleFontSize,
-            lineHeight: 1.15
+            lineHeight: 1.25,
+            paddingBottom: '2px'
           }}
         >
           {isDeceased ? <>{toFont('સ્વ. ')}{toFont(str)}</> : toFont(str)}
@@ -384,11 +386,12 @@ export default function FamilyTreeCanvas({
     }
 
     return (
-      <div style={{ lineHeight: 1.12, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      <div style={{ lineHeight: 1.28, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'visible' }}>
         <div
           className="node-name-part"
           style={{
-            ...wrapStyle
+            ...wrapStyle,
+            paddingBottom: '1px'
           }}
         >
           {isDeceased ? <>{toFont('સ્વ. ')}{toFont(firstPart)}</> : toFont(firstPart)}
@@ -399,7 +402,9 @@ export default function FamilyTreeCanvas({
             ...wrapStyle,
             fontSize: secondFontSize,
             color: '#000000',
-            marginTop: 1
+            marginTop: 0,
+            lineHeight: 1.28,
+            paddingBottom: '3px'
           }}
         >
           {toFont(secondPart)}
@@ -559,11 +564,11 @@ export default function FamilyTreeCanvas({
               top: `${node.y}px`,
               transform: 'translate(-50%, 0)',
               width: `${node.boxWidth || 90}px`,
-              minHeight: `${node.boxHeight || 62}px`,
+              minHeight: `${node.boxHeight || 65}px`,
               textAlign: 'center',
               color: '#000',
               cursor: interactive ? 'grab' : 'default',
-              padding: nodePadding,
+              padding: isUltraCompact ? '2px 3px 3px 3px' : '2px 4px 4px 4px',
               borderRadius: '5px',
               border: isSelected ? '2.5px solid #4f46e5' : '1px solid #94a3b8',
               backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
@@ -619,7 +624,7 @@ export default function FamilyTreeCanvas({
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                overflow: 'hidden',
+                overflow: 'visible',
                 boxSizing: 'border-box',
                 wordBreak: 'break-all',
                 lineBreak: 'anywhere',
@@ -634,7 +639,8 @@ export default function FamilyTreeCanvas({
                     fontSize: relFontSize,
                     color: '#000000',
                     marginBottom: isUltraCompact ? 0 : 1,
-                    lineHeight: 1.05,
+                    lineHeight: 1.2,
+                    paddingBottom: '1px',
                     width: '100%',
                     maxWidth: '100%',
                     boxSizing: 'border-box',
@@ -642,7 +648,7 @@ export default function FamilyTreeCanvas({
                     lineBreak: 'anywhere',
                     overflowWrap: 'anywhere',
                     whiteSpace: 'normal',
-                    overflow: 'hidden'
+                    overflow: 'visible'
                   }}
                 >
                   {fmt(node.relationship)}
@@ -660,7 +666,8 @@ export default function FamilyTreeCanvas({
                   lineBreak: 'anywhere',
                   overflowWrap: 'anywhere',
                   whiteSpace: 'normal',
-                  overflow: 'hidden'
+                  overflow: 'visible',
+                  paddingBottom: '1px'
                 }}
               >
                 {renderNodeName(node.name, node.deceased)}
@@ -671,7 +678,8 @@ export default function FamilyTreeCanvas({
                   fontSize: detailFontSize,
                   color: '#000000',
                   marginTop: isUltraCompact ? 0 : 1,
-                  lineHeight: 1.05,
+                  lineHeight: 1.25,
+                  paddingBottom: '3px',
                   width: '100%',
                   maxWidth: '100%',
                   boxSizing: 'border-box',
@@ -679,7 +687,7 @@ export default function FamilyTreeCanvas({
                   lineBreak: 'anywhere',
                   overflowWrap: 'anywhere',
                   whiteSpace: 'normal',
-                  overflow: 'hidden'
+                  overflow: 'visible'
                 }}
               >
                 {node.deceased
