@@ -13,6 +13,7 @@ export default function PedhinamuPrintDocument({
   fontMode = 'ghanshyam', // 'ghanshyam' | 'unicode'
   activePage = 'all', // 'all' | '1' | '2'
   selectedNodeId,
+  selectedNodeIds,
   onSelectNode
 }) {
   const { general, applicant, deceased, tree, panchas } = data;
@@ -191,6 +192,7 @@ export default function PedhinamuPrintDocument({
               scale={scale}
               fontMode={fontMode}
               selectedNodeId={selectedNodeId}
+              selectedNodeIds={selectedNodeIds}
               onSelectNode={onSelectNode}
             />
           </div>

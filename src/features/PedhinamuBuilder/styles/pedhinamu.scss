@@ -9,10 +9,127 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 16px;
+    padding: 0 18px;
+    height: 54px;
+    min-height: 54px;
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     z-index: 10;
+    gap: 16px;
+
+    .pedhinamu-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+
+      .pedhinamu-header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+
+        .pedhinamu-header-icon-badge {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: rgba(79, 70, 229, 0.08);
+          border: 1px solid rgba(79, 70, 229, 0.18);
+          color: #4f46e5;
+          flex-shrink: 0;
+        }
+
+        .pedhinamu-header-title-text {
+          font-size: 17px;
+          font-weight: 700;
+          color: #0f172a;
+          white-space: nowrap;
+          line-height: 1;
+          letter-spacing: -0.2px;
+        }
+      }
+
+      .pedhinamu-header-divider {
+        width: 1px;
+        height: 22px;
+        background: #e2e8f0;
+        flex-shrink: 0;
+        margin: 0 2px;
+      }
+
+      .pedhinamu-header-draft-input {
+        width: 310px;
+
+        .ant-input {
+          border-radius: 6px;
+          font-size: 13.5px;
+          height: 34px;
+          background: #f8fafc;
+          border-color: #e2e8f0;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #cbd5e1;
+            background: #ffffff;
+          }
+
+          &:focus,
+          &-focused {
+            border-color: #6366f1;
+            background: #ffffff;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.12);
+          }
+        }
+      }
+    }
+
+    .pedhinamu-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+
+      .ant-btn {
+        height: 34px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+
+        &:not(.ant-btn-primary):hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+      }
+
+      .btn-sample-data {
+        color: #4f46e5 !important;
+        border-color: rgba(99, 102, 241, 0.3) !important;
+        background: rgba(99, 102, 241, 0.04) !important;
+
+        &:hover {
+          background: rgba(99, 102, 241, 0.1) !important;
+          border-color: #6366f1 !important;
+        }
+      }
+
+      .btn-download-pdf {
+        font-weight: 600 !important;
+        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25) !important;
+
+        &:hover {
+          filter: brightness(1.05);
+        }
+      }
+    }
   }
 
   .pedhinamu-main-workspace {
@@ -56,17 +173,31 @@
     flex: 1;
     overflow: auto;
     padding: 24px;
+    background: #525659;
+    position: relative;
+  }
+
+  .pedhinamu-scroll-track {
+    min-width: 100%;
+    width: max-content;
+    min-height: 100%;
+    height: max-content;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    padding-bottom: 32px;
+  }
+
+  .pedhinamu-zoom-outer {
+    position: relative;
+    flex-shrink: 0;
   }
 
   .pedhinamu-preview-sheet-wrapper {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     background: #fff;
-    transform-origin: top center;
-    transition: transform 0.15s ease-out;
+    transform-origin: top left;
+    transition: transform 0.12s ease-out;
   }
 }
 
@@ -224,6 +355,40 @@ textarea.ant-input.font-ghanshyam {
   .tree-node {
     transition: background-color 0.2s, box-shadow 0.2s;
     user-select: none;
+    box-sizing: border-box !important;
+    word-break: break-all !important;
+    line-break: anywhere !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+
+    .tree-node-content {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      word-break: break-all !important;
+      line-break: anywhere !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
+    }
+
+    .node-relationship,
+    .node-name-wrapper,
+    .node-name-part,
+    .node-detail {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      word-break: break-all !important;
+      line-break: anywhere !important;
+      overflow-wrap: anywhere !important;
+      white-space: normal !important;
+      overflow: hidden !important;
+    }
 
     &.draggable {
       &:hover {
@@ -236,6 +401,10 @@ textarea.ant-input.font-ghanshyam {
         background-color: rgba(99, 102, 241, 0.22);
       }
     }
+  }
+
+  .pedhinamu-marquee-box {
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.35);
   }
 }
 
@@ -260,6 +429,7 @@ textarea.ant-input.font-ghanshyam {
   .pedhinamu-header-toolbar,
   .pedhinamu-editor-pane,
   .pedhinamu-preview-controls,
+  .pedhinamu-marquee-box,
   .photo-remove-btn,
   header,
   aside,

@@ -33,7 +33,7 @@ import GhanshyamInput from './components/GhanshyamInput';
 
 import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
-import { normalizeFamilyTree, updateNodePosition } from './utils/treeModel';
+import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions } from './utils/treeModel';
 import api from '../../services/api';
 
 import './styles/pedhinamu.scss';
@@ -43,6 +43,7 @@ const { Title, Text } = Typography;
 export default function PedhinamuBuilder({ currentAccentColor }) {
   const printDocRef = useRef(null);
   const viewportRef = useRef(null);
+  const previewPaneRef = useRef(null);
   const exportPage1Ref = useRef(null);
   const exportPage2Ref = useRef(null);
 
@@ -64,6 +65,19 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   });
 
   const [selectedNodeId, setSelectedNodeId] = useState('root');
+  const [selectedNodeIds, setSelectedNodeIds] = useState(['root']);
+
+  const handleSelectNode = useCallback((id, multiIds) => {
+    setSelectedNodeId(id);
+    if (multiIds && Array.isArray(multiIds)) {
+      setSelectedNodeIds(multiIds);
+    } else if (id) {
+      setSelectedNodeIds([id]);
+    } else {
+      setSelectedNodeIds([]);
+    }
+  }, []);
+
   const [draftTitle, setDraftTitle] = useState('મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું');
   const [draftId, setDraftId] = useState(null);
   const [fontMode, setFontMode] = useState(() => {
@@ -97,11 +111,61 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     }
   }, []);
 
-  // Handle node repositioning via drag on canvas
-  const handleNodeMove = useCallback((nodeId, newX, newY) => {
+  // Handle Ctrl/Cmd + Wheel zoom in preview section with focal point preservation
+  useEffect(() => {
+    const previewEl = previewPaneRef.current;
+    const viewportEl = viewportRef.current;
+    if (!previewEl) return;
+
+    const handleWheel = (e) => {
+      // Intercept Ctrl/Cmd + Wheel or Trackpad Pinch
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+
+        let delta = 0;
+        if (Math.abs(e.deltaY) >= 40) {
+          // Discrete mouse wheel notches
+          delta = e.deltaY < 0 ? 0.08 : -0.08;
+        } else {
+          // Trackpad pinch-to-zoom (continuous smooth deltaY)
+          delta = -e.deltaY * 0.003;
+        }
+
+        setZoom((prevZoom) => {
+          const nextZoom = Number(Math.min(2.0, Math.max(0.3, prevZoom + delta)).toFixed(2));
+          if (nextZoom === prevZoom) return prevZoom;
+
+          // Keep point under cursor stable while zooming
+          if (viewportEl) {
+            const rect = viewportEl.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+            const ratio = nextZoom / prevZoom;
+            viewportEl.scrollLeft = Math.max(0, Math.round((viewportEl.scrollLeft + offsetX) * ratio - offsetX));
+            viewportEl.scrollTop = Math.max(0, Math.round((viewportEl.scrollTop + offsetY) * ratio - offsetY));
+          }
+
+          return nextZoom;
+        });
+      }
+    };
+
+    previewEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      previewEl.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
+
+  // Handle node repositioning via drag on canvas (supports single node or batch map)
+  const handleNodeMove = useCallback((nodeIdOrPositions, newX, newY) => {
     setData((prev) => {
       const normalized = normalizeFamilyTree(prev.tree, prev.deceased);
-      const updatedRoot = updateNodePosition(normalized.rootNode, nodeId, newX, newY);
+      let updatedRoot;
+      if (typeof nodeIdOrPositions === 'object' && nodeIdOrPositions !== null) {
+        updatedRoot = updateMultipleNodePositions(normalized.rootNode, nodeIdOrPositions);
+      } else {
+        updatedRoot = updateNodePosition(normalized.rootNode, nodeIdOrPositions, newX, newY);
+      }
       return {
         ...prev,
         tree: { rootNode: updatedRoot }
@@ -139,6 +203,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       onOk: () => {
         setData(SAMPLE_MADHUBHAI_DATA);
         setSelectedNodeId('root');
+        setSelectedNodeIds(['root']);
         setDraftTitle('મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું');
         message.success('Sample reference data loaded!');
       }
@@ -155,6 +220,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       onOk: () => {
         setData(DEFAULT_PEDHINAMU_DATA);
         setSelectedNodeId('root');
+        setSelectedNodeIds(['root']);
         setDraftTitle('Untitled Pedhinamu');
         setDraftId(null);
         message.info('Form reset to blank template');
@@ -218,6 +284,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     };
     setData(normalized);
     setSelectedNodeId('root');
+    setSelectedNodeIds(['root']);
     if (title) setDraftTitle(title);
   };
 
@@ -329,24 +396,39 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     <div className="pedhinamu-builder-container">
       {/* Top Header & Actions Bar */}
       <div className="pedhinamu-header-toolbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Title level={4} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileCheck size={22} color={currentAccentColor || '#4f46e5'} />
-            પેઢીનામું
-          </Title>
-          <GhanshyamInput
-            value={draftTitle}
-            placeholder="Draft Title (દા.ત. મધુભાઇ પેઢીનામું)"
-            style={{ width: 280 }}
-            onChange={(e) => setDraftTitle(e.target.value)}
-          />
+        <div className="pedhinamu-header-left">
+          <div className="pedhinamu-header-title-group">
+            <div
+              className="pedhinamu-header-icon-badge"
+              style={{
+                background: currentAccentColor ? `${currentAccentColor}14` : 'rgba(79, 70, 229, 0.08)',
+                borderColor: currentAccentColor ? `${currentAccentColor}30` : 'rgba(79, 70, 229, 0.18)',
+                color: currentAccentColor || '#4f46e5'
+              }}
+            >
+              <FileCheck size={18} />
+            </div>
+            <span className="pedhinamu-header-title-text">
+              પેઢીનામું
+            </span>
+          </div>
+
+          <div className="pedhinamu-header-divider" />
+
+          <div className="pedhinamu-header-draft-input">
+            <GhanshyamInput
+              value={draftTitle}
+              placeholder="Draft Title (દા.ત. મધુભાઇ પેઢીનામું)"
+              onChange={(e) => setDraftTitle(e.target.value)}
+            />
+          </div>
         </div>
 
-        <Space>
+        <div className="pedhinamu-header-right">
           <Button
+            className="btn-sample-data"
             icon={<Sparkles size={14} />}
             onClick={handleLoadSample}
-            style={{ borderColor: '#6366f1', color: '#4f46e5' }}
           >
             Sample Data
           </Button>
@@ -368,14 +450,8 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           </Button>
 
           <Button
-            icon={<Printer size={14} />}
-            onClick={handlePrint}
-          >
-            Print
-          </Button>
-
-          <Button
             type="primary"
+            className="btn-download-pdf"
             icon={<Download size={14} />}
             loading={isExporting}
             onClick={handleDownloadPDF}
@@ -404,9 +480,12 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               ]
             }}
           >
-            <Button icon={<ChevronDown size={14} />} />
+            <Button
+              icon={<ChevronDown size={14} />}
+              style={{ width: 34, padding: 0 }}
+            />
           </Dropdown>
-        </Space>
+        </div>
       </div>
 
       {/* Main Workspace (Split View) */}
@@ -423,7 +502,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         </div>
 
         {/* Right Side: Live Canvas Preview Viewport */}
-        <div className="pedhinamu-preview-pane">
+        <div className="pedhinamu-preview-pane" ref={previewPaneRef}>
           {/* Viewport Floating Controls */}
           <div className="pedhinamu-preview-controls">
             <Space size={16}>
@@ -496,26 +575,43 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
 
           {/* Scrollable Viewport */}
           <div className="pedhinamu-preview-viewport" ref={viewportRef}>
-            <div
-              className="pedhinamu-preview-sheet-wrapper"
-              style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top center',
-                width: '1008pt',
-                marginBottom: `${(zoom - 1) * 650}px` // Compensate scale margin
-              }}
-            >
-              <div ref={printDocRef}>
-                <PedhinamuPrintDocument
-                  data={data}
-                  onNodeMove={handleNodeMove}
-                  interactive={true}
-                  scale={zoom}
-                  fontMode={fontMode}
-                  activePage={activePage}
-                  selectedNodeId={selectedNodeId}
-                  onSelectNode={setSelectedNodeId}
-                />
+            <div className="pedhinamu-scroll-track">
+              <div
+                className="pedhinamu-zoom-outer"
+                style={{
+                  width: `${Math.round(1344 * zoom)}px`,
+                  minWidth: `${Math.round(1344 * zoom)}px`,
+                  height: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
+                  minHeight: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
+                  position: 'relative',
+                  flexShrink: 0
+                }}
+              >
+                <div
+                  className="pedhinamu-preview-sheet-wrapper"
+                  style={{
+                    width: '1008pt',
+                    transform: `scale(${zoom})`,
+                    transformOrigin: 'top left',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0
+                  }}
+                >
+                  <div ref={printDocRef}>
+                    <PedhinamuPrintDocument
+                      data={data}
+                      onNodeMove={handleNodeMove}
+                      interactive={true}
+                      scale={zoom}
+                      fontMode={fontMode}
+                      activePage={activePage}
+                      selectedNodeId={selectedNodeId}
+                      selectedNodeIds={selectedNodeIds}
+                      onSelectNode={handleSelectNode}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

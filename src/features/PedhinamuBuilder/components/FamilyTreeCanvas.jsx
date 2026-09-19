@@ -10,14 +10,40 @@ export default function FamilyTreeCanvas({
   scale = 1,
   fontMode = 'ghanshyam',
   selectedNodeId,
+  selectedNodeIds,
   onSelectNode
 }) {
   const containerRef = useRef(null);
-  const [draggingNodeId, setDraggingNodeId] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Multi-selection state
+  const [internalSelectedIds, setInternalSelectedIds] = useState(() => {
+    if (selectedNodeIds && selectedNodeIds.length > 0) return selectedNodeIds;
+    return selectedNodeId ? [selectedNodeId] : ['root'];
+  });
+
+  useEffect(() => {
+    if (selectedNodeIds && Array.isArray(selectedNodeIds)) {
+      setInternalSelectedIds(selectedNodeIds);
+    } else if (selectedNodeId) {
+      setInternalSelectedIds([selectedNodeId]);
+    } else {
+      setInternalSelectedIds([]);
+    }
+  }, [selectedNodeIds, selectedNodeId]);
+
+  // Group drag state & local position overrides for 60fps responsiveness
   const [localDragPositions, setLocalDragPositions] = useState({});
   const isDraggingRef = useRef(false);
-  const dragStartMouseRef = useRef({ x: 0, y: 0 });
+  const dragStartClientRef = useRef({ x: 0, y: 0 });
+  const dragAnchorCanvasRef = useRef({ x: 0, y: 0 });
+  const activeDragNodeIdsRef = useRef([]);
+  const initialPositionsRef = useRef({});
+  const clickedNodeInfoRef = useRef(null);
+
+  // Marquee box selection state
+  const [marqueeBox, setMarqueeBox] = useState(null);
+  const marqueeStartRef = useRef(null);
+  const isMarqueeActiveRef = useRef(false);
 
   const toFont = (text) => {
     if (!text) return '';
@@ -36,129 +62,346 @@ export default function FamilyTreeCanvas({
   const layout = calculateTreeLayout(tree, deceased, localDragPositions);
   const { nodes, connections, canvasWidth, canvasHeight, isUltraCompact } = layout;
 
-  const handleMouseDown = (e, node) => {
+  // Node mouse down: handles Shift/Ctrl multi-toggle and initiates group drag
+  const handleNodeMouseDown = (e, node) => {
     if (!interactive) return;
     e.stopPropagation();
 
     isDraggingRef.current = false;
-    dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
+    dragStartClientRef.current = { x: e.clientX, y: e.clientY };
 
-    if (onSelectNode) {
-      onSelectNode(node.id);
+    const isModifier = e.shiftKey || e.ctrlKey || e.metaKey;
+    const isCurrentlySelected = internalSelectedIds.includes(node.id);
+
+    let nextSelectedIds = [...internalSelectedIds];
+
+    if (isModifier) {
+      // Toggle selection of this node
+      if (isCurrentlySelected) {
+        nextSelectedIds = nextSelectedIds.filter((id) => id !== node.id);
+      } else {
+        nextSelectedIds.push(node.id);
+      }
+      setInternalSelectedIds(nextSelectedIds);
+      if (onSelectNode) {
+        onSelectNode(node.id, nextSelectedIds);
+      }
+    } else {
+      if (!isCurrentlySelected) {
+        // Single select this node
+        nextSelectedIds = [node.id];
+        setInternalSelectedIds(nextSelectedIds);
+        if (onSelectNode) {
+          onSelectNode(node.id, nextSelectedIds);
+        }
+      }
+      // If already part of multi-selection, preserve selection so all selected nodes can be dragged together!
     }
+
+    // Determine nodes to drag together
+    const nodesToDrag = nextSelectedIds.includes(node.id) && nextSelectedIds.length > 0
+      ? nextSelectedIds
+      : [node.id];
+
+    activeDragNodeIdsRef.current = nodesToDrag;
 
     const rect = containerRef.current.getBoundingClientRect();
     const currentMouseX = (e.clientX - rect.left) / scale;
     const currentMouseY = (e.clientY - rect.top) / scale;
+    dragAnchorCanvasRef.current = { x: currentMouseX, y: currentMouseY };
 
-    setDraggingNodeId(node.id);
-    setDragOffset({
-      x: currentMouseX - node.x,
-      y: currentMouseY - node.y
+    // Capture initial positions of all dragged nodes
+    const initialPos = {};
+    nodesToDrag.forEach((id) => {
+      const found = nodes.find((n) => n.id === id);
+      if (found) {
+        initialPos[id] = { x: found.x, y: found.y };
+      }
     });
+    initialPositionsRef.current = initialPos;
+
+    clickedNodeInfoRef.current = {
+      nodeId: node.id,
+      wasSelected: isCurrentlySelected,
+      isModifier,
+      multiSelectionBeforeClick: internalSelectedIds.length > 1
+    };
   };
 
-  useEffect(() => {
-    if (!draggingNodeId) return;
+  // Canvas background mouse down: initiate marquee selection or prepare deselect
+  const handleCanvasMouseDown = (e) => {
+    if (!interactive) return;
+    if (e.target.closest('.tree-node')) return;
+    if (e.button !== 0) return; // Primary button only
 
-    const handleMouseMove = (e) => {
+    const rect = containerRef.current.getBoundingClientRect();
+    const startX = (e.clientX - rect.left) / scale;
+    const startY = (e.clientY - rect.top) / scale;
+
+    marqueeStartRef.current = {
+      canvasX: startX,
+      canvasY: startY,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      isModifier: e.shiftKey || e.ctrlKey || e.metaKey
+    };
+    isMarqueeActiveRef.current = true;
+    isDraggingRef.current = false;
+  };
+
+  // Global mouse move & mouse up listeners for group dragging & marquee selection
+  useEffect(() => {
+    if (!interactive) return;
+
+    const handleWindowMouseMove = (e) => {
       if (!containerRef.current) return;
-      const dist = Math.hypot(
-        e.clientX - dragStartMouseRef.current.x,
-        e.clientY - dragStartMouseRef.current.y
-      );
-      if (dist > 3) {
-        isDraggingRef.current = true;
-      }
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left) / scale;
-      const mouseY = (e.clientY - rect.top) / scale;
+      // 1. Marquee Box Selection
+      if (isMarqueeActiveRef.current && marqueeStartRef.current) {
+        const dist = Math.hypot(
+          e.clientX - marqueeStartRef.current.clientX,
+          e.clientY - marqueeStartRef.current.clientY
+        );
+        if (dist > 4) {
+          isDraggingRef.current = true;
+          const rect = containerRef.current.getBoundingClientRect();
+          const curX = (e.clientX - rect.left) / scale;
+          const curY = (e.clientY - rect.top) / scale;
 
-      const newX = Math.round(mouseX - dragOffset.x);
-      const newY = Math.round(mouseY - dragOffset.y);
+          const boxLeft = Math.min(marqueeStartRef.current.canvasX, curX);
+          const boxTop = Math.min(marqueeStartRef.current.canvasY, curY);
+          const boxWidth = Math.abs(curX - marqueeStartRef.current.canvasX);
+          const boxHeight = Math.abs(curY - marqueeStartRef.current.canvasY);
 
-      setLocalDragPositions((prev) => ({
-        ...prev,
-        [draggingNodeId]: { x: newX, y: newY }
-      }));
-    };
+          setMarqueeBox({ left: boxLeft, top: boxTop, width: boxWidth, height: boxHeight });
 
-    const handleMouseUp = () => {
-      if (draggingNodeId && localDragPositions[draggingNodeId] && onNodeMove) {
-        const finalPos = localDragPositions[draggingNodeId];
-        onNodeMove(draggingNodeId, finalPos.x, finalPos.y);
-      }
-      setLocalDragPositions({});
-      setDraggingNodeId(null);
-      setTimeout(() => {
-        isDraggingRef.current = false;
-      }, 60);
-    };
+          // Intersect with nodes in layout
+          const intersected = nodes
+            .filter((n) => {
+              const w = n.isRoot ? (n.boxWidth || 260) : (n.boxWidth || 90);
+              const h = n.isRoot ? (n.boxHeight || 30) : (n.boxHeight || 62);
+              const nLeft = n.x - w / 2;
+              const nRight = n.x + w / 2;
+              const nTop = n.y;
+              const nBottom = n.y + h;
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+              return (
+                nLeft < boxLeft + boxWidth &&
+                nRight > boxLeft &&
+                nTop < boxTop + boxHeight &&
+                nBottom > boxTop
+              );
+            })
+            .map((n) => n.id);
 
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [draggingNodeId, dragOffset, localDragPositions, onNodeMove, scale]);
-
-  // Global outside-click listener to deselect active node when clicking canvas or outside
-  useEffect(() => {
-    if (!interactive || !onSelectNode) return;
-
-    const handleGlobalClick = (e) => {
-      if (isDraggingRef.current) return;
-      // Do not deselect if click was on a tree node
-      if (e.target.closest('.tree-node')) return;
-      // Do not deselect if click was inside the left sidebar tree editor controls or modals
-      if (
-        e.target.closest('.family-tree-editor') ||
-        e.target.closest('.ant-modal') ||
-        e.target.closest('.ant-select-dropdown')
-      ) {
+          let nextIds;
+          if (marqueeStartRef.current.isModifier) {
+            nextIds = Array.from(new Set([...internalSelectedIds, ...intersected]));
+          } else {
+            nextIds = intersected;
+          }
+          setInternalSelectedIds(nextIds);
+        }
         return;
       }
 
-      onSelectNode(null);
+      // 2. Group Dragging
+      if (activeDragNodeIdsRef.current && activeDragNodeIdsRef.current.length > 0) {
+        const dist = Math.hypot(
+          e.clientX - dragStartClientRef.current.x,
+          e.clientY - dragStartClientRef.current.y
+        );
+        if (dist > 3) {
+          isDraggingRef.current = true;
+        }
+
+        if (isDraggingRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const currentMouseX = (e.clientX - rect.left) / scale;
+          const currentMouseY = (e.clientY - rect.top) / scale;
+
+          const dx = Math.round(currentMouseX - dragAnchorCanvasRef.current.x);
+          const dy = Math.round(currentMouseY - dragAnchorCanvasRef.current.y);
+
+          const updated = {};
+          activeDragNodeIdsRef.current.forEach((id) => {
+            const init = initialPositionsRef.current[id];
+            if (init) {
+              updated[id] = {
+                x: init.x + dx,
+                y: init.y + dy
+              };
+            }
+          });
+
+          setLocalDragPositions(updated);
+        }
+      }
     };
 
-    window.addEventListener('click', handleGlobalClick);
-    return () => {
-      window.removeEventListener('click', handleGlobalClick);
+    const handleWindowMouseUp = () => {
+      // 1. Finalize Marquee Selection
+      if (isMarqueeActiveRef.current) {
+        if (isDraggingRef.current) {
+          if (onSelectNode) {
+            const primary = internalSelectedIds[0] || null;
+            onSelectNode(primary, internalSelectedIds);
+          }
+        } else {
+          // Plain click on empty canvas -> deselect all
+          setInternalSelectedIds([]);
+          if (onSelectNode) {
+            onSelectNode(null, []);
+          }
+        }
+        setMarqueeBox(null);
+        isMarqueeActiveRef.current = false;
+        marqueeStartRef.current = null;
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 50);
+        return;
+      }
+
+      // 2. Finalize Group Dragging
+      if (activeDragNodeIdsRef.current && activeDragNodeIdsRef.current.length > 0) {
+        if (isDraggingRef.current) {
+          // Commit all dragged nodes' positions
+          if (onNodeMove && Object.keys(localDragPositions).length > 0) {
+            onNodeMove(localDragPositions);
+          }
+        } else {
+          // Clicked an already selected node without dragging in a multi-selection:
+          // Collapse selection to just the clicked node
+          const info = clickedNodeInfoRef.current;
+          if (info && info.wasSelected && !info.isModifier && info.multiSelectionBeforeClick) {
+            setInternalSelectedIds([info.nodeId]);
+            if (onSelectNode) {
+              onSelectNode(info.nodeId, [info.nodeId]);
+            }
+          }
+        }
+
+        setLocalDragPositions({});
+        activeDragNodeIdsRef.current = [];
+        initialPositionsRef.current = {};
+        clickedNodeInfoRef.current = null;
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 50);
+      }
     };
-  }, [interactive, onSelectNode]);
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [interactive, scale, nodes, internalSelectedIds, localDragPositions, onNodeMove, onSelectNode]);
+
+  // Keyboard shortcuts: Escape to deselect, Ctrl/Cmd+A to select all
+  useEffect(() => {
+    if (!interactive) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setInternalSelectedIds([]);
+        if (onSelectNode) onSelectNode(null, []);
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        e.preventDefault();
+        const allIds = nodes.map((n) => n.id);
+        setInternalSelectedIds(allIds);
+        if (onSelectNode) onSelectNode(allIds[0], allIds);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [interactive, nodes, onSelectNode]);
 
   const docFontFamily = fontMode === 'ghanshyam'
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', sans-serif";
 
-  // Helper to cleanly render Gujarati names on 2 compact lines to prevent horizontal overlap
+  // Helper to cleanly render Gujarati names on compact lines without horizontal overflow
   const renderNodeName = (name, isDeceased) => {
     if (!name) return <span>(અનામી)</span>;
     const str = String(name).trim();
-    const words = str.split(/\s+/);
+    const words = str.split(/\s+/).filter(Boolean);
+
+    const wrapStyle = {
+      width: '100%',
+      maxWidth: '100%',
+      boxSizing: 'border-box',
+      wordBreak: 'break-all',
+      lineBreak: 'anywhere',
+      overflowWrap: 'anywhere',
+      whiteSpace: 'normal',
+      overflow: 'hidden'
+    };
+
     if (words.length <= 1) {
+      const singleFontSize = str.length > 14
+        ? (fontMode === 'ghanshyam' ? '8.5px' : '7.5px')
+        : str.length > 10
+        ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
+        : undefined;
+
       return (
-        <div style={{ whiteSpace: 'nowrap' }}>
+        <div
+          className="node-name-part"
+          style={{
+            ...wrapStyle,
+            fontSize: singleFontSize,
+            lineHeight: 1.15
+          }}
+        >
           {isDeceased ? <>{toFont('સ્વ. ')}{toFont(str)}</> : toFont(str)}
         </div>
       );
     }
+
     const firstPart = words[0];
     const secondPart = words.slice(1).join(' ');
-    const secondFontSize = isUltraCompact
-      ? (fontMode === 'ghanshyam' ? '10px' : '9px')
-      : (fontMode === 'ghanshyam' ? '11px' : '10px');
+    const totalLen = str.length;
+
+    let secondFontSize = isUltraCompact
+      ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
+      : (fontMode === 'ghanshyam' ? '10.5px' : '9.5px');
+
+    if (totalLen > 24) {
+      secondFontSize = fontMode === 'ghanshyam' ? '8px' : '7.5px';
+    } else if (totalLen > 16) {
+      secondFontSize = fontMode === 'ghanshyam' ? '9px' : '8.5px';
+    }
 
     return (
-      <div style={{ lineHeight: 1.12 }}>
-        <div style={{ whiteSpace: 'nowrap' }}>
+      <div style={{ lineHeight: 1.12, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+        <div
+          className="node-name-part"
+          style={{
+            ...wrapStyle
+          }}
+        >
           {isDeceased ? <>{toFont('સ્વ. ')}{toFont(firstPart)}</> : toFont(firstPart)}
         </div>
-        <div style={{ whiteSpace: 'nowrap', fontSize: secondFontSize, color: '#000000' }}>
+        <div
+          className="node-name-part"
+          style={{
+            ...wrapStyle,
+            fontSize: secondFontSize,
+            color: '#000000',
+            marginTop: 1
+          }}
+        >
           {toFont(secondPart)}
         </div>
       </div>
@@ -178,15 +421,28 @@ export default function FamilyTreeCanvas({
         userSelect: 'none',
         fontFamily: docFontFamily
       }}
-      onClick={(e) => {
-        if (!interactive) return;
-        if (isDraggingRef.current) return;
-        if (e.target.closest('.tree-node')) return;
-        if (onSelectNode) {
-          onSelectNode(null);
-        }
-      }}
+      onMouseDown={handleCanvasMouseDown}
     >
+
+      {/* Marquee Box Selection Overlay */}
+      {marqueeBox && (
+        <div
+          className="pedhinamu-marquee-box"
+          style={{
+            position: 'absolute',
+            left: `${marqueeBox.left}px`,
+            top: `${marqueeBox.top}px`,
+            width: `${marqueeBox.width}px`,
+            height: `${marqueeBox.height}px`,
+            border: '1.5px dashed #4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.12)',
+            borderRadius: '3px',
+            pointerEvents: 'none',
+            zIndex: 25
+          }}
+        />
+      )}
+
       {/* SVG Connecting Lines Layer: Clean Legal Pedhinamu Bus-Bar Architecture */}
       <svg
         style={{
@@ -228,7 +484,7 @@ export default function FamilyTreeCanvas({
       {/* Render All Recursive Nodes with explicit non-overlapping bounding boxes */}
       {nodes.map((node) => {
         const isRoot = node.isRoot;
-        const isSelected = selectedNodeId === node.id;
+        const isSelected = internalSelectedIds.includes(node.id);
 
         if (isRoot) {
           const rootFontSize = isUltraCompact
@@ -249,21 +505,24 @@ export default function FamilyTreeCanvas({
                 fontWeight: 700,
                 fontSize: rootFontSize,
                 color: '#000000',
-                whiteSpace: 'nowrap',
+                maxWidth: '420px',
+                wordBreak: 'break-all',
+                lineBreak: 'anywhere',
+                overflowWrap: 'anywhere',
+                whiteSpace: 'normal',
                 cursor: interactive ? 'grab' : 'default',
                 padding: rootPadding,
                 borderRadius: '5px',
-                border: isSelected ? '2px solid #4f46e5' : '1.5px solid #475569',
+                border: isSelected ? '2.5px solid #4f46e5' : '1.5px solid #475569',
                 backgroundColor: isSelected ? '#ede9fe' : '#ffffff',
-                boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.25)' : '0 1px 3px rgba(0,0,0,0.08)',
+                boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.3), 0 2px 6px rgba(79, 70, 229, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
                 boxSizing: 'border-box',
-                zIndex: isSelected ? 3 : 2
+                zIndex: isSelected ? 4 : 2
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                if (interactive && onSelectNode) onSelectNode(node.id);
               }}
-              onMouseDown={(e) => handleMouseDown(e, node)}
+              onMouseDown={(e) => handleNodeMouseDown(e, node)}
             >
               {toFont(
                 node.deceased
@@ -306,17 +565,19 @@ export default function FamilyTreeCanvas({
               cursor: interactive ? 'grab' : 'default',
               padding: nodePadding,
               borderRadius: '5px',
-              border: isSelected ? '2px solid #4f46e5' : '1px solid #94a3b8',
+              border: isSelected ? '2.5px solid #4f46e5' : '1px solid #94a3b8',
               backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-              boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.25)' : '0 1px 2px rgba(0,0,0,0.06)',
+              boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.3), 0 2px 6px rgba(79, 70, 229, 0.2)' : '0 1px 2px rgba(0,0,0,0.06)',
               boxSizing: 'border-box',
-              zIndex: isSelected ? 3 : 1
+              zIndex: isSelected ? 4 : 1,
+              wordBreak: 'break-all',
+              lineBreak: 'anywhere',
+              overflowWrap: 'anywhere'
             }}
             onClick={(e) => {
               e.stopPropagation();
-              if (interactive && onSelectNode) onSelectNode(node.id);
             }}
-            onMouseDown={(e) => handleMouseDown(e, node)}
+            onMouseDown={(e) => handleNodeMouseDown(e, node)}
           >
             {/* Sibling-Index Numbering Badge (Chip Circle) */}
             {node.siblingIndex && (
@@ -347,39 +608,84 @@ export default function FamilyTreeCanvas({
               </div>
             )}
 
-            {node.relationship && (
+            {/* Inner Content Wrapper strictly containing all text within node box */}
+            <div
+              className="tree-node-content"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+                wordBreak: 'break-all',
+                lineBreak: 'anywhere',
+                overflowWrap: 'anywhere'
+              }}
+            >
+              {node.relationship && (
+                <div
+                  className="node-relationship"
+                  style={{
+                    fontWeight: 700,
+                    fontSize: relFontSize,
+                    color: '#000000',
+                    marginBottom: isUltraCompact ? 0 : 1,
+                    lineHeight: 1.05,
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    wordBreak: 'break-all',
+                    lineBreak: 'anywhere',
+                    overflowWrap: 'anywhere',
+                    whiteSpace: 'normal',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {fmt(node.relationship)}
+                </div>
+              )}
               <div
+                className="node-name-wrapper"
                 style={{
-                  fontWeight: 700,
-                  fontSize: relFontSize,
-                  color: '#000000',
-                  marginBottom: isUltraCompact ? 0 : 1,
-                  lineHeight: 1.05
+                  fontWeight: 600,
+                  fontSize: nameFontSize,
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  wordBreak: 'break-all',
+                  lineBreak: 'anywhere',
+                  overflowWrap: 'anywhere',
+                  whiteSpace: 'normal',
+                  overflow: 'hidden'
                 }}
               >
-                {fmt(node.relationship)}
+                {renderNodeName(node.name, node.deceased)}
               </div>
-            )}
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: nameFontSize
-              }}
-            >
-              {renderNodeName(node.name, node.deceased)}
-            </div>
-            <div
-              style={{
-                fontSize: detailFontSize,
-                color: '#000000',
-                marginTop: isUltraCompact ? 0 : 1,
-                lineHeight: 1.05,
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {node.deceased
-                ? node.deathDate ? toFont(`(મરણ તા. ${node.deathDate})`) : toFont('(અવસાન)')
-                : node.age ? toFont(`(ઉ.આ.વ. ${node.age})`) : ''}
+              <div
+                className="node-detail"
+                style={{
+                  fontSize: detailFontSize,
+                  color: '#000000',
+                  marginTop: isUltraCompact ? 0 : 1,
+                  lineHeight: 1.05,
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  wordBreak: 'break-all',
+                  lineBreak: 'anywhere',
+                  overflowWrap: 'anywhere',
+                  whiteSpace: 'normal',
+                  overflow: 'hidden'
+                }}
+              >
+                {node.deceased
+                  ? node.deathDate ? toFont(`(મરણ તા. ${node.deathDate})`) : toFont('(અવસાન)')
+                  : node.age ? toFont(`(ઉ.આ.વ. ${node.age})`) : ''}
+              </div>
             </div>
           </div>
         );

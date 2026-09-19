@@ -197,6 +197,25 @@ export function updateNodePosition(root, nodeId, x, y) {
 }
 
 /**
+ * Update multiple nodes visual positions simultaneously
+ */
+export function updateMultipleNodePositions(root, positionsMap) {
+  if (!root || !positionsMap || Object.keys(positionsMap).length === 0) return root;
+
+  function updateRec(node) {
+    if (!node) return node;
+    const newPos = positionsMap[node.id];
+    const updatedNode = newPos ? { ...node, position: { x: newPos.x, y: newPos.y } } : node;
+    return {
+      ...updatedNode,
+      children: (node.children || []).map(updateRec)
+    };
+  }
+
+  return updateRec(root);
+}
+
+/**
  * Count descendants of a node
  */
 export function countDescendants(node) {
