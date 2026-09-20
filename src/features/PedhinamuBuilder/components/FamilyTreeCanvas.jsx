@@ -178,8 +178,8 @@ export default function FamilyTreeCanvas({
           // Intersect with nodes in layout
           const intersected = nodes
             .filter((n) => {
-              const w = n.isRoot ? (n.boxWidth || 260) : (n.boxWidth || 90);
-              const h = n.isRoot ? (n.boxHeight || 30) : (n.boxHeight || 62);
+              const w = n.isRoot ? (n.boxWidth || 260) : (n.boxWidth || 100);
+              const h = n.isRoot ? (n.boxHeight || 30) : (n.boxHeight || 65);
               const nLeft = n.x - w / 2;
               const nRight = n.x + w / 2;
               const nTop = n.y;
@@ -353,8 +353,8 @@ export default function FamilyTreeCanvas({
       const singleFontSize = str.length > 14
         ? (fontMode === 'ghanshyam' ? '8.5px' : '7.5px')
         : str.length > 10
-        ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
-        : undefined;
+          ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
+          : undefined;
 
       return (
         <div
@@ -545,7 +545,10 @@ export default function FamilyTreeCanvas({
         const nameFontSize = isUltraCompact
           ? (fontMode === 'ghanshyam' ? '11px' : '10px')
           : (fontMode === 'ghanshyam' ? '12px' : '10.5px');
-        const detailFontSize = isUltraCompact
+        const isDeathDate = Boolean(node.deceased && node.deathDate);
+        const detailFontSize = isDeathDate
+          ? (fontMode === 'ghanshyam' ? (isUltraCompact ? '8.5px' : '9.5px') : (isUltraCompact ? '7.5px' : '8.5px'))
+          : isUltraCompact
           ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
           : (fontMode === 'ghanshyam' ? '10.5px' : '9.5px');
 
@@ -563,12 +566,12 @@ export default function FamilyTreeCanvas({
               left: `${node.x}px`,
               top: `${node.y}px`,
               transform: 'translate(-50%, 0)',
-              width: `${node.boxWidth || 90}px`,
+              width: `${node.boxWidth || 100}px`,
               minHeight: `${node.boxHeight || 65}px`,
               textAlign: 'center',
               color: '#000',
               cursor: interactive ? 'grab' : 'default',
-              padding: isUltraCompact ? '2px 3px 3px 3px' : '2px 4px 4px 4px',
+              padding: isUltraCompact ? '2px 3px 3px 3px' : '2px 3px 3px 3px',
               borderRadius: '5px',
               border: isSelected ? '2.5px solid #4f46e5' : '1px solid #94a3b8',
               backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
@@ -683,10 +686,10 @@ export default function FamilyTreeCanvas({
                   width: '100%',
                   maxWidth: '100%',
                   boxSizing: 'border-box',
-                  wordBreak: 'break-all',
-                  lineBreak: 'anywhere',
-                  overflowWrap: 'anywhere',
-                  whiteSpace: 'normal',
+                  whiteSpace: 'nowrap',
+                  wordBreak: 'normal',
+                  lineBreak: 'normal',
+                  overflowWrap: 'normal',
                   overflow: 'visible'
                 }}
               >

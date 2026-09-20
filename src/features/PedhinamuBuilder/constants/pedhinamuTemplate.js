@@ -35,8 +35,8 @@ export const DEFAULT_PEDHINAMU_DATA = {
     taluka: 'કતારગામ',
     district: 'સુરત',
     place: 'સુરત',
-    currentDate: '૨૦-૦૮-૨૦૨૬',
-    applicationDate: '૨૦-૦૮-૨૦૨૬'
+    currentDate: '૨૧-૧૦-૨૦૨૪',
+    applicationDate: '૨૧-૧૦-૨૦૨૪'
   },
   applicant: {
     name: 'દિનેશભાઇ મધુભાઇ જીકાદરા',

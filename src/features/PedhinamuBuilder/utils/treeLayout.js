@@ -21,7 +21,7 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
   const baseCanvasWidth = 980;
 
   // Box dimensions and level coordinates
-  let NODE_BOX_WIDTH = 90;
+  let NODE_BOX_WIDTH = 100;
   let NODE_BOX_HEIGHT = 65;
   let ROOT_BOX_WIDTH = 260;
   let ROOT_BOX_HEIGHT = 30;
@@ -33,7 +33,7 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
 
   if (isUltraCompact) {
     // 3 or more descendant levels: comfortable balanced structure with proper spacing
-    NODE_BOX_WIDTH = 84;
+    NODE_BOX_WIDTH = 92;
     NODE_BOX_HEIGHT = 56;
     ROOT_BOX_WIDTH = 240;
     ROOT_BOX_HEIGHT = 26;

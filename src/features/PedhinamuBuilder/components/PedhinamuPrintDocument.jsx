@@ -33,7 +33,7 @@ export default function PedhinamuPrintDocument({
   const fmt = toFont;
 
   const formatDecl1 = (text) => {
-    return text.replace(/{applicationDate}/g, general.applicationDate || '૨૦-૦૮-૨૦૨૬');
+    return text.replace(/{applicationDate}/g, general.applicationDate || '૨૧-૧૦-૨૦૨૪');
   };
 
   const formatPanchDecl1 = (text) => {
@@ -206,9 +206,7 @@ export default function PedhinamuPrintDocument({
             }}
           >
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont('ઉપર જણાવ્યા મુજબના પુખ્ત ઉંમરના તથા સગીર વારસદારો સિવાય સ્વર્ગસ્થનું અન્ય કોઈ વારસદાર નથી કે મૈયત પાછળ કોઈ દત્તક પુત્ર કે પુત્રી લીધેલ નથી. વારસદારો પૈકી કોઈએ હક્ક ઉઠાવેલ નથી. સદરહુ પેઢીનામું મેળવવા માટે તા. ')}
-              <span>{toFont(general.applicationDate || '૨૦-૦૮-૨૦૨૬')}</span>
-              {toFont(' ના રોજ અરજી કરેલ છે.')}
+              {toFont(formatDecl1(PEDHINAMU_STATIC_TEXT.page1Decl1))}
             </p>
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
               {toFont(PEDHINAMU_STATIC_TEXT.page1Decl2)}
@@ -416,7 +414,7 @@ export default function PedhinamuPrintDocument({
             </div>
 
             {/* Middle: 3 Panch Photos */}
-            <div style={{ display: 'flex', gap: '16pt', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '90pt', alignItems: 'center' }}>
               {panchas.map((panch, idx) => (
                 <PhotoUploadBox
                   key={`panch-photo-${idx}`}
