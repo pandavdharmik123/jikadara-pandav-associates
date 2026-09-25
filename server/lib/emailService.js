@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 let transporter = null;
 
 /**
- * Initialize or get Nodemailer SMTP transporter
+ * Initialize or get Nodemailer SMTP transporter (fallback if no Brevo API key)
  */
 function getTransporter() {
   if (transporter) return transporter;
@@ -24,6 +24,105 @@ function getTransporter() {
   }
 
   return transporter;
+}
+
+/**
+ * Send an email via Brevo REST API (HTTPS Port 443)
+ * Solves Render/Vercel free-tier SMTP port blocking (ports 25, 465, 587 are blocked on cloud free tiers).
+ */
+async function sendViaBrevoApi({ to, subject, html, text, fromEmail, fromName }) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY is not defined');
+  }
+
+  const senderEmail =
+    fromEmail ||
+    process.env.BREVO_SENDER_EMAIL ||
+    process.env.SMTP_USER ||
+    'dhamopandav1311@gmail.com';
+
+  const senderName =
+    fromName ||
+    process.env.BREVO_SENDER_NAME ||
+    'Jikadara & Pandav Associates';
+
+  const recipients = Array.isArray(to)
+    ? to.map((recipient) => (typeof recipient === 'string' ? { email: recipient } : recipient))
+    : [{ email: to }];
+
+  const payload = {
+    sender: { name: senderName, email: senderEmail },
+    to: recipients,
+    subject,
+    htmlContent: html,
+    ...(text ? { textContent: text } : {}),
+  };
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'accept': 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const errorMsg = data?.message || JSON.stringify(data);
+    throw new Error(`Brevo API Error (${response.status}): ${errorMsg}`);
+  }
+
+  return {
+    success: true,
+    provider: 'brevo-api',
+    messageId: data?.messageId,
+  };
+}
+
+/**
+ * Universal email dispatcher:
+ * 1. Uses Brevo REST API (HTTPS port 443) when BREVO_API_KEY is available (bypasses Render/Vercel SMTP blocks).
+ * 2. Uses Nodemailer SMTP as fallback when SMTP_USER & SMTP_PASS are set.
+ * 3. Falls back to Dev Mode if neither is configured.
+ */
+export async function sendEmail({ to, subject, html, text, fromEmail, fromName }) {
+  // 1. Priority: Brevo REST API (Bypasses port 587/465 blocks on Render/Vercel)
+  if (process.env.BREVO_API_KEY) {
+    return await sendViaBrevoApi({ to, subject, html, text, fromEmail, fromName });
+  }
+
+  // 2. Fallback: Nodemailer SMTP
+  const mailer = getTransporter();
+  if (mailer) {
+    const from = fromEmail
+      ? `"${fromName || 'Jikadara & Pandav Associates'}" <${fromEmail}>`
+      : process.env.EMAIL_FROM || `"Jikadara & Pandav Associates" <${process.env.SMTP_USER}>`;
+
+    const info = await mailer.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+    return {
+      success: true,
+      provider: 'smtp',
+      messageId: info.messageId,
+    };
+  }
+
+  // 3. Fallback: Dev Mode
+  return {
+    success: true,
+    devMode: true,
+    provider: 'dev-mode',
+    message: 'Email logged to server terminal (no email provider credentials configured)',
+  };
 }
 
 /**
@@ -50,25 +149,24 @@ export async function sendEmailOtp({ email, otp, userName = 'Advocate' }) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const mailer = getTransporter();
 
   // Always log OTP to server terminal as an immediate rescue fallback
   console.log('\n' + '═'.repeat(64));
   console.log(`✉️ [EMAIL OTP LOG] OTP for ${cleanEmail} is: >>> ${otp} <<<`);
   console.log('═'.repeat(64));
 
-  // 1. Dev Mode Fallback (If SMTP credentials are not yet entered)
-  if (!mailer) {
-    console.log('💡 Note: Set SMTP_USER and SMTP_PASS in server/.env to send real emails.\n');
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY);
+  const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+
+  // 1. Dev Mode Fallback (If no credentials are set)
+  if (!hasBrevo && !hasSmtp) {
+    console.log('💡 Note: Set BREVO_API_KEY or SMTP credentials in server/.env to send real emails.\n');
     return {
       success: true,
       devMode: true,
       message: 'OTP generated (Dev Mode: logged to server terminal)',
     };
   }
-
-  // 2. Production SMTP Dispatch
-  const from = process.env.EMAIL_FROM || `"Jikadara & Pandav Associates" <${process.env.SMTP_USER}>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -114,28 +212,35 @@ export async function sendEmailOtp({ email, otp, userName = 'Advocate' }) {
     </html>
   `;
 
+  const textContent = `Your Jikadara & Pandav Associates verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+  const subject = `[${otp}] Your Verification Code - Jikadara & Pandav Associates`;
+
   try {
-    const info = await mailer.sendMail({
-      from,
+    const result = await sendEmail({
       to: cleanEmail,
-      subject: `[${otp}] Your Verification Code - Jikadara & Pandav Associates`,
-      text: `Your Jikadara & Pandav Associates verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+      subject,
       html: htmlContent,
+      text: textContent,
+      fromEmail: process.env.BREVO_SENDER_EMAIL || 'dhamopandav1311@gmail.com',
+      fromName: process.env.BREVO_SENDER_NAME || 'Jikadara & Pandav Associates',
     });
 
-    console.log(`✅ Email OTP sent successfully to ${cleanEmail}. MessageId: ${info.messageId}`);
+    console.log(`✅ Email OTP sent successfully to ${cleanEmail} via [${result.provider}]. MessageId: ${result.messageId}`);
     return {
       success: true,
       devMode: false,
+      provider: result.provider,
       message: 'OTP sent successfully to your email',
     };
   } catch (error) {
-    console.error('Failed to send email OTP via SMTP:', error);
+    console.error('Failed to send email OTP:', error);
     throw new Error(`Email Delivery Failed: ${error.message}`);
   }
 }
 
 export default {
+  sendEmail,
   sendEmailOtp,
   maskEmail,
 };
+

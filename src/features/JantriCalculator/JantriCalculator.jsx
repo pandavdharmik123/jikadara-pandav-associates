@@ -167,7 +167,58 @@ export default function JantriCalculator({ currentAccentColor }) {
   const [buildArea, setBuildArea] = useState(150);
   const [buildRate, setBuildRate] = useState(10395);
 
-  const [depAge, setDepAge] = useState(0); // ઘસારો મિ. ઉમર
+  // Floor-wise construction & depreciation for મકાન / પ્લોટ
+  const [floors, setFloors] = useState([
+    { id: 1, floor: 'GF', area: 150, age: 0 },
+  ]);
+
+  const getFloorLabel = (index) => {
+    switch (index) {
+      case 0: return 'GF';
+      case 1: return 'FF';
+      case 2: return 'SF';
+      case 3: return '3F';
+      case 4: return '4th Floor';
+      case 5: return '5th Floor';
+      case 6: return '6th Floor';
+      case 7: return '7th Floor';
+      case 8: return '8th Floor';
+      default: return `${index}th Floor`;
+    }
+  };
+
+  const handleAddFloor = () => {
+    const nextIdx = floors.length;
+    setFloors(prev => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        floor: getFloorLabel(nextIdx),
+        area: 0,
+        age: 0,
+      }
+    ]);
+  };
+
+  const handleRemoveFloor = (id) => {
+    if (floors.length <= 1) {
+      message.warning('ઓછામાં ઓછો એક ફ્લોર જરૂરી છે (At least one floor is required)');
+      return;
+    }
+    setFloors(prev => {
+      const filtered = prev.filter(f => f.id !== id);
+      return filtered.map((f, idx) => ({
+        ...f,
+        floor: getFloorLabel(idx),
+      }));
+    });
+  };
+
+  const handleUpdateFloor = (id, key, val) => {
+    setFloors(prev => prev.map(f => (f.id === id ? { ...f, [key]: val } : f)));
+  };
+
+  const [depAge, setDepAge] = useState(0); // ઘસારો મિ. ઉમર (for flat/shop)
   const [totalPages, setTotalPages] = useState(0); // ટોટલ પેજ
 
   const [vahiwatFee, setVahiwatFee] = useState(1000); // વહીવટ
@@ -193,20 +244,35 @@ export default function JantriCalculator({ currentAccentColor }) {
   const removeCustomField = (id) => setCustomFields(customFields.filter(f => f.id !== id));
 
   // --- Calculations ---
+  const isPlotMakan = propertyType === 'ખુલ્લો પ્લોટ';
+
   // પ્લોટ નો અવેજ = ખુલ્લો પ્લોટ ક્ષેત્રફળ * ખુલ્લો પ્લોટ જંત્રી ભાવ
   let plotValue = (plotArea || 0) * (plotRate || 0);
   if (propertyType === 'ફ્લેટ' && asrDeduction) {
     plotValue = plotValue - (plotValue * (asrDeduction / 100));
   }
 
+  // Floors Calculation (મકાન / પ્લોટ માટે floor-wise breakdown)
+  const totalFloorArea = floors.reduce((sum, f) => sum + (Number(f.area) || 0), 0);
+  const totalFloorBuildValue = floors.reduce((sum, f) => sum + ((Number(f.area) || 0) * (Number(buildRate) || 0)), 0);
+  const totalFloorDepAmount = floors.reduce((sum, f) => {
+    const bVal = (Number(f.area) || 0) * (Number(buildRate) || 0);
+    return sum + (((Number(f.age) || 0) * bVal * 1.2) / 100);
+  }, 0);
+  const totalFloorNetValue = totalFloorBuildValue - totalFloorDepAmount;
+
   // બાંધકામ નો અવેજ = બાંધકામ ક્ષેત્રફળ ચો.મી * બાંધકામ જંત્રી ભાવ
-  const buildValue = (propertyType === 'ફ્લેટ' || propertyType === 'દુકાન' || propertyType === 'ખેતી ની જમીન') ? 0 : ((buildArea || 0) * (buildRate || 0));
+  const buildValue = isPlotMakan
+    ? totalFloorBuildValue
+    : ((propertyType === 'ફ્લેટ' || propertyType === 'દુકાન' || propertyType === 'ખેતી ની જમીન') ? 0 : ((buildArea || 0) * (buildRate || 0)));
 
   // પાર્કિંગ ની ગણતરી 
   const parkingValue = propertyType === 'ફ્લેટ' ? ((plotRate || 0) * 0.8) : (propertyType === 'દુકાન' ? ((plotRate || 0) * 1.6) : 0);
 
   // ટોટલ અવેજ = પ્લોટ નો અવેજ + બાંધકામ નો અવેજ + પાર્કિંગ નો અવેજ
-  const totalValue = plotValue + buildValue + parkingValue;
+  const totalValue = isPlotMakan
+    ? (plotValue + totalFloorBuildValue)
+    : (plotValue + buildValue + parkingValue);
 
   const getSection1Title = () => {
     switch (propertyType) {
@@ -228,10 +294,15 @@ export default function JantriCalculator({ currentAccentColor }) {
 
   // ઘસારાની રકમ = (ઘસારો મિ. ઉમર*બાંધકામ નો અવેજ*1.2)/100
   const depBaseValue = (propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') ? plotValue : buildValue;
-  const depAmount = propertyType === 'ખેતી ની જમીન' ? 0 : (((depAge || 0) * depBaseValue * 1.2) / 100);
+  const depAmount = isPlotMakan
+    ? totalFloorDepAmount
+    : (propertyType === 'ખેતી ની જમીન' ? 0 : (((depAge || 0) * depBaseValue * 1.2) / 100));
 
   // ઘસારા બાદ અવેજ = ટોટલ અવેજ - ઘસારાની રકમ
-  const calculatedFinalValue = totalValue - depAmount;
+  // મકાન / પ્લોટ માટે: પ્લોટ નો અવેજ + તમામ ફ્લોરના ઘસારા બાદ ની રકમનું કુલ સરવાળો
+  const calculatedFinalValue = isPlotMakan
+    ? (plotValue + totalFloorNetValue)
+    : (totalValue - depAmount);
 
   useEffect(() => {
     setCustomFinalValue(null);
@@ -561,8 +632,8 @@ export default function JantriCalculator({ currentAccentColor }) {
                 </div>
               </Card>
 
-              {/* Section 2: Construction Details */}
-              {propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
+              {/* Section 2: Construction Details (Show only if not plot/makan and not flat/shop/agri) */}
+              {!isPlotMakan && propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
                 <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>} style={{ position: 'relative', zIndex: 98 }}>
                   {/* PDF/Print Table View */}
                   <div className="pdf-only-view">
@@ -659,65 +730,263 @@ export default function JantriCalculator({ currentAccentColor }) {
                   className="glass-panel"
                   bordered={false}
                   title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
-                      <span style={{ color: currentAccentColor, fontSize: 13, width: '40%' }}>ઘસારો (Depreciation)</span>
-                      <span className="pdf-depreciation-total-title" style={{ fontSize: 16, width: '58%', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        કુલ અવેજ (પ્લોટ + બાંધકામ): <span style={{ color: currentAccentColor, fontWeight: 700 }}>{formatMoney(totalValue)}</span>
-                      </span>
-                    </div>
+                    isPlotMakan ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ color: currentAccentColor, fontSize: 13 }}>ઘસારો (Depreciation)</span>
+                        <div className="screen-input-only" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>જંત્રી ભાવ (Rate):</Text>
+                            <InputNumber
+                              value={buildRate}
+                              onChange={setBuildRate}
+                              min={0}
+                              style={{ width: 120, height: '28px' }}
+                              placeholder="Rate"
+                            />
+                          </div>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<Plus size={14} />}
+                            onClick={handleAddFloor}
+                            style={{ backgroundColor: currentAccentColor, height: '28px' }}
+                          >
+                            Add Floor
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ color: currentAccentColor, fontSize: 13, width: '40%' }}>ઘસારો (Depreciation)</span>
+                        <span className="pdf-depreciation-total-title" style={{ fontSize: 16, width: '58%', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          કુલ અવેજ: <span style={{ color: currentAccentColor, fontWeight: 700 }}>{formatMoney(totalValue)}</span>
+                        </span>
+                      </div>
+                    )
                   }
                   style={{ position: 'relative', zIndex: 96 }}
                 >
-                  {/* PDF/Print Table View */}
-                  <div className="pdf-only-view">
-                    <table className="pdf-section-table">
-                      <thead>
-                        <tr>
-                          <th>મિલકત ની ઉંમર (Age)</th>
-                          <th>ઘસારાની રકમ</th>
-                          <th>ઘસારા બાદ નો અવેજ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>{depAge} વર્ષ</td>
-                          <td>{formatMoney(depAmount)}</td>
-                          <td style={{ fontWeight: 'bold' }}>{formatMoney(calculatedFinalValue)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Interactive Screen Inputs */}
-                  <div className="screen-input-only">
-                    <Row gutter={[8, 8]} align="middle">
-                      <Col xs={24} sm={8}>
-                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર</Text>
-                        <InputNumber
-                          style={{ width: '100%', height: '28px' }}
-                          value={depAge}
-                          onChange={setDepAge}
-                          min={0}
-                        />
-                      </Col>
-                      <Col xs={24} sm={8}>
-                        <Statistic
-                          title={<span style={{ fontSize: 12 }}>ઘસારાની રકમ</span>}
-                          value={formatMoney(depAmount)}
-                          valueStyle={{ color: 'var(--text-secondary)', fontSize: 16 }}
-                        />
-                      </Col>
-                      <Col xs={24} sm={8}>
-                        <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
-                          <Statistic
-                            title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>ઘસારા બાદ નો અવેજ</span>}
-                            value={formatMoney(calculatedFinalValue)}
-                            valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
-                          />
+                  {isPlotMakan ? (
+                    <>
+                      {/* PDF/Print Table View for મકાન (Plot) */}
+                      <div className="pdf-only-view">
+                        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#334155' }}>
+                          <span><strong>જંત્રી ભાવ (Rate):</strong> ₹{formatMoney(buildRate)} / ચો.મી</span>
+                          <span><strong>પ્લોટ નો અવેજ:</strong> ₹{formatMoney(plotValue)}</span>
                         </div>
-                      </Col>
-                    </Row>
-                  </div>
+                        <table className="pdf-section-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '12%' }}>Flor</th>
+                              <th style={{ width: '18%' }}>ક્ષેત્રફળ ચો.મી (Area)</th>
+                              <th style={{ width: '20%' }}>બાંધકામ નો અવેજ</th>
+                              <th style={{ width: '12%' }}>Age</th>
+                              <th style={{ width: '18%' }}>ઘસારાની રકમ</th>
+                              <th style={{ width: '20%' }}>ઘસારા બાદ ni rakam</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {floors.map((f) => {
+                              const fArea = Number(f.area) || 0;
+                              const fBuildVal = fArea * (Number(buildRate) || 0);
+                              const fDep = ((Number(f.age) || 0) * fBuildVal * 1.2) / 100;
+                              const fNet = fBuildVal - fDep;
+                              return (
+                                <tr key={f.id}>
+                                  <td style={{ fontWeight: 600 }}>{f.floor}</td>
+                                  <td>{fArea}</td>
+                                  <td>{formatMoney(fBuildVal)}</td>
+                                  <td>{f.age || 0} વર્ષ</td>
+                                  <td>{formatMoney(fDep)}</td>
+                                  <td style={{ fontWeight: 'bold' }}>{formatMoney(fNet)}</td>
+                                </tr>
+                              );
+                            })}
+                            <tr style={{ fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>
+                              <td>કુલ (Total)</td>
+                              <td>{totalFloorArea}</td>
+                              <td>{formatMoney(totalFloorBuildValue)}</td>
+                              <td>-</td>
+                              <td>{formatMoney(totalFloorDepAmount)}</td>
+                              <td style={{ color: currentAccentColor }}>{formatMoney(totalFloorNetValue)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', padding: '4px 8px', background: '#f8fafc', border: '1px solid #c7c7c7', fontSize: 11 }}>
+                          <span>પ્લોટ નો અવેજ: <strong>₹{formatMoney(plotValue)}</strong></span>
+                          <span>+ કુલ બાંધકામ (ઘસારા બાદ): <strong>₹{formatMoney(totalFloorNetValue)}</strong></span>
+                          <span>= અવેજ (Final Value): <strong style={{ color: currentAccentColor }}>₹{formatMoney(calculatedFinalValue)}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Interactive Screen Inputs for મકાન (Plot) */}
+                      <div className="screen-input-only">
+                        <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                            <thead>
+                              <tr style={{ background: 'rgba(0, 0, 0, 0.03)', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '12%' }}>Flor</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '18%' }}>ક્ષેત્રફળ ચો.મી (Area)</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '18%' }}>બાંધકામ નો અવેજ</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '15%' }}>Age</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '16%' }}>ઘસારાની રકમ</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '17%' }}>ઘસારા બાદ ni rakam</th>
+                                <th style={{ padding: '6px 4px', textAlign: 'center', width: '4%' }}></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {floors.map((f) => {
+                                const fArea = Number(f.area) || 0;
+                                const fBuildVal = fArea * (Number(buildRate) || 0);
+                                const fDep = ((Number(f.age) || 0) * fBuildVal * 1.2) / 100;
+                                const fNet = fBuildVal - fDep;
+                                return (
+                                  <tr key={f.id} style={{ borderBottom: '1px solid var(--border-color, #f1f5f9)' }}>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                      <Input
+                                        value={f.floor}
+                                        onChange={(e) => handleUpdateFloor(f.id, 'floor', e.target.value)}
+                                        style={{ width: '100%', height: '28px', textAlign: 'center', fontWeight: 'bold' }}
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px' }}>
+                                      <InputNumber
+                                        value={f.area}
+                                        onChange={(val) => handleUpdateFloor(f.id, 'area', val)}
+                                        min={0}
+                                        style={{ width: '100%', height: '28px' }}
+                                        placeholder="Area"
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 500 }}>
+                                      {formatMoney(fBuildVal)}
+                                    </td>
+                                    <td style={{ padding: '4px 6px' }}>
+                                      <InputNumber
+                                        value={f.age}
+                                        onChange={(val) => handleUpdateFloor(f.id, 'age', val)}
+                                        min={0}
+                                        max={100}
+                                        style={{ width: '100%', height: '28px' }}
+                                        placeholder="Age"
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      {formatMoney(fDep)}
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 'bold', color: currentAccentColor }}>
+                                      {formatMoney(fNet)}
+                                    </td>
+                                    <td style={{ padding: '4px 4px', textAlign: 'center' }}>
+                                      <Button
+                                        type="text"
+                                        danger
+                                        size="small"
+                                        icon={<Trash2 size={15} />}
+                                        onClick={() => handleRemoveFloor(f.id)}
+                                        disabled={floors.length <= 1}
+                                        style={{ padding: 0 }}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              {/* Total Row */}
+                              <tr style={{ background: 'rgba(0, 0, 0, 0.02)', fontWeight: 'bold', borderTop: '2px solid var(--border-color, #e2e8f0)' }}>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>કુલ</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{totalFloorArea}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatMoney(totalFloorBuildValue)}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>-</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatMoney(totalFloorDepAmount)}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center', color: currentAccentColor }}>{formatMoney(totalFloorNetValue)}</td>
+                                <td></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <Row gutter={[8, 8]} align="middle">
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>પ્લોટ નો અવેજ</span>}
+                              value={formatMoney(plotValue)}
+                              valueStyle={{ color: 'var(--text-primary)', fontSize: 15 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>કુલ બાંધકામ (ઘસારા બાદ)</span>}
+                              value={formatMoney(totalFloorNetValue)}
+                              valueStyle={{ color: 'var(--text-secondary)', fontSize: 15 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
+                              <Statistic
+                                title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>અવેજ (Final Value)</span>}
+                                value={formatMoney(calculatedFinalValue)}
+                                valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* PDF/Print Table View for Flat/Shop (Unchanged) */}
+                      <div className="pdf-only-view">
+                        <table className="pdf-section-table">
+                          <thead>
+                            <tr>
+                              <th>મિલકત ની ઉંમર (Age)</th>
+                              <th>ઘસારાની રકમ</th>
+                              <th>ઘસારા બાદ નો અવેજ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>{depAge} વર્ષ</td>
+                              <td>{formatMoney(depAmount)}</td>
+                              <td style={{ fontWeight: 'bold' }}>{formatMoney(calculatedFinalValue)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Interactive Screen Inputs for Flat/Shop (Unchanged) */}
+                      <div className="screen-input-only">
+                        <Row gutter={[8, 8]} align="middle">
+                          <Col xs={24} sm={8}>
+                            <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર</Text>
+                            <InputNumber
+                              style={{ width: '100%', height: '28px' }}
+                              value={depAge}
+                              onChange={setDepAge}
+                              min={0}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>ઘસારાની રકમ</span>}
+                              value={formatMoney(depAmount)}
+                              valueStyle={{ color: 'var(--text-secondary)', fontSize: 16 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
+                              <Statistic
+                                title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>ઘસારા બાદ નો અવેજ</span>}
+                                value={formatMoney(calculatedFinalValue)}
+                                valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+                    </>
+                  )}
                 </Card>
               )}
 

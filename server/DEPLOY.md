@@ -33,8 +33,15 @@ npm run start
 | `DATABASE_URL` | Yes | `postgresql://user:pass@ep-xxx-pooler.neon.tech/neondb?sslmode=require` |
 | `JWT_SECRET` | Yes | A long random string |
 | `NODE_ENV` | Recommended | `production` |
+| `BREVO_API_KEY` | Recommended | `xkeysib-...` (Uses HTTPS port 443 — works on Render/Vercel free tier) |
+| `BREVO_SENDER_EMAIL` | Recommended | `dhamopandav1311@gmail.com` (Must match verified Brevo sender) |
+| `BREVO_SENDER_NAME` | Optional | `Jikadara & Pandav Associates` |
 
-Do **not** rely on a `.env` file in the repo — set variables in **Render → Environment**.
+> **Note on Email Sending on Render / Vercel Free Tiers:**
+> Render and Vercel block outbound SMTP ports (25, 465, 587) on free plans. Setting `BREVO_API_KEY` switches email delivery automatically to Brevo's **HTTPS REST API (port 443)**, which is 100% allowed on all cloud platforms.
+
+Do **not** rely on a `.env` file in the repo — set variables in **Render → Environment** (or Vercel → Project Settings → Environment Variables).
+
 
 ## 3. Push schema & seed (first deploy)
 
