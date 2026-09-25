@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import { runStartupTasks, pingDatabase } from './lib/startup.js';
+import { startKeepAlive } from './lib/keepAlive.js';
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import taskRoutes from './routes/tasks.js';
@@ -65,4 +66,5 @@ await runStartupTasks();
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  startKeepAlive();
 });
