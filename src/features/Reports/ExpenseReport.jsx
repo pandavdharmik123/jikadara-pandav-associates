@@ -4,6 +4,7 @@ import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff } f
 import html2pdf from 'html2pdf.js';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import { useGeneralExpenses, useCreateGeneralExpense, useUpdateGeneralExpense, useDeleteGeneralExpense } from '../../hooks/useGeneralExpenses';
+import { useDeleteTransaction } from '../../hooks/useTasks';
 import { useCurrentProfile } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
 import usePrivacyStore from '../../store/privacyStore';
@@ -42,6 +43,7 @@ export default function ExpenseReport() {
 
   // Income Modal State
   const [isIncomeModalVisible, setIsIncomeModalVisible] = useState(false);
+  const [editingIncome, setEditingIncome] = useState(null);
 
   // General Expense Modal State
   const [isExpenseModalVisible, setIsExpenseModalVisible] = useState(false);
@@ -124,6 +126,7 @@ export default function ExpenseReport() {
   const createExpenseMutation = useCreateGeneralExpense();
   const updateExpenseMutation = useUpdateGeneralExpense();
   const deleteExpenseMutation = useDeleteGeneralExpense();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   const handleOpenExpenseModal = (expense = null) => {
     setEditingExpense(expense);
@@ -188,6 +191,33 @@ export default function ExpenseReport() {
     });
   };
 
+  const handleDeleteDirectIncome = (record) => {
+    Modal.confirm({
+      title: 'Delete Income Entry?',
+      content: (
+        <div>
+          <p>Are you sure you want to delete this manual income entry?</p>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 13, border: '1px solid #e2e8f0' }}>
+            <div style={{ marginBottom: 4 }}><strong>Client:</strong> {record.client?.name || record.clientName || '-'}</div>
+            <div style={{ marginBottom: 4 }}><strong>Document Type:</strong> {record.documentType || '-'}</div>
+            <div><strong>Amount:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{formatCurrency(record.totalIncome || record.netAmount)}</span></div>
+          </div>
+        </div>
+      ),
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: async () => {
+        try {
+          await deleteTransactionMutation.mutateAsync({ id: record.id });
+          message.success('Income entry moved to Recycle Bin');
+        } catch (error) {
+          message.error(error.response?.data?.error || 'Failed to delete income entry');
+        }
+      },
+    });
+  };
+
   const monthlyColumns = [
     {
       title: 'Sr.',
@@ -206,6 +236,27 @@ export default function ExpenseReport() {
       title: 'Document Type',
       dataIndex: 'documentType',
       key: 'documentType',
+      render: (text, record) => (
+        <span>
+          {text || '-'}
+          {record.isDirectIncome && (
+            <span
+              style={{
+                marginLeft: 6,
+                fontSize: 10,
+                padding: '1px 5px',
+                borderRadius: 4,
+                backgroundColor: '#eff6ff',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                fontWeight: 600,
+              }}
+            >
+              Direct
+            </span>
+          )}
+        </span>
+      ),
     },
     {
       title: 'Place',
@@ -232,6 +283,41 @@ export default function ExpenseReport() {
       render: (val) => (
         <PrivacyAmount amount={val} color={Number(val) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
       ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 90,
+      align: 'center',
+      render: (_, record) => {
+        if (record.isDirectIncome) {
+          return (
+            <Space size="small">
+              <Tooltip title="Edit manual income entry">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Edit size={16} />}
+                  onClick={() => {
+                    setEditingIncome(record);
+                    setIsIncomeModalVisible(true);
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title="Delete manual income entry">
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<Trash2 size={16} />}
+                  onClick={() => handleDeleteDirectIncome(record)}
+                />
+              </Tooltip>
+            </Space>
+          );
+        }
+        return null;
+      },
     },
   ];
 
@@ -525,7 +611,14 @@ export default function ExpenseReport() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <Title level={4} style={{ margin: 0 }}>Income List</Title>
-            <Button type="primary" icon={<Plus size={16} />} onClick={() => setIsIncomeModalVisible(true)}>
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setEditingIncome(null);
+                setIsIncomeModalVisible(true);
+              }}
+            >
               Add Income
             </Button>
           </div>
@@ -549,6 +642,7 @@ export default function ExpenseReport() {
                         <Table.Summary.Cell index={1} align="right">
                           <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
                         </Table.Summary.Cell>
+                        <Table.Summary.Cell index={2}></Table.Summary.Cell>
                       </Table.Summary.Row>
                     </Table.Summary>
                   )}
@@ -626,10 +720,14 @@ export default function ExpenseReport() {
         </>
       )}
 
-      {/* Add Income Modal */}
+      {/* Add / Edit Income Modal */}
       <AddIncomeModal
         visible={isIncomeModalVisible}
-        onClose={() => setIsIncomeModalVisible(false)}
+        editingIncome={editingIncome}
+        onClose={() => {
+          setIsIncomeModalVisible(false);
+          setEditingIncome(null);
+        }}
       />
 
       {/* General Expense Modal */}

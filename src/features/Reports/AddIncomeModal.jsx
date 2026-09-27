@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo } from 'react';
 import { Modal, Form, Input, Select, DatePicker, message, Row, Col } from 'antd';
-import { useCreateDirectIncome } from '../../hooks/useTasks';
+import { useCreateDirectIncome, useUpdateDirectIncome } from '../../hooks/useTasks';
 import { useClients } from '../../hooks/useClients';
 import { useDocumentTypes, useCreateDocumentType } from '../../hooks/useDocumentTypes';
 import dayjs from 'dayjs';
 
-export default function AddIncomeModal({ visible, onClose }) {
+export default function AddIncomeModal({ visible, onClose, editingIncome = null }) {
   const [form] = Form.useForm();
 
   const createDirectIncomeMutation = useCreateDirectIncome();
+  const updateDirectIncomeMutation = useUpdateDirectIncome();
   const createDocTypeMutation = useCreateDocumentType();
   const { data: clients, isLoading: clientsLoading } = useClients();
   const { data: documentTypes, isLoading: docTypesLoading } = useDocumentTypes();
@@ -23,11 +24,29 @@ export default function AddIncomeModal({ visible, onClose }) {
   useEffect(() => {
     if (visible) {
       form.resetFields();
-      form.setFieldsValue({
-        date: dayjs(),
-      });
+      if (editingIncome) {
+        const isDocTypeInList = documentTypes?.some(
+          (dt) => dt.name.toLowerCase() === (editingIncome.documentType || '').toLowerCase()
+        );
+        const isClientInList = clients?.some((c) => c.id === editingIncome.clientId);
+
+        form.setFieldsValue({
+          date: dayjs(editingIncome.completedDate || editingIncome.startDate),
+          amount: editingIncome.totalIncome ?? editingIncome.netAmount,
+          documentType: isDocTypeInList ? editingIncome.documentType : 'Other',
+          customDocumentType: isDocTypeInList ? undefined : editingIncome.documentType,
+          place: editingIncome.place || '',
+          clientId: isClientInList ? editingIncome.clientId : (editingIncome.clientName ? 'OTHER' : undefined),
+          customClientName: isClientInList ? undefined : (editingIncome.clientName || ''),
+          referenceName: editingIncome.referenceName || '',
+        });
+      } else {
+        form.setFieldsValue({
+          date: dayjs(),
+        });
+      }
     }
-  }, [visible, form]);
+  }, [visible, editingIncome, form, documentTypes, clients]);
 
   // Memoize options arrays with "Other" always included consistently
   const clientOptions = useMemo(() => {
@@ -100,25 +119,30 @@ export default function AddIncomeModal({ visible, onClose }) {
         clientName: isOtherClientSelected ? values.customClientName?.trim() : undefined,
       };
 
-      await createDirectIncomeMutation.mutateAsync(payload);
-      message.success('Income entry added successfully!');
+      if (editingIncome) {
+        await updateDirectIncomeMutation.mutateAsync({ id: editingIncome.id, ...payload });
+        message.success('Income entry updated successfully!');
+      } else {
+        await createDirectIncomeMutation.mutateAsync(payload);
+        message.success('Income entry added successfully!');
+      }
       onClose();
     } catch (error) {
       if (error.name !== 'ValidationError') {
-        console.error('Error adding income entry:', error);
-        message.error(error.response?.data?.error || error.message || 'Failed to add income entry');
+        console.error('Error saving income entry:', error);
+        message.error(error.response?.data?.error || error.message || 'Failed to save income entry');
       }
     }
   };
 
   return (
     <Modal
-      title="Add Income"
+      title={editingIncome ? 'Edit Income' : 'Add Income'}
       open={visible}
       onOk={handleSubmit}
       onCancel={onClose}
-      confirmLoading={createDirectIncomeMutation.isPending}
-      okText="Save Income"
+      confirmLoading={createDirectIncomeMutation.isPending || updateDirectIncomeMutation.isPending}
+      okText={editingIncome ? 'Update Income' : 'Save Income'}
       cancelText="Cancel"
       width={600}
     >

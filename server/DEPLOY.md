@@ -33,14 +33,18 @@ npm run start
 | `DATABASE_URL` | Yes | `postgresql://user:pass@ep-xxx-pooler.neon.tech/neondb?sslmode=require` |
 | `JWT_SECRET` | Yes | A long random string |
 | `NODE_ENV` | Recommended | `production` |
+| `SERVER_URL` | Optional | `https://your-service.onrender.com` (Used for internal keep-alive pinger) |
 | `BREVO_API_KEY` | Recommended | `xkeysib-...` (Uses HTTPS port 443 — works on Render/Vercel free tier) |
 | `BREVO_SENDER_EMAIL` | Recommended | `dhamopandav1311@gmail.com` (Must match verified Brevo sender) |
 | `BREVO_SENDER_NAME` | Optional | `Jikadara & Pandav Associates` |
 
-> **Note on Email Sending on Render / Vercel Free Tiers:**
-> Render and Vercel block outbound SMTP ports (25, 465, 587) on free plans. Setting `BREVO_API_KEY` switches email delivery automatically to Brevo's **HTTPS REST API (port 443)**, which is 100% allowed on all cloud platforms.
+> **Preventing Render Inactivity Sleep (Free Tier):**
+> Render free instances spin down after 15 minutes of inactivity. To prevent sleep:
+> 1. **Internal Pinger (Automatic):** The server pings `/api/health` every 14 minutes automatically using `RENDER_EXTERNAL_URL` or `SERVER_URL`.
+> 2. **External Pinger (Recommended):** Set up a free monitor on [UptimeRobot](https://uptimerobot.com) or [cron-job.org](https://cron-job.org) targeting `https://YOUR-SERVICE.onrender.com/api/health` every 10–14 minutes. This guarantees the server stays awake 24/7 even after cold restarts.
 
 Do **not** rely on a `.env` file in the repo — set variables in **Render → Environment** (or Vercel → Project Settings → Environment Variables).
+
 
 
 ## 3. Push schema & seed (first deploy)
