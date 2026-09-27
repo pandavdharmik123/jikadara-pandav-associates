@@ -47,7 +47,8 @@ export default function PedhinamuForm({
         rootNode: {
           ...data.tree.rootNode,
           name: field === 'name' ? value : data.tree.rootNode.name,
-          deathDate: field === 'deathDate' ? value : data.tree.rootNode.deathDate
+          deathDate: field === 'deathDate' ? value : data.tree.rootNode.deathDate,
+          age: field === 'age' ? value : data.tree.rootNode.age
         }
       };
     }
@@ -303,7 +304,7 @@ export default function PedhinamuForm({
       key: 'deceased',
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
-          <FileText size={15} /> સ્વર્ગસ્થ
+          <FileText size={15} /> {data.pedhinamuType === 'ALIVE' ? 'મુખ્ય વ્યક્તિ' : 'સ્વર્ગસ્થ'}
         </span>
       ),
       children: (
@@ -313,7 +314,8 @@ export default function PedhinamuForm({
             className="form-section-card"
             title={
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-                <FileText size={15} color="#e11d48" /> સ્વર્ગસ્થ પૂર્વજની વિગત
+                <FileText size={15} color={data.pedhinamuType === 'ALIVE' ? '#059669' : '#e11d48'} />
+                {data.pedhinamuType === 'ALIVE' ? 'હયાત મુખ્ય વ્યક્તિની વિગત' : 'સ્વર્ગસ્થ પૂર્વજની વિગત'}
               </span>
             }
           >
@@ -323,32 +325,49 @@ export default function PedhinamuForm({
 
             <Row gutter={[14, 14]}>
               <Col span={24}>
-                <Form.Item label="સ્વર્ગસ્થનું પૂરું નામ" style={{ marginBottom: 0 }}>
+                <Form.Item
+                  label={data.pedhinamuType === 'ALIVE' ? 'મુખ્ય વ્યક્તિનું પૂરું નામ' : 'સ્વર્ગસ્થનું પૂરું નામ'}
+                  style={{ marginBottom: 0 }}
+                >
                   <GhanshyamInput
-                    value={data.deceased.name}
-                    placeholder="દા.ત. મધુભાઇ પરશોતમભાઇ જીકાદરા"
+                    value={data.deceased?.name || data.tree?.rootNode?.name || ''}
+                    placeholder="દા.ત. ટાપણીયા છગનભાઇ પીતાંબરભાઇ"
                     onChange={(e) => handleDeceasedChange('name', e.target.value)}
                   />
                 </Form.Item>
               </Col>
-              <Col span={12}>
-                <Form.Item label="અવસાન તારીખ" style={{ marginBottom: 0 }}>
-                  <GhanshyamInput
-                    value={data.deceased.deathDate}
-                    placeholder="દા.ત. ૨૦-૦૧-૨૦૨૬"
-                    onChange={(e) => handleDeceasedChange('deathDate', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="અવસાન સ્થળ" style={{ marginBottom: 0 }}>
-                  <GhanshyamInput
-                    value={data.deceased.deathPlace}
-                    placeholder="દા.ત. સુરત"
-                    onChange={(e) => handleDeceasedChange('deathPlace', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
+              {data.pedhinamuType === 'ALIVE' ? (
+                <Col span={12}>
+                  <Form.Item label="ઉંમર (Age)" style={{ marginBottom: 0 }}>
+                    <GhanshyamInput
+                      value={data.tree?.rootNode?.age || ''}
+                      placeholder="દા.ત. ૬૭"
+                      onChange={(e) => handleDeceasedChange('age', e.target.value)}
+                    />
+                  </Form.Item>
+                </Col>
+              ) : (
+                <>
+                  <Col span={12}>
+                    <Form.Item label="અવસાન તારીખ" style={{ marginBottom: 0 }}>
+                      <GhanshyamInput
+                        value={data.deceased?.deathDate || ''}
+                        placeholder="દા.ત. ૨૦-૦૧-૨૦૨૬"
+                        onChange={(e) => handleDeceasedChange('deathDate', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="અવસાન સ્થળ" style={{ marginBottom: 0 }}>
+                      <GhanshyamInput
+                        value={data.deceased?.deathPlace || ''}
+                        placeholder="દા.ત. સુરત"
+                        onChange={(e) => handleDeceasedChange('deathPlace', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                </>
+              )}
             </Row>
           </Card>
         </Form>
@@ -365,6 +384,7 @@ export default function PedhinamuForm({
         <FamilyTreeEditor
           tree={data.tree}
           deceased={data.deceased}
+          pedhinamuType={data.pedhinamuType || 'DECEASED'}
           onChange={handleTreeChange}
           onAutoArrange={onAutoArrangeTree}
           selectedNodeId={selectedNodeId}

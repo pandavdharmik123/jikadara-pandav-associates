@@ -27,6 +27,7 @@ export default function SavedDraftsModal({
             title: d.title || 'Untitled Pedhinamu',
             applicantName: d.applicantName || '-',
             deceasedName: d.deceasedName || '-',
+            pedhinamuType: d.documentData?.pedhinamuType || 'DECEASED',
             source: 'cloud',
             updatedAt: d.updatedAt
           }));
@@ -48,6 +49,7 @@ export default function SavedDraftsModal({
               title: item.title || 'Local Draft',
               applicantName: item.data?.applicant?.name || '-',
               deceasedName: item.data?.deceased?.name || '-',
+              pedhinamuType: item.data?.pedhinamuType || 'DECEASED',
               source: 'local',
               data: item.data,
               updatedAt: item.updatedAt || new Date().toISOString()
@@ -170,7 +172,17 @@ export default function SavedDraftsModal({
       key: 'applicantName'
     },
     {
-      title: 'Deceased / સ્વર્ગસ્થ',
+      title: 'Type / પ્રકાર',
+      dataIndex: 'pedhinamuType',
+      key: 'pedhinamuType',
+      render: (type) => (
+        <Tag color={type === 'ALIVE' ? 'success' : 'default'}>
+          {type === 'ALIVE' ? '🟢 Alive (હયાતી)' : '🔴 Deceased (સ્વર્ગસ્થ)'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Person / વ્યક્તિ',
       dataIndex: 'deceasedName',
       key: 'deceasedName'
     },

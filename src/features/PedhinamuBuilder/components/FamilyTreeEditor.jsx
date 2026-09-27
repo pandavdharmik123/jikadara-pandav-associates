@@ -53,6 +53,7 @@ const RELATIONSHIP_OPTIONS = [
 export default function FamilyTreeEditor({
   tree,
   deceased,
+  pedhinamuType = 'DECEASED',
   onChange,
   onAutoArrange,
   selectedNodeId,

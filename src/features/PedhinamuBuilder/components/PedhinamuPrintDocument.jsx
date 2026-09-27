@@ -1,7 +1,7 @@
 import React from 'react';
 import FamilyTreeCanvas from './FamilyTreeCanvas';
 import PhotoUploadBox from './PhotoUploadBox';
-import { PEDHINAMU_STATIC_TEXT } from '../constants/pedhinamuTemplate';
+import { PEDHINAMU_TEMPLATES, DECEASED_TEMPLATE } from '../constants/pedhinamuTemplate';
 import { calculateAliveHeirs } from '../utils/gujaratiNumbers';
 import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy';
 
@@ -16,7 +16,9 @@ export default function PedhinamuPrintDocument({
   selectedNodeIds,
   onSelectNode
 }) {
-  const { general, applicant, deceased, tree, panchas } = data;
+  const { general = {}, applicant = {}, deceased = {}, tree = {}, panchas = [], pedhinamuType = 'DECEASED' } = data;
+  const isAliveMode = pedhinamuType === 'ALIVE';
+  const template = PEDHINAMU_TEMPLATES[pedhinamuType] || DECEASED_TEMPLATE;
   const totalHeirs = calculateAliveHeirs(tree);
 
   const toFont = (text) => {
@@ -33,11 +35,11 @@ export default function PedhinamuPrintDocument({
   const fmt = toFont;
 
   const formatDecl1 = (text) => {
-    return text.replace(/{applicationDate}/g, general.applicationDate || '૨૧-૧૦-૨૦૨૪');
+    return (text || '').replace(/{applicationDate}/g, general.applicationDate || '૨૧-૧૦-૨૦૨૪');
   };
 
   const formatPanchDecl1 = (text) => {
-    return text
+    return (text || '')
       .replace(/{talatiMoje}/g, general.talatiMoje || general.moje || '')
       .replace(/{taluka}/g, general.taluka || '')
       .replace(/{totalHeirsCountGujarati}/g, totalHeirs.gujaratiDigits)
@@ -48,6 +50,9 @@ export default function PedhinamuPrintDocument({
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', system-ui, sans-serif";
 
+  // Build Statement Paragraph depending on Alive vs Deceased mode
+  const statement = template.getApplicantStatement({ applicant, deceased, general });
+
   return (
     <div
       className={`pedhinamu-print-document ${fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}`}
@@ -55,8 +60,11 @@ export default function PedhinamuPrintDocument({
         width: '1008pt',
         margin: '0 auto',
         fontFamily: docFontFamily,
-        color: '#000',
-        backgroundColor: '#fff'
+        color: '#000000',
+        backgroundColor: '#ffffff',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        textRendering: 'geometricPrecision'
       }}
     >
       {/* ================= PAGE 1 ================= */}
@@ -90,7 +98,7 @@ export default function PedhinamuPrintDocument({
                 lineHeight: 1.3
               }}
             >
-              {toFont(PEDHINAMU_STATIC_TEXT.headerTitle)}
+              {toFont(template.headerTitle)}
             </div>
 
             {/* Right Meta Column */}
@@ -135,7 +143,7 @@ export default function PedhinamuPrintDocument({
                 letterSpacing: '0.5px'
               }}
             >
-              {toFont(PEDHINAMU_STATIC_TEXT.page1Subheading)}
+              {toFont(template.page1Subheading)}
             </span>
           </div>
 
@@ -150,35 +158,45 @@ export default function PedhinamuPrintDocument({
             }}
           >
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            {toFont('હું નીચે સહી કરનાર ')}
-            <span style={{ fontWeight: 600 }}>{toFont(applicant.name || '...................................................')}</span>
-            {toFont(' ઉ.આ. ')}
-            <span>{toFont(applicant.age || '.....')}</span>
-            {toFont(' ધંધો. ')}
-            <span>{toFont(applicant.occupation || '.......')}</span>
-            {toFont(' રહે. ')}
-            <span>{toFont(applicant.address || '.......................................................................')}</span>
-            {toFont(' આજરોજ તલાટી ')}
-            <span>{toFont(general.talatiMoje || general.moje || '................')}</span>
-            {toFont(', તા. ')}
-            <span>{toFont(general.taluka || '................')}</span>
-            {toFont(' રૂબરૂ હાજર થઈ પુછવાથી લખાવું છું કે, સ્વ. ')}
-            <span style={{ fontWeight: 600 }}>{toFont(deceased.name || '...................................................')}</span>
-            {toFont(' કે જેઓ ')}
-            <span>{toFont(applicant.relationWithDeceased ? `${applicant.relationWithDeceased} થાય` : 'મારા પિતા થાય')}</span>
-            {toFont('. તેઓનું ')}
-            <span>{toFont(deceased.deathPlace || 'સુરત')}</span>
-            {toFont(' મુકામે તા. ')}
-            <span>{toFont(deceased.deathDate || '................')}</span>
-            {toFont(' ના રોજ અવસાન થયેલુ છે. વારસાઈ કામે તેમના પેઢીનામાની જરૂર હોઈ પેઢીનામું મેળવવા માટે તા. ')}
-            <span>{toFont(general.applicationDate || general.currentDate || '................')}</span>
-            {toFont(' ના રોજ અરજી કરેલી છે. તે સંદર્ભે આજ રોજ લખાવું છું કે, વારસદારો જાહેર કરતું પેઢીનામું નીચે પ્રમાણે છે. જે હકીકત છે.')}
+            {toFont(statement.prefix)}
+            <span style={{ fontWeight: 600 }}>{toFont(statement.applicantName)}</span>
+            {toFont(statement.ageLabel)}
+            <span>{toFont(statement.applicantAge)}</span>
+            {toFont(statement.occLabel)}
+            <span>{toFont(statement.applicantOcc)}</span>
+            {toFont(statement.addressLabel)}
+            <span>{toFont(statement.applicantAddress)}</span>
+            {toFont(statement.talatiLabel)}
+            <span>{toFont(statement.talatiMoje)}</span>
+            {toFont(statement.talukaLabel)}
+            <span>{toFont(statement.taluka)}</span>
+            {isAliveMode ? (
+              <>
+                {toFont(statement.aliveIntro)}
+                <span>{toFont(statement.appDate)}</span>
+                {toFont(statement.statementSuffix)}
+              </>
+            ) : (
+              <>
+                {toFont(statement.deceasedIntro)}
+                <span style={{ fontWeight: 600 }}>{toFont(statement.deceasedName)}</span>
+                {toFont(statement.relationIntro)}
+                <span>{toFont(statement.relation)}</span>
+                {toFont(statement.deathPlaceIntro)}
+                <span>{toFont(statement.deathPlace)}</span>
+                {toFont(statement.deathDateIntro)}
+                <span>{toFont(statement.deathDate)}</span>
+                {toFont(statement.purposeIntro)}
+                <span>{toFont(statement.appDate)}</span>
+                {toFont(statement.statementSuffix)}
+              </>
+            )}
           </div>
 
           {/* Title: પેઢીનામું */}
           <div style={{ textAlign: 'center', marginBottom: '3pt' }}>
             <span style={{ fontSize: fontMode === 'ghanshyam' ? '13.5pt' : '12.5pt', fontWeight: 700 }}>
-              {fmt(PEDHINAMU_STATIC_TEXT.pedhinamuHeading)}
+              {fmt(template.pedhinamuHeading)}
             </span>
           </div>
 
@@ -187,6 +205,7 @@ export default function PedhinamuPrintDocument({
             <FamilyTreeCanvas
               tree={tree}
               deceased={deceased}
+              pedhinamuType={pedhinamuType}
               onNodeMove={onNodeMove}
               interactive={interactive}
               scale={scale}
@@ -206,13 +225,13 @@ export default function PedhinamuPrintDocument({
             }}
           >
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont(formatDecl1(PEDHINAMU_STATIC_TEXT.page1Decl1))}
+              {toFont(formatDecl1(template.page1Decl1))}
             </p>
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont(PEDHINAMU_STATIC_TEXT.page1Decl2)}
+              {toFont(template.page1Decl2)}
             </p>
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont(PEDHINAMU_STATIC_TEXT.page1Decl3)}
+              {toFont(template.page1Decl3)}
             </p>
           </div>
         </div>
@@ -254,10 +273,10 @@ export default function PedhinamuPrintDocument({
             {/* Right: Signature line */}
             <div style={{ textAlign: 'center', minWidth: '220pt' }}>
               <div style={{ letterSpacing: '1px', marginBottom: '3pt', fontSize: '9.5pt' }}>
-                {PEDHINAMU_STATIC_TEXT.signatureDottedLine}
+                {template.signatureDottedLine}
               </div>
               <div style={{ fontWeight: 700, fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt' }}>
-                {toFont(PEDHINAMU_STATIC_TEXT.applicantSignLabel)}
+                {toFont(template.applicantSignLabel)}
               </div>
             </div>
           </div>
@@ -307,7 +326,7 @@ export default function PedhinamuPrintDocument({
                 lineHeight: 1.35
               }}
             >
-              {toFont(PEDHINAMU_STATIC_TEXT.headerTitle)}
+              {toFont(template.headerTitle)}
             </div>
 
             <div
@@ -339,7 +358,7 @@ export default function PedhinamuPrintDocument({
                 letterSpacing: '0.5px'
               }}
             >
-              {toFont(PEDHINAMU_STATIC_TEXT.page2Subheading)}
+              {toFont(template.page2Subheading)}
             </span>
           </div>
 
@@ -378,21 +397,13 @@ export default function PedhinamuPrintDocument({
             }}
           >
             <p style={{ marginBottom: '5pt', textIndent: '20pt' }}>
-              {toFont('અમો નીચે સહી કરનાર પંચો આજ રોજ તલાટી ')}
-              <span>{toFont(general.talatiMoje || general.moje || '')}</span>
-              {toFont(' તા. ')}
-              <span>{toFont(general.taluka || '')}</span>
-              {toFont(' રૂબરૂ હાજર થઈ લખાવીએ છીએ કે, અમો અરજદાર તથા તેમના કુટુંબીજનોને અને વારસદારોને સારી રીતે ઓળખીએ છીએ. અરજદારનો જવાબ અમારી રૂબરૂ લેવામાં આવ્યો છે. જેમાં તેમણે પાના નં.૧ ઉપર લખાવેલ પેઢીનામાની ખાત્રી કરતાં તેમાં દર્શાવેલ કુલ ')}
-              <span>{toFont(totalHeirs.gujaratiDigits)}</span>
-              {toFont(' (')}
-              <span>{toFont(totalHeirs.gujaratiWords)}</span>
-              {toFont(') હયાત વારસદારો છે. જેમાં કોઈ કાયદેસરના વારસદારો લખાવવાના રહી જતાં નથી. અને તેમાં કોઈ ખોટા વારસદારો દર્શાવેલા નથી. તેની અમો ખાત્રી આપીએ છીએ. ખોટું પેઢીનામું લખાવવું ફોજદારી ગુન્હો બને છે. જેની અમોને સમજ છે.')}
+              {toFont(formatPanchDecl1(template.page2Decl1))}
             </p>
             <p style={{ marginBottom: '5pt', textIndent: '20pt' }}>
-              {toFont(PEDHINAMU_STATIC_TEXT.page2Decl2)}
+              {toFont(template.page2Decl2)}
             </p>
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont(PEDHINAMU_STATIC_TEXT.page2Decl3)}
+              {toFont(template.page2Decl3)}
             </p>
           </div>
         </div>
@@ -443,7 +454,7 @@ export default function PedhinamuPrintDocument({
                     {toFont(row.label)}
                   </span>
                   <span style={{ letterSpacing: '1px' }}>
-                    {PEDHINAMU_STATIC_TEXT.signatureDottedLine.slice(0, 26)}
+                    {template.signatureDottedLine.slice(0, 26)}
                   </span>
                 </div>
               ))}
@@ -459,7 +470,7 @@ export default function PedhinamuPrintDocument({
               paddingTop: '5pt'
             }}
           >
-            {PEDHINAMU_STATIC_TEXT.bulletNotes.map((note, nIdx) => (
+            {template.bulletNotes.map((note, nIdx) => (
               <div key={`note-${nIdx}`} style={{ display: 'flex', marginBottom: '2pt' }}>
                 <span style={{ marginRight: '6pt' }}>•</span>
                 <span>{fmt(formatDecl1(note))}</span>

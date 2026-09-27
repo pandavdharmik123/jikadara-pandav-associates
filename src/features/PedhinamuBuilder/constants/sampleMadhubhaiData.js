@@ -1,4 +1,5 @@
 export const SAMPLE_MADHUBHAI_DATA = {
+  pedhinamuType: 'DECEASED',
   general: {
     registrationNo: '............',
     registrationYear: '૨૦૨૬',

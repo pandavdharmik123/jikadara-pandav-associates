@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { toSvg, toPng } from 'html-to-image';
 
 import PedhinamuForm from './components/PedhinamuForm';
 import PedhinamuPrintDocument from './components/PedhinamuPrintDocument';
@@ -37,6 +38,7 @@ import GhanshyamInput from './components/GhanshyamInput';
 
 import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
+import { SAMPLE_HAYATI_DATA } from './constants/sampleHayatiData';
 import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions } from './utils/treeModel';
 import api from '../../services/api';
 
@@ -58,6 +60,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       try {
         const parsed = JSON.parse(saved);
         return {
+          pedhinamuType: parsed.pedhinamuType || 'DECEASED',
           ...parsed,
           tree: normalizeFamilyTree(parsed.tree, parsed.deceased)
         };
@@ -191,6 +194,32 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     });
   }, []);
 
+  // Switch Pedhinamu Type (ALIVE / DECEASED) without destroying family tree
+  const handleTypeChange = (newType) => {
+    setData((prev) => {
+      const isAlive = newType === 'ALIVE';
+      let updatedRoot = prev.tree?.rootNode;
+      if (updatedRoot) {
+        updatedRoot = {
+          ...updatedRoot,
+          deceased: !isAlive
+        };
+      }
+
+      return {
+        ...prev,
+        pedhinamuType: newType,
+        tree: updatedRoot ? { ...prev.tree, rootNode: updatedRoot } : prev.tree
+      };
+    });
+
+    // message.success(
+    //   newType === 'ALIVE'
+    //     ? 'Pedhinamu mode switched to: 🟢 Alive / હયાતી (Hayati template loaded)'
+    //     : 'Pedhinamu mode switched to: 🔴 Deceased / અવસાન પામેલ'
+    // );
+  };
+
   // Auto-arrange tree coordinates
   const handleAutoArrange = () => {
     setData((prev) => {
@@ -212,18 +241,26 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     message.success('Family Tree auto-arranged to symmetrical layout');
   };
 
-  // Load sample Madhubhai data
+  // Load sample data based on active mode
   const handleLoadSample = () => {
+    const isAlive = data.pedhinamuType === 'ALIVE';
+    const sampleToLoad = isAlive ? SAMPLE_HAYATI_DATA : SAMPLE_MADHUBHAI_DATA;
+    const sampleTitle = isAlive
+      ? 'ટાપણીયા છગનભાઇ પીતાંબરભાઇ - હયાતી પેઢીનામું'
+      : 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું';
+
     Modal.confirm({
-      title: 'Load Sample Reference Data?',
-      content: 'This will replace the current form with the Madhubhai Reference Pedhinamu data (Late Madhubhai, 2 wives, 7 children, 3 panchas).',
+      title: isAlive ? 'Load Hayati Reference Sample?' : 'Load Deceased Reference Sample?',
+      content: isAlive
+        ? 'This will load reference data from "Pedhinamu DRAFT - Hayati.pdf" (Shri Chhaganbhai Pitambarbhai, wife, 7 alive heirs, 3 panchas).'
+        : 'This will replace the current form with the Madhubhai Reference Pedhinamu data (Late Madhubhai, 2 wives, 7 children, 3 panchas).',
       okText: 'Load Sample',
       onOk: () => {
-        setData(SAMPLE_MADHUBHAI_DATA);
+        setData(sampleToLoad);
         setSelectedNodeId('root');
         setSelectedNodeIds(['root']);
-        setDraftTitle('મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું');
-        message.success('Sample reference data loaded!');
+        setDraftTitle(sampleTitle);
+        message.success(`${isAlive ? 'Hayati' : 'Deceased'} reference sample data loaded!`);
       }
     });
   };
@@ -297,6 +334,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   // Load selected draft
   const handleLoadDraft = (draftData, title) => {
     const normalized = {
+      pedhinamuType: draftData.pedhinamuType || 'DECEASED',
       ...draftData,
       tree: normalizeFamilyTree(draftData.tree, draftData.deceased)
     };
@@ -311,22 +349,131 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     window.print();
   };
 
-  // Ultra High-Definition Legal Landscape PDF Export (336 DPI Lossless PNG via jsPDF)
+  // SVG Export: Converts both pages to crisp scalable vector SVG with inlined Ghanshyam font
+  const handleDownloadSVG = async () => {
+    setIsExporting(true);
+    message.loading({
+      content: 'Generating vector SVG (both pages)...',
+      key: 'svg-export',
+      duration: 0
+    });
+
+    try {
+      // Wait for fonts
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const page1El =
+        exportPage1Ref.current?.querySelector('.pedhinamu-page-1') ||
+        printDocRef.current?.querySelector('.pedhinamu-page-1');
+      const page2El =
+        exportPage2Ref.current?.querySelector('.pedhinamu-page-2') ||
+        printDocRef.current?.querySelector('.pedhinamu-page-2');
+
+      if (!page1El || !page2El) {
+        throw new Error('Could not locate Page 1 or Page 2 elements for SVG export.');
+      }
+
+      // html-to-image options:
+      // - skipFonts:false  → inlines local fonts (Ghanshyam TTF)
+      // - filter: skip cross-origin Google Fonts <link> nodes to suppress CORS SecurityError
+      const svgOptions = {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+        width: 1344,
+        height: 816,
+        skipFonts: false,
+        style: {
+          WebkitFontSmoothing: 'antialiased',
+          textRendering: 'geometricPrecision'
+        },
+        filter: (node) => {
+          if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
+            const href = node.href || '';
+            if (href.includes('fonts.googleapis.com') || href.includes('fonts.gstatic.com')) {
+              return false;
+            }
+          }
+          return true;
+        }
+      };
+
+      // Capture both pages as standalone SVG data URIs.
+      // toSvg() returns URL-encoded data URI: "data:image/svg+xml,<encoded>" — used directly as <image href>.
+      const [svg1DataUrl, svg2DataUrl] = await Promise.all([
+        toSvg(page1El, svgOptions),
+        toSvg(page2El, svgOptions)
+      ]);
+
+      // Combine into a single 2-page vertical SVG (Page 1 on top, Page 2 below)
+      // Each page is 1344 x 816 px at pixelRatio=2, representing 14in x 8.5in
+      const docName = data.applicant?.name || 'Document';
+      const combinedSvgParts = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"',
+        '  width="1344" height="1680" viewBox="0 0 1344 1680">',
+        `  <desc>Pedhinamu - ${docName} | Generated by Jikadara &amp; Pandav Associates</desc>`,
+        '  <!-- Page 1 (Legal Landscape 14in x 8.5in) -->',
+        '  <g id="page-1">',
+        `    <image href="${svg1DataUrl}" x="0" y="0" width="1344" height="816" />`,
+        '  </g>',
+        '  <!-- Page 2 (Legal Landscape 14in x 8.5in) -->',
+        '  <g id="page-2" transform="translate(0,840)">',
+        `    <image href="${svg2DataUrl}" x="0" y="0" width="1344" height="816" />`,
+        '  </g>',
+        '</svg>'
+      ];
+      const combinedSvg = combinedSvgParts.join('\n');
+
+      // Trigger file download
+      const blob = new Blob([combinedSvg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${data.applicant?.name || 'Pedhinamu'}_Document.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      message.success({
+        content: 'SVG downloaded! Open in any browser or Inkscape for 100% vector sharpness.',
+        key: 'svg-export',
+        duration: 4
+      });
+    } catch (err) {
+      console.error('SVG export failed:', err);
+      message.error({
+        content: 'SVG export failed. Please try again.',
+        key: 'svg-export'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // PDF Export via html-to-image toPng at 576 DPI → jsPDF
+  // Using toPng with pixelRatio:6 renders the DOM at 6× native density in one pass.
+  // This is sharper than SVG→Canvas upscaling because the browser rasterizes
+  // the font glyphs at full 576 DPI resolution with no intermediate upscale blur.
   const handleDownloadPDF = async () => {
     setIsExporting(true);
     message.loading({
-      content: 'Generating high-definition Legal Landscape PDF...',
+      content: 'Generating crystal-clear 576 DPI PDF...',
       key: 'pdf-export',
       duration: 0
     });
 
     try {
-      // 1. Ensure fonts (Ghanshyam, Gujarati) are completely loaded
+      // 1. Wait for fonts
       if (document.fonts && document.fonts.ready) {
         await document.fonts.ready;
       }
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // 2. Identify Page 1 and Page 2 unscaled export elements
+      // 2. Identify Page 1 and Page 2 elements
       const page1El =
         exportPage1Ref.current?.querySelector('.pedhinamu-page-1') ||
         printDocRef.current?.querySelector('.pedhinamu-page-1');
@@ -338,7 +485,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         throw new Error('Could not locate Page 1 or Page 2 elements for export.');
       }
 
-      // 3. Ensure all embedded images (photos) are fully loaded
+      // 3. Ensure embedded photos are loaded
       const images = [
         ...Array.from(page1El.querySelectorAll('img')),
         ...Array.from(page2El.querySelectorAll('img'))
@@ -353,29 +500,39 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         })
       );
 
-      // Settle layout
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      // Ultra-crisp html2canvas capture options:
-      // scale: 3.5 creates a 4704 x 2856 canvas for each 14" x 8.5" page (= 336 DPI true print resolution)
-      // lossless PNG data embedding eliminates all JPEG compression blurring, noise & edge ringing
-      const h2cOptions = {
-        scale: 3.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
+      // 4. Capture at 576 DPI (pixelRatio:6 × 96 screen DPI)
+      //    Output canvas: 8064 × 4896 px per page
+      //    Sharp even at 400% PDF zoom on Retina displays
+      const pngOptions = {
         backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 1344,
-        windowHeight: 816
+        pixelRatio: 6,
+        width: 1344,
+        height: 816,
+        skipFonts: false,
+        style: {
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          textRendering: 'geometricPrecision'
+        },
+        filter: (node) => {
+          if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
+            const href = node.href || '';
+            if (href.includes('fonts.googleapis.com') || href.includes('fonts.gstatic.com')) {
+              return false;
+            }
+          }
+          return true;
+        }
       };
 
-      // Sequentially capture Page 1 and Page 2
-      const page1Canvas = await html2canvas(page1El, h2cOptions);
-      const page2Canvas = await html2canvas(page2El, h2cOptions);
+      message.loading({ content: 'Rendering at 576 DPI...', key: 'pdf-export', duration: 0 });
+      const [page1Png, page2Png] = await Promise.all([
+        toPng(page1El, pngOptions),
+        toPng(page2El, pngOptions)
+      ]);
 
-      // Create jsPDF document with EXACT Legal Landscape dimensions (14in x 8.5in = 1008pt x 612pt)
+      // 5. Build PDF (Legal Landscape 14in × 8.5in = 1008pt × 612pt)
+      message.loading({ content: 'Building PDF...', key: 'pdf-export', duration: 0 });
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'pt',
@@ -383,33 +540,28 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         compress: true
       });
 
-      // Page 1
-      const page1Png = page1Canvas.toDataURL('image/png');
       pdf.addImage(page1Png, 'PNG', 0, 0, 1008, 612, undefined, 'FAST');
-
-      // Page 2
       pdf.addPage([1008, 612], 'landscape');
-      const page2Png = page2Canvas.toDataURL('image/png');
       pdf.addImage(page2Png, 'PNG', 0, 0, 1008, 612, undefined, 'FAST');
 
       const filename = `${data.applicant?.name || 'Pedhinamu'}_Document.pdf`;
       pdf.save(filename);
 
       message.success({
-        content: 'Pedhinamu PDF downloaded with crystal-clear quality!',
-        key: 'pdf-export'
+        content: 'PDF downloaded at 576 DPI — crystal clear at any zoom!',
+        key: 'pdf-export',
+        duration: 3
       });
     } catch (err) {
       console.error('PDF export failed:', err);
       message.error({
-        content: 'Failed to generate high-resolution PDF. Please try again.',
+        content: 'Failed to generate PDF. Please try again.',
         key: 'pdf-export'
       });
     } finally {
       setIsExporting(false);
     }
   };
-
   return (
     <div className="pedhinamu-builder-container">
       {/* Top Header & Actions Bar */}
@@ -440,20 +592,44 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             <span className="pedhinamu-header-title-text">
               પેઢીનામું
             </span>
-            <span className="pedhinamu-header-type-pill">
-              2 Pages
-            </span>
           </div>
 
           <div className="pedhinamu-header-divider" />
 
-          <div className="pedhinamu-header-draft-input">
+          {/* Pedhinamu Type Mode Switcher: Alive / Hayati vs Deceased / Avsan */}
+          <div className="pedhinamu-mode-selector-wrapper">
+            <span className="mode-selector-label">પ્રકાર:</span>
+            <div className="pedhinamu-mode-segmented">
+              <button
+                type="button"
+                className={`pedhinamu-mode-btn ${data.pedhinamuType !== 'ALIVE' ? 'active-deceased' : ''}`}
+                onClick={() => handleTypeChange('DECEASED')}
+                title="Deceased Mode (અવસાન પામેલ - મૃત્યુ પામનારના વારસદારોનું પેઢીનામું)"
+              >
+                <span className="status-dot deceased-dot" />
+                <span className="mode-text">અવસાન પામેલ (Deceased)</span>
+              </button>
+              <button
+                type="button"
+                className={`pedhinamu-mode-btn ${data.pedhinamuType === 'ALIVE' ? 'active-alive' : ''}`}
+                onClick={() => handleTypeChange('ALIVE')}
+                title="Alive Mode (હયાતી - હયાત વ્યક્તિના વારસદારોનું પેઢીનામું)"
+              >
+                <span className="status-dot alive-dot" />
+                <span className="mode-text">હયાતી (Alive)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="pedhinamu-header-divider" />
+
+          {/* <div className="pedhinamu-header-draft-input">
             <GhanshyamInput
               value={draftTitle}
               placeholder="Draft Title (દા.ત. મધુભાઇ પેઢીનામું)"
               onChange={(e) => setDraftTitle(e.target.value)}
             />
-          </div>
+          </div> */}
 
           <Tooltip title="All changes automatically saved to local storage">
             <div className="pedhinamu-autosave-indicator">
@@ -495,21 +671,40 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             </Button>
           </Tooltip>
 
+          {/* <Tooltip title="Print Document (Native Vector / 100% Razor Sharp)"> */}
+          <Button
+            type="default"
+            className="btn-print-doc"
+            icon={<Printer size={14} />}
+            onClick={handlePrint}
+          >
+            <span className="btn-label">Print</span>
+          </Button>
+          {/* </Tooltip> */}
+
           <Space.Compact className="btn-download-group">
             <Button
               type="primary"
               className="btn-download-pdf"
               icon={<Download size={14} />}
               loading={isExporting}
-              onClick={handleDownloadPDF}
+              onClick={handleDownloadSVG}
               style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
             >
-              Download PDF
+              Download SVG
             </Button>
 
             <Dropdown
               menu={{
                 items: [
+                  {
+                    key: 'download-pdf',
+                    label: '📄 Download PDF',
+                    onClick: handleDownloadPDF
+                  },
+                  {
+                    type: 'divider'
+                  },
                   {
                     key: 'auto-arrange',
                     label: 'Auto-Arrange Tree',
@@ -637,15 +832,15 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                 <ZoomIn size={14} />
               </button>
 
-              <Tooltip title="Fit Canvas to Screen Width">
-                <button
-                  type="button"
-                  className="dock-fit-btn"
-                  onClick={handleFitToScreen}
-                >
-                  Fit
-                </button>
-              </Tooltip>
+              {/* <Tooltip title="Fit Canvas to Screen Width"> */}
+              <button
+                type="button"
+                className="dock-fit-btn"
+                onClick={handleFitToScreen}
+              >
+                Fit
+              </button>
+              {/* </Tooltip> */}
             </div>
 
             <div className="dock-divider" />
@@ -707,8 +902,20 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         </div>
       </div>
 
+      {/* Dedicated Clean Vector Print Container (rendered ONLY during @media print) */}
+      <div className="pedhinamu-dedicated-print-container" aria-hidden="true">
+        <PedhinamuPrintDocument
+          data={data}
+          activePage="all"
+          interactive={false}
+          scale={1}
+          fontMode={fontMode}
+        />
+      </div>
+
       {/* Offscreen unscaled export containers dedicated for razor-sharp 2-page PDF generation */}
       <div
+        className="pedhinamu-export-container"
         style={{
           position: 'fixed',
           top: 0,
@@ -718,7 +925,8 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           overflow: 'hidden',
           zIndex: -9999,
           pointerEvents: 'none',
-          opacity: 1
+          opacity: 1,
+          backgroundColor: '#ffffff'
         }}
         aria-hidden="true"
       >
@@ -734,6 +942,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       </div>
 
       <div
+        className="pedhinamu-export-container"
         style={{
           position: 'fixed',
           top: 0,
@@ -743,7 +952,8 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           overflow: 'hidden',
           zIndex: -9999,
           pointerEvents: 'none',
-          opacity: 1
+          opacity: 1,
+          backgroundColor: '#ffffff'
         }}
         aria-hidden="true"
       >

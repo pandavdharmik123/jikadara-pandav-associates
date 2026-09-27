@@ -123,7 +123,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
     const opt = {
       margin: 0,
       filename,
-      image: { type: 'jpeg', quality: 1.0 },
+      image: { type: 'png' },
       html2canvas: {
         scale: 4,
         useCORS: true,

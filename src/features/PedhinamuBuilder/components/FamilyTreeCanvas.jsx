@@ -5,6 +5,7 @@ import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy'
 export default function FamilyTreeCanvas({
   tree,
   deceased,
+  pedhinamuType = 'DECEASED',
   onNodeMove,
   interactive = true,
   scale = 1,
@@ -518,7 +519,7 @@ export default function FamilyTreeCanvas({
                 cursor: interactive ? 'grab' : 'default',
                 padding: rootPadding,
                 borderRadius: '5px',
-                border: isSelected ? '2.5px solid #4f46e5' : '1.5px solid #475569',
+                border: isSelected ? '2.5px solid #4f46e5' : (interactive ? '1.5px solid #475569' : '1.5px solid #000000'),
                 backgroundColor: isSelected ? '#ede9fe' : '#ffffff',
                 boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.3), 0 2px 6px rgba(79, 70, 229, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
                 boxSizing: 'border-box',
@@ -530,9 +531,11 @@ export default function FamilyTreeCanvas({
               onMouseDown={(e) => handleNodeMouseDown(e, node)}
             >
               {toFont(
-                node.deceased
-                  ? `સ્વ. ${node.name}${node.deathDate ? ` - (મરણ તા. ${node.deathDate})` : ''}`
-                  : `${node.name}${node.age ? ` - (ઉ.આ.વ. ${node.age})` : ''}`
+                pedhinamuType === 'ALIVE'
+                  ? `શ્રી ${node.name}${node.age ? ` (ઉ.આ.વ. ${node.age})` : ''}`
+                  : (node.deceased
+                      ? `સ્વ. ${node.name}${node.deathDate ? ` - (મરણ તા. ${node.deathDate})` : ''}`
+                      : `${node.name}${node.age ? ` - (ઉ.આ.વ. ${node.age})` : ''}`)
               )}
             </div>
           );
@@ -573,7 +576,7 @@ export default function FamilyTreeCanvas({
               cursor: interactive ? 'grab' : 'default',
               padding: isUltraCompact ? '2px 3px 3px 3px' : '2px 3px 3px 3px',
               borderRadius: '5px',
-              border: isSelected ? '2.5px solid #4f46e5' : '1px solid #94a3b8',
+              border: isSelected ? '2.5px solid #4f46e5' : (interactive ? '1px solid #94a3b8' : '1.2px solid #000000'),
               backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
               boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.3), 0 2px 6px rgba(79, 70, 229, 0.2)' : '0 1px 2px rgba(0,0,0,0.06)',
               boxSizing: 'border-box',
