@@ -53,7 +53,7 @@ export const useCreateDirectIncome = () => {
   return useMutation({
     mutationFn: async (incomeData) => {
       const { data } = await api.post('/tasks/income', incomeData);
-      return data.task;
+      return data.task || data.transaction;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -68,6 +68,29 @@ export const useCreateDirectIncome = () => {
     },
   });
 };
+
+// Update a direct income entry (for reports)
+export const useUpdateDirectIncome = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...incomeData }) => {
+      const { data } = await api.put(`/tasks/income/${id}`, incomeData);
+      return data.transaction;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
+    },
+  });
+};
+
 
 // Update an existing task
 export const useUpdateTask = () => {
@@ -191,11 +214,17 @@ export const useDeleteTransaction = () => {
       return { taskId };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
+      if (data?.taskId) {
+        queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
     },
   });
 };
+

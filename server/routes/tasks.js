@@ -191,6 +191,81 @@ router.post('/income', requireAuth, async (req, res) => {
 });
 
 /**
+ * PUT /api/tasks/income/:id
+ * Update direct manual income entry
+ */
+router.put('/income/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clientId, clientName, documentType, place, referenceName, date, amount } = req.body;
+
+    const where = {
+      id,
+      taskId: null,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
+
+    const existing = await prisma.taskTransaction.findFirst({ where });
+    if (!existing) {
+      return res.status(404).json({ error: 'Direct income entry not found' });
+    }
+
+    if (amount !== undefined && (isNaN(amount) || Number(amount) <= 0)) {
+      return res.status(400).json({ error: 'Valid income amount is required' });
+    }
+
+    let finalClientId = existing.clientId;
+    let finalClientName = existing.clientName;
+
+    if (clientId !== undefined) {
+      if (clientId && clientId !== 'OTHER') {
+        const existingClient = await prisma.client.findFirst({
+          where: {
+            id: clientId,
+            isDeleted: false,
+            ...(req.user.role === 'ADMIN' ? {} : { userId: req.user.id }),
+          },
+        });
+        if (!existingClient) {
+          return res.status(404).json({ error: 'Client not found' });
+        }
+        finalClientId = existingClient.id;
+        finalClientName = existingClient.name;
+      } else if (clientId === 'OTHER') {
+        finalClientId = null;
+        if (clientName && clientName.trim()) {
+          finalClientName = clientName.trim();
+        }
+      }
+    } else if (clientName !== undefined) {
+      finalClientName = clientName.trim();
+    }
+
+    const transaction = await prisma.taskTransaction.update({
+      where: { id },
+      data: {
+        ...(documentType !== undefined && { documentType: documentType.trim() }),
+        ...(place !== undefined && { place: place.trim() }),
+        ...(referenceName !== undefined && { referenceName: referenceName.trim() }),
+        ...(date !== undefined && { date: startOfDayIST(date) }),
+        ...(amount !== undefined && { amount: Number(amount) }),
+        clientId: finalClientId,
+        clientName: finalClientName,
+      },
+      include: {
+        client: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json({ transaction });
+  } catch (err) {
+    console.error('Direct income update error:', err);
+    res.status(500).json({ error: err.message || 'Failed to update income entry' });
+  }
+});
+
+/**
  * PUT /api/tasks/:id
  * Update a task
  */
