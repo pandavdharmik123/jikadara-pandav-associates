@@ -8,10 +8,12 @@ import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy'
 export default function PedhinamuPrintDocument({
   data,
   onNodeMove,
+  onNodeResize,
+  onNodeFontSizeChange,
   interactive = false,
   scale = 1,
-  fontMode = 'ghanshyam', // 'ghanshyam' | 'unicode'
-  activePage = 'all', // 'all' | '1' | '2'
+  fontMode = 'ghanshyam',
+  activePage = 'all',
   selectedNodeId,
   selectedNodeIds,
   onSelectNode
@@ -207,6 +209,8 @@ export default function PedhinamuPrintDocument({
               deceased={deceased}
               pedhinamuType={pedhinamuType}
               onNodeMove={onNodeMove}
+              onNodeResize={onNodeResize}
+              onNodeFontSizeChange={onNodeFontSizeChange}
               interactive={interactive}
               scale={scale}
               fontMode={fontMode}

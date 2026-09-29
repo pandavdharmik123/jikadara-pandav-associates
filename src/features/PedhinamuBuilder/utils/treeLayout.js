@@ -18,12 +18,22 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
   // Ultra-compact structure is strictly applied ONLY if 3 or more levels of nodes exist (maxDepth >= 3)
   const isUltraCompact = maxDepth >= 3;
 
+  // Estimate root box width based on single-line fit-content text
+  let rootText = '';
+  if (root) {
+    if (root.deceased) {
+      rootText = `સ્વ. ${root.name || ''}${root.deathDate ? ` - (મરણ તા. ${root.deathDate})` : ''}`;
+    } else {
+      rootText = `શ્રી ${root.name || ''}${root.age ? ` (ઉ.આ.વ. ${root.age})` : ''}`;
+    }
+  }
+
   const baseCanvasWidth = 980;
 
   // Box dimensions and level coordinates
   let NODE_BOX_WIDTH = 100;
   let NODE_BOX_HEIGHT = 65;
-  let ROOT_BOX_WIDTH = 260;
+  let ROOT_BOX_WIDTH = rootText ? Math.max(120, Math.round(rootText.length * 8.4 + 34)) : 260;
   let ROOT_BOX_HEIGHT = 30;
   let START_Y = 18;
   let LEVEL_HEIGHT = 100;
@@ -35,7 +45,7 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
     // 3 or more descendant levels: comfortable balanced structure with proper spacing
     NODE_BOX_WIDTH = 92;
     NODE_BOX_HEIGHT = 56;
-    ROOT_BOX_WIDTH = 240;
+    ROOT_BOX_WIDTH = rootText ? Math.max(110, Math.round(rootText.length * 7.6 + 28)) : 240;
     ROOT_BOX_HEIGHT = 26;
     START_Y = 10;
     const ROOT_TO_L1_GAP = 48; // Generous drop arrow space for Level 1 so chips never overlap bus line
@@ -92,8 +102,8 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
     const x = (customPos && customPos.x !== null && customPos.x !== undefined) ? customPos.x : defaultX;
     const y = (customPos && customPos.y !== null && customPos.y !== undefined) ? customPos.y : defaultY;
 
-    const boxWidth = isRoot ? ROOT_BOX_WIDTH : NODE_BOX_WIDTH;
-    const boxHeight = isRoot ? ROOT_BOX_HEIGHT : NODE_BOX_HEIGHT;
+    const boxWidth = isRoot ? ROOT_BOX_WIDTH : (node.customWidth || NODE_BOX_WIDTH);
+    const boxHeight = node.customHeight || (isRoot ? ROOT_BOX_HEIGHT : NODE_BOX_HEIGHT);
 
     const layoutItem = {
       ...node,

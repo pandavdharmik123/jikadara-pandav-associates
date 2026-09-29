@@ -7,6 +7,8 @@ export default function FamilyTreeCanvas({
   deceased,
   pedhinamuType = 'DECEASED',
   onNodeMove,
+  onNodeResize,
+  onNodeFontSizeChange,
   interactive = true,
   scale = 1,
   fontMode = 'ghanshyam',
@@ -40,6 +42,13 @@ export default function FamilyTreeCanvas({
   const activeDragNodeIdsRef = useRef([]);
   const initialPositionsRef = useRef({});
   const clickedNodeInfoRef = useRef(null);
+
+  // Resize drag state: track live width/height overrides for 60fps feedback
+  const [localWidths, setLocalWidths] = useState({});
+  const [localHeights, setLocalHeights] = useState({});
+  // resizeDragRef: { nodeId, side('left'|'right'|'top'|'bottom'), startClientX, startClientY, startWidth, startHeight }
+  const resizeDragRef = useRef(null);
+  const isResizingRef = useRef(false);
 
   // Marquee box selection state
   const [marqueeBox, setMarqueeBox] = useState(null);
@@ -157,6 +166,25 @@ export default function FamilyTreeCanvas({
     const handleWindowMouseMove = (e) => {
       if (!containerRef.current) return;
 
+      // 0. Resize handle drag (highest priority — runs before marquee/move)
+      if (isResizingRef.current && resizeDragRef.current) {
+        const { nodeId, side, startClientX, startClientY, startWidth, startHeight } = resizeDragRef.current;
+
+        if (side === 'left' || side === 'right') {
+          const rawDx = (e.clientX - startClientX) / scale;
+          const dx = side === 'left' ? -rawDx : rawDx;
+          const newWidth = Math.min(240, Math.max(70, Math.round(startWidth + dx)));
+          setLocalWidths((prev) => ({ ...prev, [nodeId]: newWidth }));
+        } else {
+          // top / bottom — height resize
+          const rawDy = (e.clientY - startClientY) / scale;
+          const dy = side === 'top' ? -rawDy : rawDy;
+          const newHeight = Math.min(200, Math.max(40, Math.round(startHeight + dy)));
+          setLocalHeights((prev) => ({ ...prev, [nodeId]: newHeight }));
+        }
+        return;
+      }
+
       // 1. Marquee Box Selection
       if (isMarqueeActiveRef.current && marqueeStartRef.current) {
         const dist = Math.hypot(
@@ -241,6 +269,25 @@ export default function FamilyTreeCanvas({
     };
 
     const handleWindowMouseUp = () => {
+      // 0. Finalize Resize
+      if (isResizingRef.current && resizeDragRef.current) {
+        const { nodeId, side } = resizeDragRef.current;
+        if (onNodeResize) {
+          if (side === 'left' || side === 'right') {
+            const finalWidth = localWidths[nodeId];
+            if (finalWidth) onNodeResize(nodeId, { width: finalWidth });
+          } else {
+            const finalHeight = localHeights[nodeId];
+            if (finalHeight) onNodeResize(nodeId, { height: finalHeight });
+          }
+        }
+        isResizingRef.current = false;
+        resizeDragRef.current = null;
+        setLocalWidths({});
+        setLocalHeights({});
+        return;
+      }
+
       // 1. Finalize Marquee Selection
       if (isMarqueeActiveRef.current) {
         if (isDraggingRef.current) {
@@ -300,7 +347,7 @@ export default function FamilyTreeCanvas({
       window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleWindowMouseUp);
     };
-  }, [interactive, scale, nodes, internalSelectedIds, localDragPositions, onNodeMove, onSelectNode]);
+  }, [interactive, scale, nodes, internalSelectedIds, localDragPositions, localWidths, localHeights, onNodeMove, onNodeResize, onSelectNode]);
 
   // Keyboard shortcuts: Escape to deselect, Ctrl/Cmd+A to select all
   useEffect(() => {
@@ -328,12 +375,31 @@ export default function FamilyTreeCanvas({
     };
   }, [interactive, nodes, onSelectNode]);
 
+  // Resize handle mouse down: starts edge-drag to resize a node's width or height
+  const handleResizeMouseDown = (e, node, side) => {
+    if (!interactive) return;
+    if (node.isRoot && (side === 'left' || side === 'right')) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const currentWidth = localWidths[node.id] || node.boxWidth || 100;
+    const currentHeight = localHeights[node.id] || node.boxHeight || 65;
+    resizeDragRef.current = {
+      nodeId: node.id,
+      side,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startWidth: currentWidth,
+      startHeight: currentHeight
+    };
+    isResizingRef.current = true;
+  };
+
   const docFontFamily = fontMode === 'ghanshyam'
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', sans-serif";
 
   // Helper to cleanly render Gujarati names on compact lines without horizontal overflow
-  const renderNodeName = (name, isDeceased) => {
+  const renderNodeName = (name, isDeceased, uniformFs = null) => {
     if (!name) return <span>(અનામી)</span>;
     const str = String(name).trim();
     const words = str.split(/\s+/).filter(Boolean);
@@ -347,22 +413,16 @@ export default function FamilyTreeCanvas({
       overflowWrap: 'anywhere',
       whiteSpace: 'normal',
       overflow: 'visible',
-      paddingBottom: '2px'
+      paddingBottom: '1px',
+      fontSize: uniformFs ? `${uniformFs}px` : undefined
     };
 
     if (words.length <= 1) {
-      const singleFontSize = str.length > 14
-        ? (fontMode === 'ghanshyam' ? '8.5px' : '7.5px')
-        : str.length > 10
-          ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
-          : undefined;
-
       return (
         <div
           className="node-name-part"
           style={{
             ...wrapStyle,
-            fontSize: singleFontSize,
             lineHeight: 1.25,
             paddingBottom: '2px'
           }}
@@ -374,17 +434,6 @@ export default function FamilyTreeCanvas({
 
     const firstPart = words[0];
     const secondPart = words.slice(1).join(' ');
-    const totalLen = str.length;
-
-    let secondFontSize = isUltraCompact
-      ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
-      : (fontMode === 'ghanshyam' ? '10.5px' : '9.5px');
-
-    if (totalLen > 24) {
-      secondFontSize = fontMode === 'ghanshyam' ? '8px' : '7.5px';
-    } else if (totalLen > 16) {
-      secondFontSize = fontMode === 'ghanshyam' ? '9px' : '8.5px';
-    }
 
     return (
       <div style={{ lineHeight: 1.28, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflow: 'visible' }}>
@@ -401,11 +450,10 @@ export default function FamilyTreeCanvas({
           className="node-name-part"
           style={{
             ...wrapStyle,
-            fontSize: secondFontSize,
             color: '#000000',
             marginTop: 0,
             lineHeight: 1.28,
-            paddingBottom: '3px'
+            paddingBottom: '2px'
           }}
         >
           {toFont(secondPart)}
@@ -448,6 +496,95 @@ export default function FamilyTreeCanvas({
           }}
         />
       )}
+
+      {/* Floating Font-Size Toolbar: appears above the single selected node */}
+      {interactive && internalSelectedIds.length === 1 && (() => {
+        const selId = internalSelectedIds[0];
+        const selNode = nodes.find((n) => n.id === selId);
+        if (!selNode) return null;
+        const defaultFs = selNode.isRoot
+          ? (isUltraCompact ? (fontMode === 'ghanshyam' ? 12.5 : 11.5) : (fontMode === 'ghanshyam' ? 13.5 : 12))
+          : (isUltraCompact ? (fontMode === 'ghanshyam' ? 11 : 10) : (fontMode === 'ghanshyam' ? 12 : 10.5));
+        const currentFs = selNode.customFontSize || defaultFs;
+        const STEP = 0.5;
+        const MIN_FS = 6;
+        const MAX_FS = 24;
+        const toolbarW = 110;
+        const toolbarLeft = selNode.x - toolbarW / 2;
+        const toolbarTop = selNode.y - 34;
+        return (
+          <div
+            key={`fs-toolbar-${selId}`}
+            className="node-font-size-toolbar"
+            style={{
+              position: 'absolute',
+              left: `${toolbarLeft}px`,
+              top: `${toolbarTop}px`,
+              width: `${toolbarW}px`,
+              height: '26px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+              borderRadius: '13px',
+              boxShadow: '0 3px 12px rgba(79, 70, 229, 0.45), 0 1px 4px rgba(0,0,0,0.25)',
+              zIndex: 30,
+              userSelect: 'none',
+              gap: '0',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              pointerEvents: 'all'
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Decrease font size */}
+            <button
+              type="button"
+              title="Decrease font size"
+              style={{
+                width: '26px', height: '26px', border: 'none', background: 'transparent',
+                color: '#c7d2fe', fontSize: '16px', fontWeight: 700, cursor: currentFs <= MIN_FS ? 'not-allowed' : 'pointer',
+                opacity: currentFs <= MIN_FS ? 0.35 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '13px 0 0 13px', transition: 'background 0.15s', lineHeight: 1
+              }}
+              onMouseEnter={(e) => { if (currentFs > MIN_FS) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              onClick={() => {
+                if (currentFs > MIN_FS && onNodeFontSizeChange) {
+                  onNodeFontSizeChange(selId, Math.max(MIN_FS, Math.round((currentFs - STEP) * 10) / 10));
+                }
+              }}
+            >−</button>
+
+            {/* Current size display */}
+            <div style={{
+              flex: 1, textAlign: 'center', color: '#e0e7ff',
+              fontSize: '11px', fontWeight: 600, letterSpacing: '0.02em',
+              lineHeight: 1, pointerEvents: 'none'
+            }}>
+              {currentFs}px
+            </div>
+
+            {/* Increase font size */}
+            <button
+              type="button"
+              title="Increase font size"
+              style={{
+                width: '26px', height: '26px', border: 'none', background: 'transparent',
+                color: '#c7d2fe', fontSize: '16px', fontWeight: 700, cursor: currentFs >= MAX_FS ? 'not-allowed' : 'pointer',
+                opacity: currentFs >= MAX_FS ? 0.35 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '0 13px 13px 0', transition: 'background 0.15s', lineHeight: 1
+              }}
+              onMouseEnter={(e) => { if (currentFs < MAX_FS) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              onClick={() => {
+                if (currentFs < MAX_FS && onNodeFontSizeChange) {
+                  onNodeFontSizeChange(selId, Math.min(MAX_FS, Math.round((currentFs + STEP) * 10) / 10));
+                }
+              }}
+            >+</button>
+          </div>
+        );
+      })()}
 
       {/* SVG Connecting Lines Layer: Clean Legal Pedhinamu Bus-Bar Architecture */}
       <svg
@@ -493,9 +630,10 @@ export default function FamilyTreeCanvas({
         const isSelected = internalSelectedIds.includes(node.id);
 
         if (isRoot) {
-          const rootFontSize = isUltraCompact
-            ? (fontMode === 'ghanshyam' ? '12.5px' : '11.5px')
-            : (fontMode === 'ghanshyam' ? '13.5px' : '12px');
+          const baseRootFontSize = isUltraCompact
+            ? (fontMode === 'ghanshyam' ? 12.5 : 11.5)
+            : (fontMode === 'ghanshyam' ? 13.5 : 12);
+          const rootFontSize = node.customFontSize ? `${node.customFontSize}px` : `${baseRootFontSize}px`;
           const rootPadding = isUltraCompact ? '3px 12px' : '4px 14px';
 
           return (
@@ -511,11 +649,17 @@ export default function FamilyTreeCanvas({
                 fontWeight: 700,
                 fontSize: rootFontSize,
                 color: '#000000',
-                maxWidth: '420px',
-                wordBreak: 'break-all',
-                lineBreak: 'anywhere',
-                overflowWrap: 'anywhere',
-                whiteSpace: 'normal',
+                width: 'fit-content',
+                maxWidth: 'none',
+                ...(localHeights[node.id] || node.customHeight
+                  ? { height: `${localHeights[node.id] || node.customHeight}px`, minHeight: 'unset' }
+                  : { minHeight: `${node.boxHeight || 30}px` }
+                ),
+                whiteSpace: 'nowrap',
+                wordBreak: 'normal',
+                lineBreak: 'normal',
+                overflowWrap: 'normal',
+                flexShrink: 0,
                 cursor: interactive ? 'grab' : 'default',
                 padding: rootPadding,
                 borderRadius: '5px',
@@ -523,13 +667,50 @@ export default function FamilyTreeCanvas({
                 backgroundColor: isSelected ? '#ede9fe' : '#ffffff',
                 boxShadow: isSelected ? '0 0 0 2px rgba(79, 70, 229, 0.3), 0 2px 6px rgba(79, 70, 229, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
                 boxSizing: 'border-box',
-                zIndex: isSelected ? 4 : 2
+                zIndex: isSelected ? 4 : 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
               onClick={(e) => {
                 e.stopPropagation();
               }}
               onMouseDown={(e) => handleNodeMouseDown(e, node)}
             >
+              {interactive && (
+                <>
+                  <div
+                    className="node-resize-handle node-resize-top"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '6px',
+                      cursor: 'ns-resize',
+                      zIndex: 10,
+                      borderRadius: '5px 5px 0 0',
+                      opacity: 0
+                    }}
+                    onMouseDown={(e) => handleResizeMouseDown(e, node, 'top')}
+                  />
+                  <div
+                    className="node-resize-handle node-resize-bottom"
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '6px',
+                      cursor: 'ns-resize',
+                      zIndex: 10,
+                      borderRadius: '0 0 5px 5px',
+                      opacity: 0
+                    }}
+                    onMouseDown={(e) => handleResizeMouseDown(e, node, 'bottom')}
+                  />
+                </>
+              )}
               {toFont(
                 pedhinamuType === 'ALIVE'
                   ? `શ્રી ${node.name}${node.age ? ` (ઉ.આ.વ. ${node.age})` : ''}`
@@ -542,18 +723,22 @@ export default function FamilyTreeCanvas({
         }
 
         const nodePadding = '3px 4px';
-        const relFontSize = isUltraCompact
-          ? (fontMode === 'ghanshyam' ? '11px' : '10px')
-          : (fontMode === 'ghanshyam' ? '12px' : '10.5px');
-        const nameFontSize = isUltraCompact
-          ? (fontMode === 'ghanshyam' ? '11px' : '10px')
-          : (fontMode === 'ghanshyam' ? '12px' : '10.5px');
         const isDeathDate = Boolean(node.deceased && node.deathDate);
-        const detailFontSize = isDeathDate
-          ? (fontMode === 'ghanshyam' ? (isUltraCompact ? '8.5px' : '9.5px') : (isUltraCompact ? '7.5px' : '8.5px'))
-          : isUltraCompact
-          ? (fontMode === 'ghanshyam' ? '9.5px' : '8.5px')
-          : (fontMode === 'ghanshyam' ? '10.5px' : '9.5px');
+
+        // Base font size from layout mode
+        const baseRelFontSize = isUltraCompact
+          ? (fontMode === 'ghanshyam' ? 11 : 10)
+          : (fontMode === 'ghanshyam' ? 12 : 10.5);
+
+        // All text in this node has the EXACT same font size
+        const customFs = node.customFontSize || null;
+        const uniformFs = customFs || baseRelFontSize;
+        const uniformFontSize = `${uniformFs}px`;
+
+        const relFontSize = uniformFontSize;
+        const nameFontSize = uniformFontSize;
+        const detailFontSize = uniformFontSize;
+
 
         const badgeTop = isUltraCompact ? '-24px' : '-30px';
         const badgeSize = isUltraCompact ? '19px' : '22px';
@@ -569,8 +754,12 @@ export default function FamilyTreeCanvas({
               left: `${node.x}px`,
               top: `${node.y}px`,
               transform: 'translate(-50%, 0)',
-              width: `${node.boxWidth || 100}px`,
-              minHeight: `${node.boxHeight || 65}px`,
+              width: `${localWidths[node.id] || node.boxWidth || 100}px`,
+              // Use fixed height when custom height is set/being dragged; otherwise minHeight for auto-grow
+              ...(localHeights[node.id] || node.customHeight
+                ? { height: `${localHeights[node.id] || node.customHeight}px`, minHeight: 'unset' }
+                : { minHeight: `${node.boxHeight || 65}px` }
+              ),
               textAlign: 'center',
               color: '#000',
               cursor: interactive ? 'grab' : 'default',
@@ -590,7 +779,78 @@ export default function FamilyTreeCanvas({
             }}
             onMouseDown={(e) => handleNodeMouseDown(e, node)}
           >
-            {/* Sibling-Index Numbering Badge (Chip Circle) */}
+            {/* Left resize handle — only shown in interactive mode */}
+            {interactive && (
+              <div
+                className="node-resize-handle node-resize-left"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  width: '6px',
+                  height: '100%',
+                  cursor: 'ew-resize',
+                  zIndex: 10,
+                  borderRadius: '5px 0 0 5px',
+                  opacity: 0
+                }}
+                onMouseDown={(e) => handleResizeMouseDown(e, node, 'left')}
+              />
+            )}
+            {/* Right resize handle — only shown in interactive mode */}
+            {interactive && (
+              <div
+                className="node-resize-handle node-resize-right"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  width: '6px',
+                  height: '100%',
+                  cursor: 'ew-resize',
+                  zIndex: 10,
+                  borderRadius: '0 5px 5px 0',
+                  opacity: 0
+                }}
+                onMouseDown={(e) => handleResizeMouseDown(e, node, 'right')}
+              />
+            )}
+            {/* Top resize handle */}
+            {interactive && (
+              <div
+                className="node-resize-handle node-resize-top"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '6px',
+                  cursor: 'ns-resize',
+                  zIndex: 10,
+                  borderRadius: '5px 5px 0 0',
+                  opacity: 0
+                }}
+                onMouseDown={(e) => handleResizeMouseDown(e, node, 'top')}
+              />
+            )}
+            {/* Bottom resize handle */}
+            {interactive && (
+              <div
+                className="node-resize-handle node-resize-bottom"
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '6px',
+                  cursor: 'ns-resize',
+                  zIndex: 10,
+                  borderRadius: '0 0 5px 5px',
+                  opacity: 0
+                }}
+                onMouseDown={(e) => handleResizeMouseDown(e, node, 'bottom')}
+              />
+            )}
             {node.siblingIndex && (
               <div
                 className="node-sibling-badge"
@@ -676,7 +936,7 @@ export default function FamilyTreeCanvas({
                   paddingBottom: '1px'
                 }}
               >
-                {renderNodeName(node.name, node.deceased)}
+                {renderNodeName(node.name, node.deceased, uniformFs)}
               </div>
               <div
                 className="node-detail"

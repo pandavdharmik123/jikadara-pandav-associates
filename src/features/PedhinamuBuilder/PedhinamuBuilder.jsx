@@ -39,7 +39,7 @@ import GhanshyamInput from './components/GhanshyamInput';
 import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
 import { SAMPLE_HAYATI_DATA } from './constants/sampleHayatiData';
-import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions } from './utils/treeModel';
+import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions, updateNodeSize, updateNodeFontSize } from './utils/treeModel';
 import api from '../../services/api';
 
 import './styles/pedhinamu.scss';
@@ -191,6 +191,24 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         ...prev,
         tree: { rootNode: updatedRoot }
       };
+    });
+  }, []);
+
+  // Resize a node's box width from drag-resize handles in the canvas
+  const handleNodeResize = useCallback((nodeId, updates) => {
+    setData((prev) => {
+      const normalized = normalizeFamilyTree(prev.tree, prev.deceased);
+      const updatedRoot = updateNodeSize(normalized.rootNode, nodeId, updates);
+      return { ...prev, tree: { rootNode: updatedRoot } };
+    });
+  }, []);
+
+  // Change font size for a specific node
+  const handleNodeFontSizeChange = useCallback((nodeId, fontSize) => {
+    setData((prev) => {
+      const normalized = normalizeFamilyTree(prev.tree, prev.deceased);
+      const updatedRoot = updateNodeFontSize(normalized.rootNode, nodeId, fontSize);
+      return { ...prev, tree: { rootNode: updatedRoot } };
     });
   }, []);
 
@@ -886,6 +904,8 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                     <PedhinamuPrintDocument
                       data={data}
                       onNodeMove={handleNodeMove}
+                      onNodeResize={handleNodeResize}
+                      onNodeFontSizeChange={handleNodeFontSizeChange}
                       interactive={true}
                       scale={zoom}
                       fontMode={fontMode}

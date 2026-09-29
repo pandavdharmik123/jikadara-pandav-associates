@@ -238,3 +238,35 @@ export function getAllNodesFlat(root, level = 0) {
   }
   return list;
 }
+
+/**
+ * Update a node's custom box dimensions (used by drag-resize handles)
+ * updates: { width?: number, height?: number }
+ */
+export function updateNodeSize(root, nodeId, updates) {
+  if (!root || !nodeId) return root;
+  if (root.id === nodeId) {
+    const patch = {};
+    if (updates.width !== undefined) patch.customWidth = Math.round(updates.width);
+    if (updates.height !== undefined) patch.customHeight = Math.round(updates.height);
+    return { ...root, ...patch };
+  }
+  return {
+    ...root,
+    children: (root.children || []).map((child) => updateNodeSize(child, nodeId, updates))
+  };
+}
+
+/**
+ * Update a node's custom font size (used by the floating font-size toolbar)
+ */
+export function updateNodeFontSize(root, nodeId, fontSize) {
+  if (!root || !nodeId) return root;
+  if (root.id === nodeId) {
+    return { ...root, customFontSize: Math.round(fontSize * 10) / 10 };
+  }
+  return {
+    ...root,
+    children: (root.children || []).map((child) => updateNodeFontSize(child, nodeId, fontSize))
+  };
+}

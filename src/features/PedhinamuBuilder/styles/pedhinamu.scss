@@ -1115,6 +1115,16 @@ textarea.ant-input.font-ghanshyam {
     overflow-wrap: anywhere !important;
     white-space: normal !important;
 
+    &.tree-node-root {
+      width: fit-content !important;
+      max-width: none !important;
+      white-space: nowrap !important;
+      word-break: normal !important;
+      line-break: normal !important;
+      overflow-wrap: normal !important;
+      flex-shrink: 0 !important;
+    }
+
     .tree-node-content {
       width: 100% !important;
       max-width: 100% !important;
@@ -1266,4 +1276,75 @@ textarea.ant-input.font-ghanshyam {
   .pedhinamu-page-footer {
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   }
+}
+
+// ── Node Resize Handles ─────────────────────────────────────────────────────
+// Transparent grab zones on left/right edges of each tree node.
+// They become visible (blue tint) only when the parent .tree-node is hovered.
+.tree-node {
+  &:hover .node-resize-handle {
+    opacity: 1 !important;
+    background: linear-gradient(
+      to right,
+      rgba(99, 102, 241, 0.18),
+      rgba(99, 102, 241, 0.06)
+    );
+  }
+
+  .node-resize-handle {
+    transition: opacity 0.15s ease, background 0.15s ease;
+    touch-action: none;
+
+    &:hover {
+      opacity: 1 !important;
+      background: rgba(99, 102, 241, 0.32) !important;
+    }
+
+    &:active {
+      background: rgba(99, 102, 241, 0.45) !important;
+    }
+  }
+
+  .node-resize-right {
+    background: linear-gradient(
+      to left,
+      rgba(99, 102, 241, 0.18),
+      rgba(99, 102, 241, 0.06)
+    );
+    &:hover {
+      background: rgba(99, 102, 241, 0.32) !important;
+    }
+  }
+
+  .node-resize-top {
+    background: linear-gradient(
+      to bottom,
+      rgba(99, 102, 241, 0.18),
+      rgba(99, 102, 241, 0.06)
+    );
+    &:hover {
+      background: rgba(99, 102, 241, 0.32) !important;
+    }
+  }
+
+  .node-resize-bottom {
+    background: linear-gradient(
+      to top,
+      rgba(99, 102, 241, 0.18),
+      rgba(99, 102, 241, 0.06)
+    );
+    &:hover {
+      background: rgba(99, 102, 241, 0.32) !important;
+    }
+  }
+}
+
+.tree-node.tree-node-root {
+  width: fit-content !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+  line-break: normal !important;
+  overflow-wrap: normal !important;
+  flex-shrink: 0 !important;
 }
