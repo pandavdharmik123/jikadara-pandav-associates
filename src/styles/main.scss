@@ -9,8 +9,16 @@
 }
 
 @font-face {
-  font-family: 'Nil';
+  font-family: 'Ghanshyam';
   src: url('/Ghanshyam.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nil';
+  src: url('/nilkanth.ttf') format('truetype'), url('/Ghanshyam.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -18,10 +26,26 @@
 
 @font-face {
   font-family: 'Nilkanth';
-  src: url('/Ghanshyam.ttf') format('truetype');
+  src: url('/nilkanth.ttf') format('truetype'), url('/NILKANTH.TTF') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nilkanth';
+  src: url('/nilkanth.ttf') format('truetype'), url('/NILKANTH.TTF') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-ghanshyam {
+  font-family: 'Ghanshyam', sans-serif !important;
+}
+
+.font-nilkanth {
+  font-family: 'Nilkanth', sans-serif !important;
 }
 
 /* General reset and base variables for simple design */

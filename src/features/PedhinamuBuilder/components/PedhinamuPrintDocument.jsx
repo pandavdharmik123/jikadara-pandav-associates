@@ -27,6 +27,8 @@ export default function PedhinamuPrintDocument({
     if (!text) return '';
     const str = String(text);
     if (fontMode !== 'ghanshyam') return str;
+    if (str === '(') return '{';
+    if (str === ')') return '}';
     // Only convert if it actually contains Gujarati Unicode (U+0A80 to U+0AFF)
     if (/[\u0A80-\u0AFF]/.test(str)) {
       return convertUnicodeToGhanshyamLegacy(str);
@@ -36,19 +38,81 @@ export default function PedhinamuPrintDocument({
   };
   const fmt = toFont;
 
-  const formatDecl1 = (text) => {
-    return (text || '').replace(/{applicationDate}/g, general.applicationDate || '૨૧-૧૦-૨૦૨૪');
+  const renderTextWithDynamicAppDate = (templateText) => {
+    if (!templateText) return null;
+    const parts = templateText.split('{applicationDate}');
+    if (parts.length === 1) return toFont(templateText);
+    const appDateVal = general.applicationDate || '૨૧-૧૦-૨૦૨૪';
+    return (
+      <>
+        {toFont(parts[0])}
+        <span style={{ fontFamily: dynamicFontFamily }}>{toFont(appDateVal)}</span>
+        {toFont(parts[1])}
+      </>
+    );
   };
 
-  const formatPanchDecl1 = (text) => {
-    return (text || '')
-      .replace(/{talatiMoje}/g, general.talatiMoje || general.moje || '')
-      .replace(/{taluka}/g, general.taluka || '')
-      .replace(/{totalHeirsCountGujarati}/g, totalHeirs.gujaratiDigits)
-      .replace(/{totalHeirsCountWords}/g, totalHeirs.gujaratiWords);
+  const renderPanchDecl1 = (text) => {
+    if (!text) return null;
+    const regex = /({talatiMoje}|{taluka}|{totalHeirsCountGujarati}|\(\s*{totalHeirsCountWords}\s*\)|{\s*{?totalHeirsCountWords}?\s*}|{totalHeirsCountWords})/g;
+    const parts = text.split(regex);
+    return parts.map((part, i) => {
+      if (part === '{talatiMoje}') {
+        return (
+          <span key={i} style={{ fontFamily: dynamicFontFamily }}>
+            {toFont(general.talatiMoje || general.moje || '')}
+          </span>
+        );
+      }
+      if (part === '{taluka}') {
+        return (
+          <span key={i} style={{ fontFamily: dynamicFontFamily }}>
+            {toFont(general.taluka || '')}
+          </span>
+        );
+      }
+      if (part === '{totalHeirsCountGujarati}') {
+        return (
+          <span key={i} style={{ fontFamily: dynamicFontFamily }}>
+            {toFont(totalHeirs.gujaratiDigits)}
+          </span>
+        );
+      }
+      if (
+        part === '{totalHeirsCountWords}' ||
+        /^\(\s*{totalHeirsCountWords}\s*\)$/.test(part) ||
+        /^{\s*{?totalHeirsCountWords}?\s*}$/.test(part)
+      ) {
+        if (fontMode === 'ghanshyam') {
+          return (
+            <span key={i}>
+              <span>{'{ '}</span>
+              <span style={{ fontFamily: dynamicFontFamily }}>
+                {toFont(totalHeirs.gujaratiWords)}
+              </span>
+              <span>{' }'}</span>
+            </span>
+          );
+        }
+        return (
+          <span key={i}>
+            <span>{'( '}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>
+              {totalHeirs.gujaratiWords}
+            </span>
+            <span>{' )'}</span>
+          </span>
+        );
+      }
+      return <span key={i}>{toFont(part)}</span>;
+    });
   };
 
   const docFontFamily = fontMode === 'ghanshyam'
+    ? "'Nilkanth', sans-serif"
+    : "'Anek Gujarati', 'Noto Sans Gujarati', system-ui, sans-serif";
+
+  const dynamicFontFamily = fontMode === 'ghanshyam'
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', system-ui, sans-serif";
 
@@ -57,7 +121,7 @@ export default function PedhinamuPrintDocument({
 
   return (
     <div
-      className={`pedhinamu-print-document ${fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}`}
+      className={`pedhinamu-print-document ${fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}`}
       style={{
         width: '1008pt',
         margin: '0 auto',
@@ -97,7 +161,8 @@ export default function PedhinamuPrintDocument({
                 fontSize: fontMode === 'ghanshyam' ? '14pt' : '13pt',
                 paddingRight: '120pt',
                 paddingLeft: '40pt',
-                lineHeight: 1.3
+                lineHeight: 1.3,
+                fontFamily: dynamicFontFamily
               }}
             >
               {toFont(template.headerTitle)}
@@ -110,9 +175,10 @@ export default function PedhinamuPrintDocument({
                 top: 0,
                 right: 0,
                 textAlign: 'right',
-                fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt',
+                fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt',
                 fontWeight: 600,
-                lineHeight: 1.3
+                lineHeight: 1.3,
+                fontFamily: dynamicFontFamily
               }}
             >
               <div>
@@ -139,10 +205,11 @@ export default function PedhinamuPrintDocument({
           <div style={{ textAlign: 'center', marginBottom: '4pt' }}>
             <span
               style={{
-                fontSize: fontMode === 'ghanshyam' ? '13pt' : '12pt',
+                fontSize: fontMode === 'ghanshyam' ? '13pt' : '12.5pt',
                 fontWeight: 700,
                 textDecoration: 'underline',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.5px',
+                fontFamily: dynamicFontFamily
               }}
             >
               {toFont(template.page1Subheading)}
@@ -152,7 +219,7 @@ export default function PedhinamuPrintDocument({
           {/* Applicant Statement Paragraph */}
           <div
             style={{
-              fontSize: fontMode === 'ghanshyam' ? '11pt' : '10pt',
+              fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10pt',
               lineHeight: fontMode === 'ghanshyam' ? 1.45 : 1.5,
               textAlign: 'justify',
               marginBottom: '5pt',
@@ -161,35 +228,35 @@ export default function PedhinamuPrintDocument({
           >
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             {toFont(statement.prefix)}
-            <span style={{ fontWeight: 600 }}>{toFont(statement.applicantName)}</span>
+            <span style={{ fontWeight: 600, fontFamily: dynamicFontFamily }}>{toFont(statement.applicantName)}</span>
             {toFont(statement.ageLabel)}
-            <span>{toFont(statement.applicantAge)}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.applicantAge)}</span>
             {toFont(statement.occLabel)}
-            <span>{toFont(statement.applicantOcc)}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.applicantOcc)}</span>
             {toFont(statement.addressLabel)}
-            <span>{toFont(statement.applicantAddress)}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.applicantAddress)}</span>
             {toFont(statement.talatiLabel)}
-            <span>{toFont(statement.talatiMoje)}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.talatiMoje)}</span>
             {toFont(statement.talukaLabel)}
-            <span>{toFont(statement.taluka)}</span>
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.taluka)}</span>
             {isAliveMode ? (
               <>
                 {toFont(statement.aliveIntro)}
-                <span>{toFont(statement.appDate)}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.appDate)}</span>
                 {toFont(statement.statementSuffix)}
               </>
             ) : (
               <>
                 {toFont(statement.deceasedIntro)}
-                <span style={{ fontWeight: 600 }}>{toFont(statement.deceasedName)}</span>
+                <span style={{ fontWeight: 600, fontFamily: dynamicFontFamily }}>{toFont(statement.deceasedName)}</span>
                 {toFont(statement.relationIntro)}
-                <span>{toFont(statement.relation)}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.relation)}</span>
                 {toFont(statement.deathPlaceIntro)}
-                <span>{toFont(statement.deathPlace)}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.deathPlace)}</span>
                 {toFont(statement.deathDateIntro)}
-                <span>{toFont(statement.deathDate)}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.deathDate)}</span>
                 {toFont(statement.purposeIntro)}
-                <span>{toFont(statement.appDate)}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.appDate)}</span>
                 {toFont(statement.statementSuffix)}
               </>
             )}
@@ -197,7 +264,13 @@ export default function PedhinamuPrintDocument({
 
           {/* Title: પેઢીનામું */}
           <div style={{ textAlign: 'center', marginBottom: '3pt' }}>
-            <span style={{ fontSize: fontMode === 'ghanshyam' ? '13.5pt' : '12.5pt', fontWeight: 700 }}>
+            <span
+              style={{
+                fontSize: fontMode === 'ghanshyam' ? '13.5pt' : '12.5pt',
+                fontWeight: 700,
+                fontFamily: dynamicFontFamily
+              }}
+            >
               {fmt(template.pedhinamuHeading)}
             </span>
           </div>
@@ -223,13 +296,13 @@ export default function PedhinamuPrintDocument({
           {/* Declaration Paragraphs */}
           <div
             style={{
-              fontSize: fontMode === 'ghanshyam' ? '11pt' : '10pt',
+              fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10pt',
               lineHeight: fontMode === 'ghanshyam' ? 1.5 : 1.55,
               textAlign: 'justify'
             }}
           >
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
-              {toFont(formatDecl1(template.page1Decl1))}
+              {renderTextWithDynamicAppDate(template.page1Decl1)}
             </p>
             <p style={{ marginBottom: '6pt', textIndent: '20pt' }}>
               {toFont(template.page1Decl2)}
@@ -251,14 +324,14 @@ export default function PedhinamuPrintDocument({
             }}
           >
             {/* Left: Place & Date */}
-            <div style={{ fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt', lineHeight: 1.7, minWidth: '150pt' }}>
+            <div style={{ fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt', lineHeight: 1.7, minWidth: '150pt' }}>
               <div>
                 <span>{toFont('સ્થળ : ')}</span>
-                <span>{toFont(general.place || '')}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.place || '')}</span>
               </div>
               <div>
                 <span>{toFont('તારીખ : ')}</span>
-                <span>{toFont(general.currentDate || '')}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.currentDate || '')}</span>
               </div>
             </div>
 
@@ -279,7 +352,7 @@ export default function PedhinamuPrintDocument({
               <div style={{ letterSpacing: '1px', marginBottom: '3pt', fontSize: '9.5pt' }}>
                 {template.signatureDottedLine}
               </div>
-              <div style={{ fontWeight: 700, fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt' }}>
+              <div style={{ fontWeight: 700, fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt' }}>
                 {toFont(template.applicantSignLabel)}
               </div>
             </div>
@@ -324,10 +397,11 @@ export default function PedhinamuPrintDocument({
               style={{
                 textAlign: 'center',
                 fontWeight: fontMode === 'ghanshyam' ? 600 : 700,
-                fontSize: fontMode === 'ghanshyam' ? '14.5pt' : '13.5pt',
+                fontSize: fontMode === 'ghanshyam' ? '15pt' : '13.5pt',
                 paddingRight: '120pt',
                 paddingLeft: '40pt',
-                lineHeight: 1.35
+                lineHeight: 1.35,
+                fontFamily: dynamicFontFamily
               }}
             >
               {toFont(template.headerTitle)}
@@ -339,8 +413,9 @@ export default function PedhinamuPrintDocument({
                 top: 0,
                 right: 0,
                 textAlign: 'right',
-                fontSize: fontMode === 'ghanshyam' ? '12pt' : '11pt',
-                fontWeight: 600
+                fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '11pt',
+                fontWeight: 600,
+                fontFamily: dynamicFontFamily
               }}
             >
               <div>
@@ -359,7 +434,8 @@ export default function PedhinamuPrintDocument({
                 fontSize: fontMode === 'ghanshyam' ? '13.5pt' : '12.5pt',
                 fontWeight: 700,
                 textDecoration: 'underline',
-                letterSpacing: '0.5px'
+                letterSpacing: '0.5px',
+                fontFamily: dynamicFontFamily
               }}
             >
               {toFont(template.page2Subheading)}
@@ -369,7 +445,7 @@ export default function PedhinamuPrintDocument({
           {/* Panch List (3 Panchas) */}
           <div
             style={{
-              fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt',
+              fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt',
               lineHeight: fontMode === 'ghanshyam' ? 1.85 : 2.1,
               marginBottom: '8pt'
             }}
@@ -379,13 +455,13 @@ export default function PedhinamuPrintDocument({
               return (
                 <div key={panch.id || idx} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline' }}>
                   <span style={{ fontWeight: 700, minWidth: '24pt' }}>{toFont(guNum)}</span>
-                  <span style={{ fontWeight: 700 }}>{toFont(panch.name || '...........................................')}</span>
+                  <span style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(panch.name || '...........................................')}</span>
                   <span>................</span>
                   <span>
-                    {toFont('ઉ.આ.વ. ')}<span>{toFont(panch.age || '.....')}</span>
-                    {toFont(' ....... ધંધો. ')}<span>{toFont(panch.occupation || '.......')}</span>
-                    {toFont(' ....... રહે. ')}<span>{toFont(panch.address || '.......................................................................')}</span>
-                    {toFont(' ..... મો. ')}<span>{toFont(panch.mobileNumber || '.......................')}</span>
+                    {toFont('ઉ.આ.વ. ')}<span style={{ fontFamily: dynamicFontFamily }}>{toFont(panch.age || '.....')}</span>
+                    {toFont(' ....... ધંધો. ')}<span style={{ fontFamily: dynamicFontFamily }}>{toFont(panch.occupation || '.......')}</span>
+                    {toFont(' ....... રહે. ')}<span style={{ fontFamily: dynamicFontFamily }}>{toFont(panch.address || '.......................................................................')}</span>
+                    {toFont(' ..... મો. ')}<span style={{ fontFamily: dynamicFontFamily }}>{toFont(panch.mobileNumber || '.......................')}</span>
                   </span>
                 </div>
               );
@@ -395,13 +471,13 @@ export default function PedhinamuPrintDocument({
           {/* Panch Statement Paragraphs */}
           <div
             style={{
-              fontSize: fontMode === 'ghanshyam' ? '10.8pt' : '9.8pt',
+              fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '9.8pt',
               lineHeight: fontMode === 'ghanshyam' ? 1.48 : 1.55,
               textAlign: 'justify'
             }}
           >
             <p style={{ marginBottom: '5pt', textIndent: '20pt' }}>
-              {toFont(formatPanchDecl1(template.page2Decl1))}
+              {renderPanchDecl1(template.page2Decl1)}
             </p>
             <p style={{ marginBottom: '5pt', textIndent: '20pt' }}>
               {toFont(template.page2Decl2)}
@@ -423,9 +499,15 @@ export default function PedhinamuPrintDocument({
             }}
           >
             {/* Left: Place & Date */}
-            <div style={{ fontSize: fontMode === 'ghanshyam' ? '12pt' : '11pt', lineHeight: 1.9, minWidth: '110pt' }}>
-              <div>{fmt(`સ્થળ : ${general.place || ''}`)}</div>
-              <div>{fmt(`તારીખ : ${general.currentDate || ''}`)}</div>
+            <div style={{ fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '11pt', lineHeight: 1.9, minWidth: '110pt' }}>
+              <div>
+                <span>{toFont('સ્થળ : ')}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.place || '')}</span>
+              </div>
+              <div>
+                <span>{toFont('તારીખ : ')}</span>
+                <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.currentDate || '')}</span>
+              </div>
             </div>
 
             {/* Middle: 3 Panch Photos */}
@@ -444,21 +526,37 @@ export default function PedhinamuPrintDocument({
             </div>
 
             {/* Right: 3 Panch Signature lines */}
-            <div style={{ fontSize: fontMode === 'ghanshyam' ? '11.5pt' : '10.5pt', lineHeight: 2.1, minWidth: '220pt' }}>
+            <div
+              style={{
+                fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt',
+                minWidth: '320pt',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                height: '105pt'
+              }}
+            >
               {[
                 { label: 'પંચ-૧', showSahi: true },
                 { label: 'પંચ-૨', showSahi: false },
                 { label: 'પંચ-૩', showSahi: false }
               ].map((row, rIdx) => (
-                <div key={`panch-sign-${rIdx}`} style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ width: '36pt', flexShrink: 0 }}>
+                <div
+                  key={`panch-sign-${rIdx}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    minHeight: '32pt'
+                  }}
+                >
+                  <span style={{ width: '42pt', flexShrink: 0 }}>
                     {row.showSahi ? toFont('સહિ') : ''}
                   </span>
-                  <span style={{ width: '48pt', flexShrink: 0 }}>
+                  <span style={{ width: '54pt', flexShrink: 0, marginRight: '14pt' }}>
                     {toFont(row.label)}
                   </span>
-                  <span style={{ letterSpacing: '1px' }}>
-                    {template.signatureDottedLine.slice(0, 26)}
+                  <span style={{ letterSpacing: '1.3px', whiteSpace: 'nowrap' }}>
+                    {template.signatureDottedLine.slice(0, 44)}
                   </span>
                 </div>
               ))}
@@ -477,7 +575,7 @@ export default function PedhinamuPrintDocument({
             {template.bulletNotes.map((note, nIdx) => (
               <div key={`note-${nIdx}`} style={{ display: 'flex', marginBottom: '2pt' }}>
                 <span style={{ marginRight: '6pt' }}>•</span>
-                <span>{fmt(formatDecl1(note))}</span>
+                <span>{renderTextWithDynamicAppDate(note)}</span>
               </div>
             ))}
           </div>

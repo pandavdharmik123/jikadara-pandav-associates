@@ -814,10 +814,10 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                 size="small"
                 value={fontMode}
                 className="dock-select"
-                style={{ width: 154 }}
+                style={{ width: 175 }}
                 onChange={setFontMode}
                 options={[
-                  { value: 'ghanshyam', label: 'Ghanshyam (ઘનશ્યામ)' },
+                  { value: 'ghanshyam', label: 'Nilkanth + Ghanshyam' },
                   { value: 'unicode', label: 'Gujarati Unicode' }
                 ]}
               />

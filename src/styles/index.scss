@@ -169,21 +169,36 @@ body {
   font-display: swap;
 }
 
-.font-ghanshyam {
-  font-family: 'Ghanshyam', sans-serif !important;
-}
-
-
 @font-face {
   font-family: 'Ghanshyam';
   src: url('/Ghanshyam.ttf') format('truetype');
-  font-weight: normal;
+  font-weight: bold;
   font-style: normal;
   font-display: swap;
 }
 
 .font-ghanshyam {
   font-family: 'Ghanshyam', sans-serif !important;
+}
+
+@font-face {
+  font-family: 'Nilkanth';
+  src: url('/nilkanth.ttf') format('truetype'), url('/NILKANTH.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nilkanth';
+  src: url('/nilkanth.ttf') format('truetype'), url('/NILKANTH.TTF') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-nilkanth {
+  font-family: 'Nilkanth', sans-serif !important;
 }
 
 
