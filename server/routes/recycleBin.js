@@ -26,6 +26,7 @@ router.get('/', requireAuth, async (req, res) => {
       generalExpenses,
       upads,
       invoices,
+      pedhinamus,
       documentTypes,
     ] = await Promise.all([
       prisma.client.findMany({
@@ -75,6 +76,13 @@ router.get('/', requireAuth, async (req, res) => {
         },
         orderBy: { deletedAt: 'desc' },
       }),
+      prisma.pedhinamu.findMany({
+        where: { isDeleted: true, ...userFilter },
+        include: {
+          user: { select: { name: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+      }),
       prisma.documentType.findMany({
         where: { isDeleted: true },
         orderBy: { deletedAt: 'desc' },
@@ -88,6 +96,7 @@ router.get('/', requireAuth, async (req, res) => {
       generalExpenses: generalExpenses.length,
       upads: upads.length,
       invoices: invoices.length,
+      pedhinamus: pedhinamus.length,
       documentTypes: documentTypes.length,
       total:
         clients.length +
@@ -96,6 +105,7 @@ router.get('/', requireAuth, async (req, res) => {
         generalExpenses.length +
         upads.length +
         invoices.length +
+        pedhinamus.length +
         documentTypes.length,
     };
 
@@ -108,6 +118,7 @@ router.get('/', requireAuth, async (req, res) => {
         generalExpenses,
         upads,
         invoices,
+        pedhinamus,
         documentTypes,
       },
     });
@@ -329,6 +340,22 @@ router.post('/restore', requireAuth, async (req, res) => {
         return res.json({ message: 'Document type restored successfully' });
       }
 
+      case 'PEDHINAMU': {
+        const existing = await prisma.pedhinamu.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Deleted Pedhinamu document not found' });
+        }
+
+        await prisma.pedhinamu.update({
+          where: { id },
+          data: { isDeleted: false, deletedAt: null },
+        });
+
+        return res.json({ message: 'Pedhinamu document restored successfully' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -455,6 +482,17 @@ router.delete('/permanent', requireAuth, async (req, res) => {
         return res.json({ message: 'Document type permanently deleted' });
       }
 
+      case 'PEDHINAMU': {
+        const existing = await prisma.pedhinamu.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Item not found in Recycle Bin' });
+        }
+        await prisma.pedhinamu.delete({ where: { id } });
+        return res.json({ message: 'Pedhinamu permanently deleted' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -481,6 +519,7 @@ router.delete('/empty', requireAuth, async (req, res) => {
         prisma.client.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.generalExpense.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.upad.deleteMany({ where: { isDeleted: true, ...userFilter } }),
+        prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         ...(req.user.role === 'ADMIN'
           ? [prisma.documentType.deleteMany({ where: { isDeleted: true } })]
           : []),
@@ -506,6 +545,9 @@ router.delete('/empty', requireAuth, async (req, res) => {
         break;
       case 'INVOICE':
         await prisma.invoice.deleteMany({ where: { isDeleted: true, ...userFilter } });
+        break;
+      case 'PEDHINAMU':
+        await prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } });
         break;
       case 'DOCUMENT_TYPE':
         await prisma.documentType.deleteMany({ where: { isDeleted: true } });

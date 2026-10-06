@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Table, Button, Space, Typography, Popconfirm, message, Tag } from 'antd';
-import { Trash2, Download, Upload, FolderOpen } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Modal, Table, Button, Space, Typography, Popconfirm, message, Tag, Input, Segmented } from 'antd';
+import { Trash2, Download, Upload, FolderOpen, Copy, Search, RefreshCw, Database } from 'lucide-react';
 import api from '../../../services/api';
 
 const { Text } = Typography;
@@ -9,58 +9,43 @@ export default function SavedDraftsModal({
   visible,
   onClose,
   onLoadDraft,
-  currentData
+  currentData,
+  currentDraftId = null
 }) {
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL'); // 'ALL' | 'ALIVE' | 'DECEASED'
 
   const fetchDrafts = async () => {
     setLoading(true);
+    // Remove any legacy local backup drafts from storage
     try {
-      // 1. Fetch server drafts
-      let serverDrafts = [];
-      try {
-        const res = await api.get('/pedhinamu');
-        if (res.data && res.data.pedhinamus) {
-          serverDrafts = res.data.pedhinamus.map((d) => ({
-            id: d.id,
-            title: d.title || 'Untitled Pedhinamu',
-            applicantName: d.applicantName || '-',
-            deceasedName: d.deceasedName || '-',
-            pedhinamuType: d.documentData?.pedhinamuType || 'DECEASED',
-            source: 'cloud',
-            updatedAt: d.updatedAt
-          }));
-        }
-      } catch (err) {
-        console.warn('Could not fetch server drafts:', err.message);
-      }
+      localStorage.removeItem('pedhinamu_saved_drafts');
+    } catch (_) {}
 
-      // 2. Fetch local storage drafts
-      const localDraftsRaw = localStorage.getItem('pedhinamu_saved_drafts');
-      let localDrafts = [];
-      if (localDraftsRaw) {
-        try {
-          const parsed = JSON.parse(localDraftsRaw);
-          localDrafts = Object.keys(parsed).map((key) => {
-            const item = parsed[key];
-            return {
-              id: key,
-              title: item.title || 'Local Draft',
-              applicantName: item.data?.applicant?.name || '-',
-              deceasedName: item.data?.deceased?.name || '-',
-              pedhinamuType: item.data?.pedhinamuType || 'DECEASED',
-              source: 'local',
-              data: item.data,
-              updatedAt: item.updatedAt || new Date().toISOString()
-            };
-          });
-        } catch (e) {
-          console.error(e);
-        }
+    try {
+      const res = await api.get('/pedhinamu');
+      if (res.data && res.data.pedhinamus) {
+        const serverDrafts = res.data.pedhinamus.map((d) => ({
+          id: d.id,
+          title: d.title || 'Untitled Pedhinamu',
+          applicantName: d.applicantName || d.documentData?.applicant?.name || '-',
+          deceasedName: d.deceasedName || d.documentData?.deceased?.name || '-',
+          moje: d.documentData?.general?.moje || '-',
+          taluka: d.documentData?.general?.taluka || '-',
+          pedhinamuType: d.documentData?.pedhinamuType || 'DECEASED',
+          documentData: d.documentData,
+          updatedAt: d.updatedAt
+        }));
+        setDrafts(serverDrafts);
+      } else {
+        setDrafts([]);
       }
-
-      setDrafts([...serverDrafts, ...localDrafts]);
+    } catch (err) {
+      console.error('Could not fetch drafts from database:', err);
+      message.error('Failed to load drafts from database');
+      setDrafts([]);
     } finally {
       setLoading(false);
     }
@@ -72,22 +57,21 @@ export default function SavedDraftsModal({
     }
   }, [visible]);
 
+  // Load a draft into the active workspace with its ID
   const handleLoad = async (record) => {
     try {
-      if (record.source === 'local' && record.data) {
-        onLoadDraft(record.data, record.title);
-        message.success(`Loaded draft "${record.title}"`);
-        onClose();
-        return;
+      let docData = record.documentData;
+      if (!docData) {
+        const res = await api.get(`/pedhinamu/${record.id}`);
+        docData = res.data?.pedhinamu?.documentData;
       }
 
-      if (record.source === 'cloud') {
-        const res = await api.get(`/pedhinamu/${record.id}`);
-        if (res.data?.pedhinamu?.documentData) {
-          onLoadDraft(res.data.pedhinamu.documentData, res.data.pedhinamu.title);
-          message.success(`Loaded draft "${record.title}" from cloud`);
-          onClose();
-        }
+      if (docData) {
+        onLoadDraft(docData, record.title, record.id);
+        message.success(`Loaded "${record.title}" from database`);
+        onClose();
+      } else {
+        message.error('Document data not found');
       }
     } catch (err) {
       console.error(err);
@@ -95,23 +79,27 @@ export default function SavedDraftsModal({
     }
   };
 
+  // Delete a draft (soft-delete to recycle bin)
   const handleDelete = async (record) => {
     try {
-      if (record.source === 'local') {
-        const localDraftsRaw = localStorage.getItem('pedhinamu_saved_drafts');
-        if (localDraftsRaw) {
-          const parsed = JSON.parse(localDraftsRaw);
-          delete parsed[record.id];
-          localStorage.setItem('pedhinamu_saved_drafts', JSON.stringify(parsed));
-        }
-      } else {
-        await api.delete(`/pedhinamu/${record.id}`);
-      }
-      message.success('Draft deleted');
+      await api.delete(`/pedhinamu/${record.id}`);
+      message.success('Draft moved to Recycle Bin');
       fetchDrafts();
     } catch (err) {
       console.error(err);
       message.error('Failed to delete draft');
+    }
+  };
+
+  // Clone a draft in database
+  const handleClone = async (record) => {
+    try {
+      await api.post(`/pedhinamu/${record.id}/clone`);
+      message.success(`Cloned draft "${record.title}"`);
+      fetchDrafts();
+    } catch (err) {
+      console.error('Clone failed:', err);
+      message.error('Failed to clone draft');
     }
   };
 
@@ -136,7 +124,7 @@ export default function SavedDraftsModal({
       try {
         const parsed = JSON.parse(ev.target.result);
         if (parsed.applicant && parsed.deceased && parsed.tree) {
-          onLoadDraft(parsed, file.name.replace('.json', ''));
+          onLoadDraft(parsed, file.name.replace('.json', ''), null);
           message.success('Imported Pedhinamu data successfully');
           onClose();
         } else {
@@ -150,31 +138,65 @@ export default function SavedDraftsModal({
     e.target.value = '';
   };
 
+  // Filtered drafts
+  const filteredDrafts = useMemo(() => {
+    return drafts.filter((d) => {
+      // Type filter
+      if (typeFilter !== 'ALL' && d.pedhinamuType !== typeFilter) {
+        return false;
+      }
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (d.title || '').toLowerCase().includes(q);
+        const matchApplicant = (d.applicantName || '').toLowerCase().includes(q);
+        const matchDeceased = (d.deceasedName || '').toLowerCase().includes(q);
+        const matchMoje = (d.moje || '').toLowerCase().includes(q);
+        return matchTitle || matchApplicant || matchDeceased || matchMoje;
+      }
+      return true;
+    });
+  }, [drafts, typeFilter, searchQuery]);
+
   const columns = [
     {
-      title: 'Title',
+      title: 'Title / શીર્ષક',
       dataIndex: 'title',
       key: 'title',
-      render: (text, r) => (
-        <div>
-          <Text strong>{text}</Text>
-          <div style={{ marginTop: 2 }}>
-            <Tag color={r.source === 'cloud' ? 'blue' : 'green'}>
-              {r.source === 'cloud' ? 'Cloud' : 'Local'}
-            </Tag>
+      render: (text, r) => {
+        const isCurrent = currentDraftId && currentDraftId === r.id;
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Text strong>{text}</Text>
+              {isCurrent && (
+                <Tag color="purple" style={{ fontSize: 11, padding: '0 4px', lineHeight: '18px' }}>
+                  Open
+                </Tag>
+              )}
+            </div>
+            {r.moje && r.moje !== '-' && (
+              <div style={{ marginTop: 2 }}>
+                <Tag color="cyan" style={{ fontSize: 11 }}>
+                  મોજે: {r.moje}
+                </Tag>
+              </div>
+            )}
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       title: 'Applicant / અરજદાર',
       dataIndex: 'applicantName',
-      key: 'applicantName'
+      key: 'applicantName',
+      render: (text) => text || '-'
     },
     {
       title: 'Type / પ્રકાર',
       dataIndex: 'pedhinamuType',
       key: 'pedhinamuType',
+      width: 140,
       render: (type) => (
         <Tag color={type === 'ALIVE' ? 'success' : 'default'}>
           {type === 'ALIVE' ? '🟢 Alive (હયાતી)' : '🔴 Deceased (સ્વર્ગસ્થ)'}
@@ -184,28 +206,41 @@ export default function SavedDraftsModal({
     {
       title: 'Person / વ્યક્તિ',
       dataIndex: 'deceasedName',
-      key: 'deceasedName'
+      key: 'deceasedName',
+      render: (text) => text || '-'
     },
     {
       title: 'Last Updated',
       dataIndex: 'updatedAt',
       key: 'updatedAt',
-      render: (val) => val ? new Date(val).toLocaleDateString('en-GB') : '-'
+      width: 110,
+      render: (val) => (val ? new Date(val).toLocaleDateString('en-GB') : '-')
     },
     {
       title: 'Action',
       key: 'action',
       align: 'right',
+      width: 130,
       render: (_, record) => (
-        <Space>
+        <Space size={4}>
           <Button
             type="primary"
             size="small"
             icon={<FolderOpen size={13} />}
             onClick={() => handleLoad(record)}
+            style={{ backgroundColor: '#4f46e5' }}
           >
             Load
           </Button>
+
+          <Button
+            type="text"
+            size="small"
+            title="Duplicate / Clone"
+            icon={<Copy size={13} />}
+            onClick={() => handleClone(record)}
+          />
+
           <Popconfirm
             title="Delete this draft?"
             onConfirm={() => handleDelete(record)}
@@ -221,38 +256,73 @@ export default function SavedDraftsModal({
 
   return (
     <Modal
-      title="Saved Pedhinamu Drafts / સંગ્રહિત પેઢીનામા"
+      title={
+        <Space>
+          <Database size={18} style={{ color: '#4f46e5' }} />
+          <span>Saved Pedhinamu Drafts / સંગ્રહિત પેઢીનામા</span>
+        </Space>
+      }
       open={visible}
       onCancel={onClose}
-      width={780}
+      width={860}
       footer={[
-        <Space key="footer-actions">
-          <Button icon={<Download size={14} />} onClick={handleExportJSON}>
-            Export Current (JSON)
-          </Button>
-          <label style={{ cursor: 'pointer' }}>
-            <Button icon={<Upload size={14} />} onClick={() => document.getElementById('pedhinamu-json-import-input')?.click()}>
-              Import JSON
+        <div key="footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Space>
+            <Button icon={<Download size={14} />} onClick={handleExportJSON}>
+              Export JSON
             </Button>
-            <input
-              id="pedhinamu-json-import-input"
-              type="file"
-              accept=".json"
-              style={{ display: 'none' }}
-              onChange={handleImportJSON}
-            />
-          </label>
+            <label style={{ cursor: 'pointer' }}>
+              <Button
+                icon={<Upload size={14} />}
+                onClick={() => document.getElementById('pedhinamu-json-import-input')?.click()}
+              >
+                Import JSON
+              </Button>
+              <input
+                id="pedhinamu-json-import-input"
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleImportJSON}
+              />
+            </label>
+            <Button icon={<RefreshCw size={14} />} onClick={fetchDrafts} loading={loading}>
+              Refresh
+            </Button>
+          </Space>
           <Button onClick={onClose}>Close</Button>
-        </Space>
+        </div>
       ]}
     >
+      {/* Search & Filter Toolbar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14, marginTop: 4, flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Search by title, applicant, deceased, or village..."
+          prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          allowClear
+          style={{ flex: 1, minWidth: 240 }}
+        />
+
+        <Segmented
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { label: 'All', value: 'ALL' },
+            { label: 'Deceased (સ્વર્ગસ્થ)', value: 'DECEASED' },
+            { label: 'Alive (હયાતી)', value: 'ALIVE' }
+          ]}
+        />
+      </div>
+
       <Table
-        dataSource={drafts}
+        dataSource={filteredDrafts}
         columns={columns}
         rowKey="id"
         loading={loading}
         size="small"
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 6, showTotal: (total) => `Total ${total} drafts` }}
       />
     </Modal>
   );

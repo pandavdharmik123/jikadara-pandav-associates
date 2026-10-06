@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, Tabs, Input, Modal, Popconfirm, message, Badge } from 'antd';
-import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files } from 'lucide-react';
+import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files, GitFork } from 'lucide-react';
 import { useRecycleBin, useRestoreItem, usePermanentDeleteItem, useEmptyRecycleBin } from '../../hooks/useRecycleBin';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
@@ -25,6 +25,7 @@ export default function RecycleBin() {
     generalExpenses: 0,
     upads: 0,
     invoices: 0,
+    pedhinamus: 0,
     documentTypes: 0,
     total: 0,
   };
@@ -36,6 +37,7 @@ export default function RecycleBin() {
     generalExpenses: [],
     upads: [],
     invoices: [],
+    pedhinamus: [],
     documentTypes: [],
   };
 
@@ -130,6 +132,21 @@ export default function RecycleBin() {
         details: `Date: ${dayjs(inv.date).format('DD/MM/YYYY')}`,
         deletedAt: inv.deletedAt,
         amount: Number(inv.total) || 0,
+      });
+    });
+
+    // Pedhinamu Drafts
+    (rawData.pedhinamus || []).forEach((p) => {
+      list.push({
+        id: p.id,
+        type: 'PEDHINAMU',
+        typeName: 'Pedhinamu',
+        typeColor: 'gold',
+        title: p.title || 'Untitled Pedhinamu',
+        subtitle: p.applicantName ? `Applicant: ${p.applicantName}` : '',
+        details: p.deceasedName ? `Deceased: ${p.deceasedName}` : '',
+        deletedAt: p.deletedAt,
+        amount: null,
       });
     });
 
@@ -386,6 +403,16 @@ export default function RecycleBin() {
           <FileText size={14} />
           <span>Invoices</span>
           <Badge count={counts.invoices} overflowCount={999} style={{ backgroundColor: '#06b6d4' }} />
+        </Space>
+      ),
+    },
+    {
+      key: 'PEDHINAMU',
+      label: (
+        <Space size="small">
+          <GitFork size={14} />
+          <span>Pedhinamu</span>
+          <Badge count={counts.pedhinamus} overflowCount={999} style={{ backgroundColor: '#eab308' }} />
         </Space>
       ),
     },
