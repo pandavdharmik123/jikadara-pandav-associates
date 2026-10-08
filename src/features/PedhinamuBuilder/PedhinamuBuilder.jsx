@@ -8,7 +8,8 @@ import {
   Tooltip,
   Dropdown,
   Modal,
-  Input
+  Input,
+  Tag
 } from 'antd';
 import {
   Save,
@@ -25,7 +26,9 @@ import {
   PanelLeft,
   PanelLeftClose,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Cloud
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -34,6 +37,7 @@ import { toSvg, toPng } from 'html-to-image';
 import PedhinamuForm from './components/PedhinamuForm';
 import PedhinamuPrintDocument from './components/PedhinamuPrintDocument';
 import SavedDraftsModal from './components/SavedDraftsModal';
+import SavePedhinamuModal from './components/SavePedhinamuModal';
 import GhanshyamInput from './components/GhanshyamInput';
 
 import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
@@ -85,8 +89,13 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     }
   }, []);
 
-  const [draftTitle, setDraftTitle] = useState('મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું');
-  const [draftId, setDraftId] = useState(null);
+  const [draftTitle, setDraftTitle] = useState(() => {
+    return localStorage.getItem('pedhinamu_active_draft_title') || 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું';
+  });
+  const [draftId, setDraftId] = useState(() => {
+    return localStorage.getItem('pedhinamu_active_draft_id') || null;
+  });
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [fontMode, setFontMode] = useState(() => {
     return localStorage.getItem('pedhinamu_font_mode') || 'ghanshyam';
   });
@@ -109,6 +118,26 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   useEffect(() => {
     localStorage.setItem('pedhinamu_font_mode', fontMode);
   }, [fontMode]);
+
+  useEffect(() => {
+    if (draftId) {
+      localStorage.setItem('pedhinamu_active_draft_id', draftId);
+    } else {
+      localStorage.removeItem('pedhinamu_active_draft_id');
+    }
+  }, [draftId]);
+
+  useEffect(() => {
+    if (draftTitle) {
+      localStorage.setItem('pedhinamu_active_draft_title', draftTitle);
+    }
+  }, [draftTitle]);
+
+  useEffect(() => {
+    try {
+      localStorage.removeItem('pedhinamu_saved_drafts');
+    } catch (_) {}
+  }, []);
 
   // Fit to screen width helper
   const handleFitToScreen = useCallback(() => {
@@ -301,56 +330,59 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     });
   };
 
-  // Save draft to cloud & local storage
-  const handleSaveDraft = async () => {
+  // Execute Save draft directly to PostgreSQL database
+  const executeSaveDraft = async ({ title, saveAsNew = false }) => {
     setIsSaving(true);
-    try {
-      // 1. Save locally
-      const localDraftsRaw = localStorage.getItem('pedhinamu_saved_drafts') || '{}';
-      const localDrafts = JSON.parse(localDraftsRaw);
-      const draftKey = draftId || `draft-${Date.now()}`;
-      localDrafts[draftKey] = {
-        title: draftTitle || data.applicant?.name || 'Untitled',
-        data,
-        updatedAt: new Date().toISOString()
-      };
-      localStorage.setItem('pedhinamu_saved_drafts', JSON.stringify(localDrafts));
+    const finalTitle = (title || draftTitle || data.applicant?.name || 'Untitled Pedhinamu').trim();
+    const isNew = saveAsNew || !draftId || draftId.startsWith('draft-');
 
-      // 2. Save to Server DB
-      try {
-        if (draftId && !draftId.startsWith('draft-')) {
-          await api.put(`/pedhinamu/${draftId}`, {
-            title: draftTitle,
-            applicantName: data.applicant?.name || '',
-            deceasedName: data.deceased?.name || '',
-            documentData: data
-          });
-        } else {
-          const res = await api.post('/pedhinamu', {
-            title: draftTitle,
-            applicantName: data.applicant?.name || '',
-            deceasedName: data.deceased?.name || '',
-            documentData: data
-          });
-          if (res.data?.pedhinamu?.id) {
-            setDraftId(res.data.pedhinamu.id);
-          }
+    try {
+      if (!isNew && draftId) {
+        const res = await api.put(`/pedhinamu/${draftId}`, {
+          title: finalTitle,
+          applicantName: data.applicant?.name || '',
+          deceasedName: data.deceased?.name || '',
+          documentData: data
+        });
+        if (res.data?.pedhinamu) {
+          setDraftId(res.data.pedhinamu.id);
         }
-      } catch (srvErr) {
-        console.warn('Server sync failed, saved locally only:', srvErr.message);
+        message.success(`Updated "${finalTitle}" in database!`);
+      } else {
+        const res = await api.post('/pedhinamu', {
+          title: finalTitle,
+          applicantName: data.applicant?.name || '',
+          deceasedName: data.deceased?.name || '',
+          documentData: data
+        });
+        if (res.data?.pedhinamu?.id) {
+          setDraftId(res.data.pedhinamu.id);
+        }
+        message.success(`Saved "${finalTitle}" to database!`);
       }
 
-      message.success('Pedhinamu draft saved successfully!');
+      // Clean up any old legacy local storage draft backups
+      try {
+        localStorage.removeItem('pedhinamu_saved_drafts');
+      } catch (_) {}
+
+      setDraftTitle(finalTitle);
+      setSaveModalVisible(false);
     } catch (err) {
-      console.error(err);
-      message.error('Failed to save draft');
+      console.error('Database save error:', err);
+      message.error(err.response?.data?.error || 'Failed to save to database');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Load selected draft
-  const handleLoadDraft = (draftData, title) => {
+  // Save handler (shortcut or toolbar button click) -> Prompt user for title
+  const handleSaveClick = () => {
+    setSaveModalVisible(true);
+  };
+
+  // Load selected draft with its ID
+  const handleLoadDraft = (draftData, title, id = null) => {
     const normalized = {
       pedhinamuType: draftData.pedhinamuType || 'DECEASED',
       ...draftData,
@@ -360,7 +392,20 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     setSelectedNodeId('root');
     setSelectedNodeIds(['root']);
     if (title) setDraftTitle(title);
+    setDraftId(id || null);
   };
+
+  // Keyboard shortcut Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        setSaveModalVisible(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Standard Print Dialog (using legal landscape CSS @media print)
   const handlePrint = () => {
@@ -638,23 +683,6 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               </button>
             </div>
           </div>
-
-          <div className="pedhinamu-header-divider" />
-
-          {/* <div className="pedhinamu-header-draft-input">
-            <GhanshyamInput
-              value={draftTitle}
-              placeholder="Draft Title (દા.ત. મધુભાઇ પેઢીનામું)"
-              onChange={(e) => setDraftTitle(e.target.value)}
-            />
-          </div> */}
-
-          <Tooltip title="All changes automatically saved to local storage">
-            <div className="pedhinamu-autosave-indicator">
-              <div className="autosave-dot" />
-              <span className="autosave-text">Saved</span>
-            </div>
-          </Tooltip>
         </div>
 
         <div className="pedhinamu-header-right">
@@ -668,7 +696,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             </Button>
           </Tooltip>
 
-          <Tooltip title="View saved drafts">
+          <Tooltip title="View saved drafts in database">
             <Button
               className="btn-saved-drafts"
               icon={<FolderOpen size={14} />}
@@ -678,12 +706,14 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             </Button>
           </Tooltip>
 
-          <Tooltip title="Save current draft">
+          {/* Save Button */}
+          <Tooltip title="Save to Database (Ctrl+S / Cmd+S)">
             <Button
               type="default"
-              icon={<Save size={14} />}
+              className="btn-save-draft"
+              icon={<Save size={14} style={{ color: '#4f46e5' }} />}
               loading={isSaving}
-              onClick={handleSaveDraft}
+              onClick={handleSaveClick}
             >
               <span className="btn-label">Save</span>
             </Button>
@@ -988,12 +1018,24 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         </div>
       </div>
 
+      {/* Save to Database Modal */}
+      <SavePedhinamuModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={executeSaveDraft}
+        currentData={data}
+        currentDraftTitle={draftTitle}
+        currentDraftId={draftId}
+        isSaving={isSaving}
+      />
+
       {/* Saved Drafts Modal */}
       <SavedDraftsModal
         visible={draftsModalVisible}
         onClose={() => setDraftsModalVisible(false)}
         onLoadDraft={handleLoadDraft}
         currentData={data}
+        currentDraftId={draftId}
       />
     </div>
   );
