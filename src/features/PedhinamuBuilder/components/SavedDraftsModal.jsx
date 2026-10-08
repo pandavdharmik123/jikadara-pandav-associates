@@ -23,7 +23,7 @@ export default function SavedDraftsModal({
     // Remove any legacy local backup drafts from storage
     try {
       localStorage.removeItem('pedhinamu_saved_drafts');
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       const res = await api.get('/pedhinamu');

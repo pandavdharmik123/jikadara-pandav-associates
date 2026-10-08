@@ -17,6 +17,7 @@ import documentRoutes from './routes/document.js';
 import upadRoutes from './routes/upad.js';
 import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
+import jantriRoutes from './routes/jantri.js';
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use('/api/document', documentRoutes);
 app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
+app.use('/api/jantri', jantriRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {
