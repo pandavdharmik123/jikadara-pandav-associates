@@ -27,6 +27,7 @@ router.get('/', requireAuth, async (req, res) => {
       upads,
       invoices,
       pedhinamus,
+      jantriCalculations,
       documentTypes,
     ] = await Promise.all([
       prisma.client.findMany({
@@ -83,6 +84,13 @@ router.get('/', requireAuth, async (req, res) => {
         },
         orderBy: { deletedAt: 'desc' },
       }),
+      prisma.jantriCalculation.findMany({
+        where: { isDeleted: true, ...userFilter },
+        include: {
+          user: { select: { name: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+      }),
       prisma.documentType.findMany({
         where: { isDeleted: true },
         orderBy: { deletedAt: 'desc' },
@@ -97,6 +105,7 @@ router.get('/', requireAuth, async (req, res) => {
       upads: upads.length,
       invoices: invoices.length,
       pedhinamus: pedhinamus.length,
+      jantriCalculations: jantriCalculations.length,
       documentTypes: documentTypes.length,
       total:
         clients.length +
@@ -106,6 +115,7 @@ router.get('/', requireAuth, async (req, res) => {
         upads.length +
         invoices.length +
         pedhinamus.length +
+        jantriCalculations.length +
         documentTypes.length,
     };
 
@@ -119,6 +129,7 @@ router.get('/', requireAuth, async (req, res) => {
         upads,
         invoices,
         pedhinamus,
+        jantriCalculations,
         documentTypes,
       },
     });
@@ -356,6 +367,22 @@ router.post('/restore', requireAuth, async (req, res) => {
         return res.json({ message: 'Pedhinamu document restored successfully' });
       }
 
+      case 'JANTRI': {
+        const existing = await prisma.jantriCalculation.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Deleted Jantri calculation not found' });
+        }
+
+        await prisma.jantriCalculation.update({
+          where: { id },
+          data: { isDeleted: false, deletedAt: null },
+        });
+
+        return res.json({ message: 'Jantri calculation restored successfully' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -493,6 +520,17 @@ router.delete('/permanent', requireAuth, async (req, res) => {
         return res.json({ message: 'Pedhinamu permanently deleted' });
       }
 
+      case 'JANTRI': {
+        const existing = await prisma.jantriCalculation.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Item not found in Recycle Bin' });
+        }
+        await prisma.jantriCalculation.delete({ where: { id } });
+        return res.json({ message: 'Jantri calculation permanently deleted' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -520,6 +558,7 @@ router.delete('/empty', requireAuth, async (req, res) => {
         prisma.generalExpense.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.upad.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } }),
+        prisma.jantriCalculation.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         ...(req.user.role === 'ADMIN'
           ? [prisma.documentType.deleteMany({ where: { isDeleted: true } })]
           : []),
@@ -548,6 +587,9 @@ router.delete('/empty', requireAuth, async (req, res) => {
         break;
       case 'PEDHINAMU':
         await prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } });
+        break;
+      case 'JANTRI':
+        await prisma.jantriCalculation.deleteMany({ where: { isDeleted: true, ...userFilter } });
         break;
       case 'DOCUMENT_TYPE':
         await prisma.documentType.deleteMany({ where: { isDeleted: true } });

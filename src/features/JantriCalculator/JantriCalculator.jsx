@@ -1,8 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message, Tooltip, Tag, Dropdown, Modal } from 'antd';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
-import { Calculator, FileText, Plus, Trash2 } from 'lucide-react';
+import { Calculator, FileText, Plus, Trash2, Save, FolderOpen, RotateCcw, Cloud, MoreVertical, Sparkles } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import api from '../../services/api';
+import SaveJantriModal from './components/SaveJantriModal';
+import SavedJantriModal from './components/SavedJantriModal';
 
 const { Title, Text } = Typography;
 
@@ -160,17 +163,38 @@ export default function JantriCalculator({ currentAccentColor }) {
     }
   };
 
-  // --- Inputs ---
-  const [plotArea, setPlotArea] = useState(241.84);
-  const [plotRate, setPlotRate] = useState(25500);
+  // --- Database Persistence State & Initial Data ---
+  const initialData = useRef((() => {
+    try {
+      const saved = localStorage.getItem('jantri_active_data');
+      if (saved) return JSON.parse(saved);
+    } catch (_) { }
+    return {};
+  })()).current;
 
-  const [buildArea, setBuildArea] = useState(150);
-  const [buildRate, setBuildRate] = useState(10395);
+  const [activeCalculationId, setActiveCalculationId] = useState(() => {
+    return localStorage.getItem('jantri_active_id') || null;
+  });
+  const [activeCalculationTitle, setActiveCalculationTitle] = useState(() => {
+    return localStorage.getItem('jantri_active_title') || '';
+  });
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // --- Inputs ---
+  const [plotArea, setPlotArea] = useState(initialData.plotArea ?? 241.84);
+  const [plotRate, setPlotRate] = useState(initialData.plotRate ?? 25500);
+
+  const [buildArea, setBuildArea] = useState(initialData.buildArea ?? 150);
+  const [buildRate, setBuildRate] = useState(initialData.buildRate ?? 10395);
 
   // Floor-wise construction & depreciation for મકાન / પ્લોટ
-  const [floors, setFloors] = useState([
-    { id: 1, floor: 'GF', area: 150, age: 0 },
-  ]);
+  const [floors, setFloors] = useState(
+    Array.isArray(initialData.floors) && initialData.floors.length > 0
+      ? initialData.floors
+      : [{ id: 1, floor: 'GF', area: 150, age: 0 }]
+  );
 
   const getFloorLabel = (index) => {
     switch (index) {
@@ -218,26 +242,26 @@ export default function JantriCalculator({ currentAccentColor }) {
     setFloors(prev => prev.map(f => (f.id === id ? { ...f, [key]: val } : f)));
   };
 
-  const [depAge, setDepAge] = useState(0); // ઘસારો મિ. ઉમર (for flat/shop)
-  const [totalPages, setTotalPages] = useState(0); // ટોટલ પેજ
+  const [depAge, setDepAge] = useState(initialData.depAge ?? 0); // ઘસારો મિ. ઉમર (for flat/shop)
+  const [totalPages, setTotalPages] = useState(initialData.totalPages ?? 0); // ટોટલ પેજ
 
-  const [vahiwatFee, setVahiwatFee] = useState(1000); // વહીવટ
-  const [vakilFee, setVakilFee] = useState(3500); // વકીલ ફી
-  const [gender, setGender] = useState('male'); // લિંગ (ખરીદનાર)
+  const [vahiwatFee, setVahiwatFee] = useState(initialData.vahiwatFee ?? 1000); // વહીવટ
+  const [vakilFee, setVakilFee] = useState(initialData.vakilFee ?? 3500); // વકીલ ફી
+  const [gender, setGender] = useState(initialData.gender ?? 'male'); // લિંગ (ખરીદનાર)
 
-  const [buyerName, setBuyerName] = useState(''); // ખરીદનાર નું નામ
-  const [propertyDetails, setPropertyDetails] = useState(''); // મિલકત ની વિગત
-  const [village, setVillage] = useState(''); // મોજે. ગામ
-  const [valueZone, setValueZone] = useState(''); // વેલ્યુ ઝોન (Value Zone)
-  const [tp, setTp] = useState(''); // TP
-  const [fp, setFp] = useState(''); // FP
-  const [propertyType, setPropertyType] = useState('ખુલ્લો પ્લોટ'); // મિલકત નો પ્રકાર
-  const [gunthaSelection, setGunthaSelection] = useState(16); // ગુંઠા પસંદગી
-  const [customFinalValue, setCustomFinalValue] = useState(null); // Custom user-entered final value
-  const [customRegFee, setCustomRegFee] = useState(null); // Custom user-entered reg fee
-  const [asrDeduction, setAsrDeduction] = useState(10); // ASR Deduction for flats
+  const [buyerName, setBuyerName] = useState(initialData.buyerName ?? ''); // ખરીદનાર નું નામ
+  const [propertyDetails, setPropertyDetails] = useState(initialData.propertyDetails ?? ''); // મિલકત ની વિગત
+  const [village, setVillage] = useState(initialData.village ?? ''); // મોજે. ગામ
+  const [valueZone, setValueZone] = useState(initialData.valueZone ?? ''); // વેલ્યુ ઝોન (Value Zone)
+  const [tp, setTp] = useState(initialData.tp ?? ''); // TP
+  const [fp, setFp] = useState(initialData.fp ?? ''); // FP
+  const [propertyType, setPropertyType] = useState(initialData.propertyType ?? 'ખુલ્લો પ્લોટ'); // મિલકત નો પ્રકાર
+  const [gunthaSelection, setGunthaSelection] = useState(initialData.gunthaSelection ?? 16); // ગુંઠા પસંદગી
+  const [customFinalValue, setCustomFinalValue] = useState(initialData.customFinalValue ?? null); // Custom user-entered final value
+  const [customRegFee, setCustomRegFee] = useState(initialData.customRegFee ?? null); // Custom user-entered reg fee
+  const [asrDeduction, setAsrDeduction] = useState(initialData.asrDeduction ?? 10); // ASR Deduction for flats
 
-  const [customFields, setCustomFields] = useState([]);
+  const [customFields, setCustomFields] = useState(Array.isArray(initialData.customFields) ? initialData.customFields : []);
 
   const addCustomField = () => setCustomFields([...customFields, { id: Date.now(), name: '', value: '' }]);
   const updateCustomField = (id, key, val) => setCustomFields(customFields.map(f => f.id === id ? { ...f, [key]: val } : f));
@@ -341,21 +365,430 @@ export default function JantriCalculator({ currentAccentColor }) {
     });
   };
 
+  // Autosave active calculation state to localStorage
+  useEffect(() => {
+    try {
+      const payload = {
+        buyerName,
+        propertyDetails,
+        village,
+        valueZone,
+        tp,
+        fp,
+        propertyType,
+        gender,
+        plotArea,
+        plotRate,
+        buildArea,
+        buildRate,
+        floors,
+        depAge,
+        asrDeduction,
+        gunthaSelection,
+        totalPages,
+        vahiwatFee,
+        vakilFee,
+        customFinalValue,
+        customRegFee,
+        customFields,
+        finalValue,
+        totalFee,
+        stampDuty,
+        regFee
+      };
+      localStorage.setItem('jantri_active_data', JSON.stringify(payload));
+    } catch (_) { }
+  }, [
+    buyerName,
+    propertyDetails,
+    village,
+    valueZone,
+    tp,
+    fp,
+    propertyType,
+    gender,
+    plotArea,
+    plotRate,
+    buildArea,
+    buildRate,
+    floors,
+    depAge,
+    asrDeduction,
+    gunthaSelection,
+    totalPages,
+    vahiwatFee,
+    vakilFee,
+    customFinalValue,
+    customRegFee,
+    customFields,
+    finalValue,
+    totalFee,
+    stampDuty,
+    regFee
+  ]);
+
+  useEffect(() => {
+    if (activeCalculationId) {
+      localStorage.setItem('jantri_active_id', activeCalculationId);
+    } else {
+      localStorage.removeItem('jantri_active_id');
+    }
+  }, [activeCalculationId]);
+
+  useEffect(() => {
+    if (activeCalculationTitle) {
+      localStorage.setItem('jantri_active_title', activeCalculationTitle);
+    } else {
+      localStorage.removeItem('jantri_active_title');
+    }
+  }, [activeCalculationTitle]);
+
+  // // Keyboard shortcut Ctrl+S / Cmd+S
+  // useEffect(() => {
+  //   const handleKeyDown = (e) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+  //       e.preventDefault();
+  //       setSaveModalVisible(true);
+  //     }
+  //   };
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
+
+  // Save calculation to PostgreSQL database
+  const handleSaveCalculation = async ({ title, saveAsNew = false }) => {
+    setIsSaving(true);
+    const resolvedTitle = (title || activeCalculationTitle || (buyerName ? `${buyerName} - જંત્રી ગણતરી` : 'Untitled Jantri')).trim();
+    const isNew = saveAsNew || !activeCalculationId || activeCalculationId.startsWith('draft-');
+
+    const payloadSnapshot = {
+      buyerName,
+      propertyDetails,
+      village,
+      valueZone,
+      tp,
+      fp,
+      propertyType,
+      gender,
+      plotArea,
+      plotRate,
+      buildArea,
+      buildRate,
+      floors,
+      depAge,
+      asrDeduction,
+      gunthaSelection,
+      totalPages,
+      vahiwatFee,
+      vakilFee,
+      customFinalValue,
+      customRegFee,
+      customFields,
+      finalValue,
+      totalFee,
+      stampDuty,
+      regFee
+    };
+
+    try {
+      if (!isNew && activeCalculationId) {
+        const res = await api.put(`/jantri/${activeCalculationId}`, {
+          title: resolvedTitle,
+          clientName: buyerName,
+          propertyDetails,
+          village,
+          propertyType,
+          finalValue,
+          totalFee,
+          calculationData: payloadSnapshot
+        });
+        if (res.data?.calculation) {
+          setActiveCalculationId(res.data.calculation.id);
+        }
+        message.success(`Updated "${resolvedTitle}" in database!`);
+      } else {
+        const res = await api.post('/jantri', {
+          title: resolvedTitle,
+          clientName: buyerName,
+          propertyDetails,
+          village,
+          propertyType,
+          finalValue,
+          totalFee,
+          calculationData: payloadSnapshot
+        });
+        if (res.data?.calculation?.id) {
+          setActiveCalculationId(res.data.calculation.id);
+        }
+        message.success(`Saved "${resolvedTitle}" to database!`);
+      }
+
+      setActiveCalculationTitle(resolvedTitle);
+      setSaveModalVisible(false);
+    } catch (err) {
+      console.error('Error saving calculation to database:', err);
+      message.error(err.response?.data?.error || 'Failed to save calculation to database');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Load a calculation into the active calculator
+  const handleLoadCalculation = (calcData, title, id) => {
+    if (!calcData) return;
+    setBuyerName(calcData.buyerName || '');
+    setPropertyDetails(calcData.propertyDetails || '');
+    setVillage(calcData.village || '');
+    setValueZone(calcData.valueZone || '');
+    setTp(calcData.tp || '');
+    setFp(calcData.fp || '');
+    setPropertyType(calcData.propertyType || 'ખુલ્લો પ્લોટ');
+    setGender(calcData.gender || 'male');
+    setPlotArea(calcData.plotArea !== undefined ? calcData.plotArea : 241.84);
+    setPlotRate(calcData.plotRate !== undefined ? calcData.plotRate : 25500);
+    setBuildArea(calcData.buildArea !== undefined ? calcData.buildArea : 150);
+    setBuildRate(calcData.buildRate !== undefined ? calcData.buildRate : 10395);
+    setFloors(Array.isArray(calcData.floors) && calcData.floors.length > 0
+      ? calcData.floors
+      : [{ id: 1, floor: 'GF', area: 150, age: 0 }]
+    );
+    setDepAge(calcData.depAge || 0);
+    setAsrDeduction(calcData.asrDeduction !== undefined ? calcData.asrDeduction : 10);
+    setGunthaSelection(calcData.gunthaSelection !== undefined ? calcData.gunthaSelection : 16);
+    setTotalPages(calcData.totalPages || 0);
+    setVahiwatFee(calcData.vahiwatFee !== undefined ? calcData.vahiwatFee : 1000);
+    setVakilFee(calcData.vakilFee !== undefined ? calcData.vakilFee : 3500);
+    setCustomFinalValue(calcData.customFinalValue !== undefined ? calcData.customFinalValue : null);
+    setCustomRegFee(calcData.customRegFee !== undefined ? calcData.customRegFee : null);
+    setCustomFields(Array.isArray(calcData.customFields) ? calcData.customFields : []);
+
+    setActiveCalculationId(id);
+    setActiveCalculationTitle(title || '');
+  };
+
+  // Reset all fields to clean empty defaults for fresh calculation
+  const resetToCleanDefaults = () => {
+    setBuyerName('');
+    setPropertyDetails('');
+    setVillage('');
+    setValueZone('');
+    setTp('');
+    setFp('');
+    setPropertyType('ખુલ્લો પ્લોટ');
+    setGender('male');
+    setPlotArea(0);
+    setPlotRate(0);
+    setBuildArea(0);
+    setBuildRate(0);
+    setFloors([{ id: 1, floor: 'GF', area: 0, age: 0 }]);
+    setDepAge(0);
+    setAsrDeduction(10);
+    setGunthaSelection(16);
+    setTotalPages(0);
+    setVahiwatFee(1000);
+    setVakilFee(3500);
+    setCustomFinalValue(null);
+    setCustomRegFee(null);
+    setCustomFields([]);
+
+    // Clear active cloud calculation binding so subsequent save creates a brand fresh entry
+    setActiveCalculationId(null);
+    setActiveCalculationTitle('');
+
+    // Clear cached draft from localStorage
+    try {
+      localStorage.removeItem('jantri_active_data');
+      localStorage.removeItem('jantri_active_id');
+      localStorage.removeItem('jantri_active_title');
+    } catch (_) { }
+
+    message.success('New calculation started! All fields cleared for fresh entry.');
+  };
+
+  // Start a fresh new calculation
+  const handleNewCalculation = () => {
+    const hasExistingData = Boolean(
+      activeCalculationId ||
+      activeCalculationTitle ||
+      (buyerName && buyerName.trim()) ||
+      (propertyDetails && propertyDetails.trim()) ||
+      (village && village.trim()) ||
+      (plotArea && Number(plotArea) > 0) ||
+      (plotRate && Number(plotRate) > 0) ||
+      (buildArea && Number(buildArea) > 0) ||
+      (buildRate && Number(buildRate) > 0) ||
+      (floors && floors.length > 0 && (Number(floors[0].area) > 0 || floors.length > 1)) ||
+      (customFields && customFields.length > 0)
+    );
+
+    if (hasExistingData) {
+      Modal.confirm({
+        title: 'Start New Calculation?',
+        content: 'This will clear all current inputs. Any unsaved changes will be lost, and when you save next, it will be saved as a fresh new calculation.',
+        okText: 'Yes, Start Fresh',
+        cancelText: 'Cancel',
+        okType: 'primary',
+        onOk: () => {
+          resetToCleanDefaults();
+        }
+      });
+    } else {
+      resetToCleanDefaults();
+    }
+  };
+
+  // Reset to empty/defaults
+  const handleResetCalculation = () => {
+    Modal.confirm({
+      title: 'Reset Jantri Calculator?',
+      content: 'This will clear all fields to zero/empty values. Any unsaved progress will be lost.',
+      okText: 'Reset Form',
+      okType: 'danger',
+      onOk: () => {
+        resetToCleanDefaults();
+      }
+    });
+  };
+
+  // Load sample calculation for demo/testing
+  const handleLoadSample = () => {
+    setBuyerName('મધુભાઇ પરશોતમભાઇ જીકાદરા');
+    setPropertyDetails('પ્લોટ નં. ૨૫, સુદામા સોસાયટી');
+    setVillage('મોજે. મોટા વરાછા');
+    setValueZone('વરાછા');
+    setTp('૪૧');
+    setFp('૨૦૪');
+    setPropertyType('ખુલ્લો પ્લોટ');
+    setGender('male');
+    setPlotArea(241.84);
+    setPlotRate(25500);
+    setBuildArea(150);
+    setBuildRate(10395);
+    setFloors([{ id: 1, floor: 'GF', area: 150, age: 0 }]);
+    setDepAge(0);
+    setAsrDeduction(10);
+    setGunthaSelection(16);
+    setTotalPages(12);
+    setVahiwatFee(1000);
+    setVakilFee(3500);
+    setCustomFinalValue(null);
+    setCustomRegFee(null);
+    setCustomFields([]);
+    setActiveCalculationId(null);
+    setActiveCalculationTitle('');
+    message.info('Sample calculation loaded. Click Save to save as new document.');
+  };
+
   return (
     <div className="jantri-calculator-wrap" style={{ padding: '4px 0 12px' }}>
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Calculator size={16} style={{ fontSize: 20, color: currentAccentColor }} />
-          <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Jantri & Stamp Duty Calculator</Title>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: 'rgba(79, 70, 229, 0.1)',
+            color: currentAccentColor || '#4f46e5'
+          }}>
+            <Calculator size={18} />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, color: 'var(--text-primary)', fontSize: 16 }}>
+              Jantri & Stamp Duty Calculator
+            </Title>
+            {activeCalculationTitle && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <Tag color="purple" style={{ fontSize: 11, margin: 0, padding: '0 6px' }}>
+                  ☁️ {activeCalculationTitle}
+                </Tag>
+              </div>
+            )}
+          </div>
         </div>
-        <Button
-          type="primary"
-          icon={<FileText size={16} />}
-          onClick={() => handleGeneratePDF(false)}
-          style={{ backgroundColor: currentAccentColor, height: '32px' }}
-        >
-          Generate PDF
-        </Button>
+
+        <Space size={8}>
+          {/* <Tooltip title="Start a fresh Jantri calculation (બધું સાફ કરીને નવી ગણતરી શરૂ કરો)"> */}
+          <Button
+            icon={<Plus size={14} />}
+            onClick={handleNewCalculation}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            New Calculation
+          </Button>
+          {/* </Tooltip> */}
+
+          {/* <Tooltip title="View saved calculations from database"> */}
+          <Button
+            icon={<FolderOpen size={14} />}
+            onClick={() => setSavedModalVisible(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Saved Calculations
+          </Button>
+          {/* </Tooltip> */}
+
+          {/* <Tooltip title="Save calculation to database (Ctrl+S / Cmd+S)"> */}
+          <Button
+            type="default"
+            icon={<Save size={14} style={{ color: '#4f46e5' }} />}
+            onClick={() => setSaveModalVisible(true)}
+            loading={isSaving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Save
+          </Button>
+          {/* </Tooltip> */}
+
+          <Button
+            type="primary"
+            icon={<FileText size={15} />}
+            onClick={() => handleGeneratePDF(false)}
+            style={{ backgroundColor: currentAccentColor || '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Generate PDF
+          </Button>
+
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'pdf-summary',
+                  icon: <FileText size={14} style={{ color: '#4f46e5' }} />,
+                  label: 'Generate Summary PDF',
+                  onClick: () => handleGeneratePDF(true)
+                },
+                {
+                  type: 'divider'
+                },
+                {
+                  key: 'sample-data',
+                  icon: <Sparkles size={14} style={{ color: '#8b5cf6' }} />,
+                  label: 'Load Sample Data',
+                  onClick: handleLoadSample
+                },
+                {
+                  key: 'reset',
+                  icon: <RotateCcw size={14} />,
+                  label: 'Reset to Defaults',
+                  danger: true,
+                  onClick: handleResetCalculation
+                }
+              ]
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Tooltip title="More options">
+              <Button
+                icon={<MoreVertical size={16} />}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}
+              />
+            </Tooltip>
+          </Dropdown>
+        </Space>
       </div>
 
       <div ref={componentRef} className="pdf-container" style={{ padding: '0px' }}>
@@ -538,7 +971,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         {propertyType === 'ખેતી ની જમીન' && <td>{gunthaSelection}</td>}
                         {propertyType === 'ખેતી ની જમીન' && <td>{plotArea ? (plotArea / 100) : 0}</td>}
                         {propertyType === 'ખેતી ની જમીન' && <td>{plotArea ? Math.floor((plotArea / 100) / gunthaSelection) : 0}</td>}
-                        {propertyType === 'ખેતી ની જમીન' && <td>{plotArea ? ((plotArea / 100) % gunthaSelection) : 0}</td>}
+                        {propertyType === 'ખેતી ની જમીન' && <td>{(plotArea ? ((plotArea / 100) % gunthaSelection) : 0).toFixed(2)}</td>}
                         <td style={{ fontWeight: 'bold' }}>{formatMoney(plotValue)}</td>
                       </tr>
                     </tbody>
@@ -623,6 +1056,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                           <InputNumber
                             style={{ width: '100%', height: '28px' }}
                             value={plotArea ? ((plotArea / 100) % gunthaSelection) : 0}
+                            precision={2}
                             disabled
                           />
                         </Col>
@@ -1207,6 +1641,35 @@ export default function JantriCalculator({ currentAccentColor }) {
         </div> */}
 
       </div>
+
+      {/* Save to Database Modal */}
+      <SaveJantriModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={handleSaveCalculation}
+        calculationData={{
+          buyerName,
+          propertyDetails,
+          village,
+          valueZone,
+          tp,
+          fp,
+          propertyType,
+          finalValue,
+          totalFee
+        }}
+        currentDraftTitle={activeCalculationTitle}
+        currentDraftId={activeCalculationId}
+        isSaving={isSaving}
+      />
+
+      {/* Saved Calculations Modal */}
+      <SavedJantriModal
+        visible={savedModalVisible}
+        onClose={() => setSavedModalVisible(false)}
+        onLoadCalculation={handleLoadCalculation}
+        currentCalculationId={activeCalculationId}
+      />
     </div>
   );
 }
