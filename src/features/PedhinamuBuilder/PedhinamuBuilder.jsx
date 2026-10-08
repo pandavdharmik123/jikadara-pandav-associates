@@ -28,7 +28,9 @@ import {
   CheckCircle2,
   RefreshCw,
   Copy,
-  Cloud
+  Cloud,
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -44,6 +46,7 @@ import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
 import { SAMPLE_HAYATI_DATA } from './constants/sampleHayatiData';
 import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions, updateNodeSize, updateNodeFontSize } from './utils/treeModel';
+import { ensureUnicode } from './utils/unicodeUtils';
 import api from '../../services/api';
 
 import './styles/pedhinamu.scss';
@@ -63,10 +66,16 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const normTree = normalizeFamilyTree(parsed.tree, parsed.deceased);
+        const activeDeceasedName = normTree?.rootNode?.name || parsed.deceased?.name || '';
         return {
           pedhinamuType: parsed.pedhinamuType || 'DECEASED',
           ...parsed,
-          tree: normalizeFamilyTree(parsed.tree, parsed.deceased)
+          deceased: {
+            ...parsed.deceased,
+            name: activeDeceasedName
+          },
+          tree: normTree
         };
       } catch (e) {
         console.error(e);
@@ -90,7 +99,11 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   }, []);
 
   const [draftTitle, setDraftTitle] = useState(() => {
-    return localStorage.getItem('pedhinamu_active_draft_title') || 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું';
+    const saved = localStorage.getItem('pedhinamu_active_draft_title');
+    if (saved && saved !== 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું') {
+      return saved;
+    }
+    return '';
   });
   const [draftId, setDraftId] = useState(() => {
     return localStorage.getItem('pedhinamu_active_draft_id') || null;
@@ -136,7 +149,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   useEffect(() => {
     try {
       localStorage.removeItem('pedhinamu_saved_drafts');
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   // Fit to screen width helper
@@ -323,8 +336,9 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         setData(DEFAULT_PEDHINAMU_DATA);
         setSelectedNodeId('root');
         setSelectedNodeIds(['root']);
-        setDraftTitle('Untitled Pedhinamu');
+        setDraftTitle('');
         setDraftId(null);
+        localStorage.removeItem('pedhinamu_active_draft_title');
         message.info('Form reset to blank template');
       }
     });
@@ -333,16 +347,32 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   // Execute Save draft directly to PostgreSQL database
   const executeSaveDraft = async ({ title, saveAsNew = false }) => {
     setIsSaving(true);
-    const finalTitle = (title || draftTitle || data.applicant?.name || 'Untitled Pedhinamu').trim();
+    const applicantNameUni = ensureUnicode(data.applicant?.name) || '';
+    const activeDeceasedName = data.tree?.rootNode?.name || data.deceased?.name || '';
+    const deceasedNameUni = ensureUnicode(activeDeceasedName) || '';
+    const primaryPersonUni = data.pedhinamuType === 'ALIVE'
+      ? (applicantNameUni || deceasedNameUni)
+      : (deceasedNameUni || applicantNameUni);
+
+    const fallbackTitle = primaryPersonUni ? `${primaryPersonUni} - પેઢીનામું` : 'Untitled Pedhinamu';
+    const finalTitle = (title || draftTitle || fallbackTitle).trim();
     const isNew = saveAsNew || !draftId || draftId.startsWith('draft-');
+
+    const payloadData = {
+      ...data,
+      deceased: {
+        ...data.deceased,
+        name: activeDeceasedName
+      }
+    };
 
     try {
       if (!isNew && draftId) {
         const res = await api.put(`/pedhinamu/${draftId}`, {
           title: finalTitle,
-          applicantName: data.applicant?.name || '',
-          deceasedName: data.deceased?.name || '',
-          documentData: data
+          applicantName: applicantNameUni,
+          deceasedName: deceasedNameUni,
+          documentData: payloadData
         });
         if (res.data?.pedhinamu) {
           setDraftId(res.data.pedhinamu.id);
@@ -351,9 +381,9 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       } else {
         const res = await api.post('/pedhinamu', {
           title: finalTitle,
-          applicantName: data.applicant?.name || '',
-          deceasedName: data.deceased?.name || '',
-          documentData: data
+          applicantName: applicantNameUni,
+          deceasedName: deceasedNameUni,
+          documentData: payloadData
         });
         if (res.data?.pedhinamu?.id) {
           setDraftId(res.data.pedhinamu.id);
@@ -364,7 +394,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       // Clean up any old legacy local storage draft backups
       try {
         localStorage.removeItem('pedhinamu_saved_drafts');
-      } catch (_) {}
+      } catch (_) { }
 
       setDraftTitle(finalTitle);
       setSaveModalVisible(false);
@@ -383,10 +413,16 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
 
   // Load selected draft with its ID
   const handleLoadDraft = (draftData, title, id = null) => {
+    const normTree = normalizeFamilyTree(draftData.tree, draftData.deceased);
+    const activeDeceasedName = normTree?.rootNode?.name || draftData.deceased?.name || '';
     const normalized = {
       pedhinamuType: draftData.pedhinamuType || 'DECEASED',
       ...draftData,
-      tree: normalizeFamilyTree(draftData.tree, draftData.deceased)
+      deceased: {
+        ...draftData.deceased,
+        name: activeDeceasedName
+      },
+      tree: normTree
     };
     setData(normalized);
     setSelectedNodeId('root');
@@ -407,10 +443,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Standard Print Dialog (using legal landscape CSS @media print)
-  const handlePrint = () => {
-    window.print();
-  };
+
 
   // SVG Export: Converts both pages to crisp scalable vector SVG with inlined Ghanshyam font
   const handleDownloadSVG = async () => {
@@ -702,7 +735,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               icon={<FolderOpen size={14} />}
               onClick={() => setDraftsModalVisible(true)}
             >
-              <span className="btn-label">Drafts</span>
+              <span className="btn-label">Saved Documents</span>
             </Button>
           </Tooltip>
 
@@ -718,17 +751,6 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               <span className="btn-label">Save</span>
             </Button>
           </Tooltip>
-
-          {/* <Tooltip title="Print Document (Native Vector / 100% Razor Sharp)"> */}
-          <Button
-            type="default"
-            className="btn-print-doc"
-            icon={<Printer size={14} />}
-            onClick={handlePrint}
-          >
-            <span className="btn-label">Print</span>
-          </Button>
-          {/* </Tooltip> */}
 
           <Space.Compact className="btn-download-group">
             <Button
@@ -747,25 +769,15 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                 items: [
                   {
                     key: 'download-pdf',
-                    label: '📄 Download PDF',
+                    icon: <FileCheck size={14} style={{ color: '#ef4444' }} />,
+                    label: 'Download PDF',
                     onClick: handleDownloadPDF
                   },
                   {
-                    type: 'divider'
-                  },
-                  {
-                    key: 'auto-arrange',
-                    label: 'Auto-Arrange Tree',
-                    onClick: handleAutoArrange
-                  },
-                  {
-                    type: 'divider'
-                  },
-                  {
-                    key: 'reset',
-                    label: 'Reset Form to Blank',
-                    danger: true,
-                    onClick: handleReset
+                    key: 'download-svg',
+                    icon: <Download size={14} style={{ color: '#4f46e5' }} />,
+                    label: 'Download SVG (Vector)',
+                    onClick: handleDownloadSVG
                   }
                 ]
               }}
@@ -779,6 +791,39 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               />
             </Dropdown>
           </Space.Compact>
+
+          {/* More Actions Menu */}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'auto-arrange',
+                  icon: <RefreshCw size={14} style={{ color: '#4f46e5' }} />,
+                  label: 'Auto-Arrange Tree',
+                  onClick: handleAutoArrange
+                },
+                {
+                  type: 'divider'
+                },
+                {
+                  key: 'reset',
+                  icon: <Trash2 size={14} />,
+                  label: 'Reset Form to Blank',
+                  danger: true,
+                  onClick: handleReset
+                }
+              ]
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Tooltip title="More Options">
+              <Button
+                className="btn-more-options"
+                icon={<MoreVertical size={16} />}
+              />
+            </Tooltip>
+          </Dropdown>
         </div>
       </div>
 

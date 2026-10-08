@@ -61,8 +61,18 @@ export default function PedhinamuForm({
   };
 
   const handleTreeChange = (newTree) => {
+    const root = newTree?.rootNode;
+    const updatedDeceased = root ? {
+      ...data.deceased,
+      name: root.name !== undefined ? root.name : data.deceased?.name,
+      deathDate: root.deathDate !== undefined ? root.deathDate : data.deceased?.deathDate,
+      age: root.age !== undefined ? root.age : data.deceased?.age,
+      deceased: root.deceased !== undefined ? root.deceased : data.deceased?.deceased
+    } : data.deceased;
+
     onChange({
       ...data,
+      deceased: updatedDeceased,
       tree: newTree
     });
   };
@@ -330,7 +340,7 @@ export default function PedhinamuForm({
                   style={{ marginBottom: 0 }}
                 >
                   <GhanshyamInput
-                    value={data.deceased?.name || data.tree?.rootNode?.name || ''}
+                    value={data.tree?.rootNode?.name || data.deceased?.name || ''}
                     placeholder="દા.ત. ટાપણીયા છગનભાઇ પીતાંબરભાઇ"
                     onChange={(e) => handleDeceasedChange('name', e.target.value)}
                   />
@@ -340,7 +350,7 @@ export default function PedhinamuForm({
                 <Col span={12}>
                   <Form.Item label="ઉંમર (Age)" style={{ marginBottom: 0 }}>
                     <GhanshyamInput
-                      value={data.tree?.rootNode?.age || ''}
+                      value={data.tree?.rootNode?.age || data.deceased?.age || ''}
                       placeholder="દા.ત. ૬૭"
                       onChange={(e) => handleDeceasedChange('age', e.target.value)}
                     />
@@ -351,7 +361,7 @@ export default function PedhinamuForm({
                   <Col span={12}>
                     <Form.Item label="અવસાન તારીખ" style={{ marginBottom: 0 }}>
                       <GhanshyamInput
-                        value={data.deceased?.deathDate || ''}
+                        value={data.tree?.rootNode?.deathDate || data.deceased?.deathDate || ''}
                         placeholder="દા.ત. ૨૦-૦૧-૨૦૨૬"
                         onChange={(e) => handleDeceasedChange('deathDate', e.target.value)}
                       />

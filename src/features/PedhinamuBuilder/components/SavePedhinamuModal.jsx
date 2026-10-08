@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Input, Button, Space, Typography, Tag, Card, Divider } from 'antd';
-import { Save, Copy, Cloud, CheckCircle, Database } from 'lucide-react';
+import { Save, Copy, Cloud, Database } from 'lucide-react';
+import { ensureUnicode } from '../utils/unicodeUtils';
 
 const { Text } = Typography;
 
@@ -16,33 +17,69 @@ export default function SavePedhinamuModal({
   const { applicant = {}, deceased = {}, general = {}, pedhinamuType = 'DECEASED' } = currentData;
   const isAlive = pedhinamuType === 'ALIVE';
 
-  const defaultProposedTitle = currentDraftTitle || (
-    isAlive
-      ? `${applicant.name || 'હયાતી'} - પેઢીનામું`
-      : `${deceased.name || applicant.name || 'સ્વર્ગસ્થ'} - પેઢીનામું`
-  );
+  const applicantNameUni = ensureUnicode(applicant.name);
+  const deceasedNameUni = ensureUnicode(currentData.tree?.rootNode?.name || deceased.name);
+  const mainPersonUni = isAlive
+    ? (applicantNameUni || deceasedNameUni)
+    : (deceasedNameUni || applicantNameUni);
 
-  const [title, setTitle] = useState(defaultProposedTitle);
+  const mojeUni = ensureUnicode(general.moje);
+  const talukaUni = ensureUnicode(general.taluka);
+  const regNoUni = ensureUnicode(general.registrationNo);
+
+  const isExistingCloudDraft = Boolean(currentDraftId && !currentDraftId.startsWith('draft-'));
+
+  // Determine proposed title dynamically based on the target person
+  const computeDefaultTitle = () => {
+    // Check if currentDraftTitle already contains / belongs to the active person
+    const titleMatchesCurrentPerson = Boolean(
+      mainPersonUni && currentDraftTitle && currentDraftTitle.includes(mainPersonUni)
+    );
+
+    // Keep currentDraftTitle ONLY if it's an existing cloud draft AND its title actually belongs to the current person
+    if (
+      isExistingCloudDraft &&
+      titleMatchesCurrentPerson &&
+      currentDraftTitle !== 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું' &&
+      currentDraftTitle !== 'Untitled Pedhinamu'
+    ) {
+      return currentDraftTitle;
+    }
+
+    // Otherwise derive dynamically from the person we are making pedhinamu for (in Unicode)
+    if (mainPersonUni) {
+      return `${mainPersonUni} - પેઢીનામું`;
+    }
+    return isAlive ? 'હયાતી - પેઢીનામું' : 'સ્વર્ગસ્થ - પેઢીનામું';
+  };
+
+  const [title, setTitle] = useState(computeDefaultTitle);
 
   useEffect(() => {
     if (visible) {
-      const generated = currentDraftTitle || (
-        isAlive
-          ? `${applicant.name || 'હયાતી'} - પેઢીનામું`
-          : `${deceased.name || applicant.name || 'સ્વર્ગસ્થ'} - પેઢીનામું`
-      );
-      setTitle(generated);
+      setTitle(computeDefaultTitle());
     }
-  }, [visible, currentDraftTitle, applicant.name, deceased.name, isAlive]);
-
-  const isExistingCloudDraft = Boolean(currentDraftId && !currentDraftId.startsWith('draft-'));
+  }, [
+    visible,
+    currentDraftTitle,
+    currentDraftId,
+    applicantNameUni,
+    deceasedNameUni,
+    mainPersonUni,
+    isAlive,
+    isExistingCloudDraft
+  ]);
 
   const handleUpdate = () => {
     onSave({ title: title.trim() || 'Untitled Pedhinamu', saveAsNew: false });
   };
 
   const handleSaveAsNew = () => {
-    onSave({ title: title.trim() || 'Untitled Pedhinamu', saveAsNew: true });
+    let finalTitle = title.trim();
+    if (!finalTitle || (mainPersonUni && !finalTitle.includes(mainPersonUni))) {
+      finalTitle = mainPersonUni ? `${mainPersonUni} - પેઢીનામું` : 'Untitled Pedhinamu';
+    }
+    onSave({ title: finalTitle, saveAsNew: true });
   };
 
   const setSuggestion = (suggested) => {
@@ -74,40 +111,53 @@ export default function SavePedhinamuModal({
           <Input
             size="large"
             value={title}
-            placeholder="દા.ત. મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું"
+            placeholder={
+              mainPersonUni
+                ? `દા.ત. ${mainPersonUni} - પેઢીનામું`
+                : 'દા.ત. મુખ્ય વ્યક્તિનું નામ - પેઢીનામું'
+            }
             onChange={(e) => setTitle(e.target.value)}
             onPressEnter={() => (isExistingCloudDraft ? handleUpdate() : handleSaveAsNew())}
             autoFocus
           />
 
-          {/* Quick Suggestions Chips */}
+          {/* Quick Suggestions Chips (All in Unicode) */}
           <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Text type="secondary" style={{ fontSize: 12 }}>Suggestions:</Text>
-            {deceased.name && (
+            {deceasedNameUni && (
               <Tag
                 style={{ cursor: 'pointer' }}
                 color="blue"
-                onClick={() => setSuggestion(`${deceased.name} - પેઢીનામું`)}
+                onClick={() => setSuggestion(`${deceasedNameUni} - પેઢીનામું`)}
               >
-                {deceased.name} - પેઢીનામું
+                {deceasedNameUni} - પેઢીનામું
               </Tag>
             )}
-            {applicant.name && (
+            {applicantNameUni && applicantNameUni !== deceasedNameUni && (
               <Tag
                 style={{ cursor: 'pointer' }}
                 color="purple"
-                onClick={() => setSuggestion(`${applicant.name} - પેઢીનામું`)}
+                onClick={() => setSuggestion(`${applicantNameUni} - પેઢીનામું`)}
               >
-                {applicant.name} - પેઢીનામું
+                {applicantNameUni} - પેઢીનામું
               </Tag>
             )}
-            {general.moje && (
+            {mojeUni && (
               <Tag
                 style={{ cursor: 'pointer' }}
                 color="cyan"
-                onClick={() => setSuggestion(`મોજે ${general.moje} - પેઢીનામું`)}
+                onClick={() => setSuggestion(`મોજે ${mojeUni} - પેઢીનામું`)}
               >
-                મોજે {general.moje} - પેઢીનામું
+                મોજે {mojeUni} - પેઢીનામું
+              </Tag>
+            )}
+            {mainPersonUni && mojeUni && (
+              <Tag
+                style={{ cursor: 'pointer' }}
+                color="geekblue"
+                onClick={() => setSuggestion(`${mainPersonUni} (${mojeUni}) - પેઢીનામું`)}
+              >
+                {mainPersonUni} ({mojeUni}) - પેઢીનામું
               </Tag>
             )}
           </div>
@@ -130,19 +180,19 @@ export default function SavePedhinamuModal({
             </div>
             <div>
               <Text type="secondary">Applicant:</Text>{' '}
-              <Text strong>{applicant.name || '-'}</Text>
+              <Text strong>{applicantNameUni || '-'}</Text>
             </div>
             <div>
               <Text type="secondary">{isAlive ? 'Subject:' : 'Deceased:'}</Text>{' '}
-              <Text strong>{(isAlive ? applicant.name : deceased.name) || '-'}</Text>
+              <Text strong>{(isAlive ? (applicantNameUni || deceasedNameUni) : (deceasedNameUni || applicantNameUni)) || '-'}</Text>
             </div>
             <div>
               <Text type="secondary">Moje / Taluka:</Text>{' '}
-              <Text>{general.moje || '-'}, {general.taluka || '-'}</Text>
+              <Text>{mojeUni || '-'}, {talukaUni || '-'}</Text>
             </div>
             <div>
               <Text type="secondary">Reg No:</Text>{' '}
-              <Text>{general.registrationNo || '-'}</Text>
+              <Text>{regNoUni || '-'}</Text>
             </div>
           </div>
         </Card>

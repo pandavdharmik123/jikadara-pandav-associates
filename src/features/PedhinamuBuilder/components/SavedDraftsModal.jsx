@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Table, Button, Space, Typography, Popconfirm, message, Tag, Input, Segmented } from 'antd';
 import { Trash2, Download, Upload, FolderOpen, Copy, Search, RefreshCw, Database } from 'lucide-react';
 import api from '../../../services/api';
+import { ensureUnicode } from '../utils/unicodeUtils';
 
 const { Text } = Typography;
 
@@ -29,11 +30,11 @@ export default function SavedDraftsModal({
       if (res.data && res.data.pedhinamus) {
         const serverDrafts = res.data.pedhinamus.map((d) => ({
           id: d.id,
-          title: d.title || 'Untitled Pedhinamu',
-          applicantName: d.applicantName || d.documentData?.applicant?.name || '-',
-          deceasedName: d.deceasedName || d.documentData?.deceased?.name || '-',
-          moje: d.documentData?.general?.moje || '-',
-          taluka: d.documentData?.general?.taluka || '-',
+          title: ensureUnicode(d.title) || 'Untitled Pedhinamu',
+          applicantName: ensureUnicode(d.applicantName || d.documentData?.applicant?.name) || '-',
+          deceasedName: ensureUnicode(d.deceasedName || d.documentData?.deceased?.name || d.documentData?.tree?.rootNode?.name) || '-',
+          moje: ensureUnicode(d.documentData?.general?.moje) || '-',
+          taluka: ensureUnicode(d.documentData?.general?.taluka) || '-',
           pedhinamuType: d.documentData?.pedhinamuType || 'DECEASED',
           documentData: d.documentData,
           updatedAt: d.updatedAt

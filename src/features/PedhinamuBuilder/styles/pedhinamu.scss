@@ -346,6 +346,25 @@
         }
       }
 
+      .btn-more-options {
+        width: 33px !important;
+        height: 33px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 7px !important;
+        color: #475569 !important;
+        border-color: #cbd5e1 !important;
+        background: #ffffff !important;
+
+        &:hover {
+          color: #0f172a !important;
+          background: #f8fafc !important;
+          border-color: #94a3b8 !important;
+        }
+      }
+
       // On screens under 1250px, collapse secondary button labels to icons with tooltips
       @media (max-width: 1250px) {
         .btn-label {
