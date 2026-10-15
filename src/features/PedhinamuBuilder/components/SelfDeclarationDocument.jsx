@@ -50,9 +50,21 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
   const place = general.place || 'સુરત';
   const applicationDate = general.applicationDate || general.currentDate || '';
 
-  const propertyDetails =
+  const propertyDistrict =
+    applicant.propertyDistrict || general.propertyDistrict || general.district || 'સુરત';
+  const propertyTaluka =
+    applicant.propertyTaluka || general.propertyTaluka || general.taluka || 'કતારગામ';
+  const propertyMoje =
+    applicant.propertyMoje || general.propertyMoje || general.moje || general.talatiMoje || 'કતારગામ';
+
+  const rawPropertyDetails = (
+    applicant.propertyDetails ||
     general.propertyDetails ||
-    'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮ માં વારસાઈ કરવા માટે કરેલ છે.';
+    'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+  ).trim();
+  const cleanPropertyDetails = rawPropertyDetails
+    .replace(/\s*માં\s*વારસાઈ\s*કરવા\s*માટે\s*કરેલ\s*છે\.?$/g, '')
+    .trim();
 
   const heirs = extractAliveHeirs(tree);
   const heirsSummary = getHeirsSummary(heirs);
@@ -154,43 +166,71 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
           border: '1px solid #000000'
         }}
       >
-        <thead>
+        <thead className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}>
           <tr style={{ backgroundColor: '#ffffff' }}>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('ક્રમ')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('નામ')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('ઉંમર')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('સબંધ')}
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
           {heirs && heirs.length > 0 ? (
             heirs.map((heir) => (
-              <tr key={heir.id || heir.srNo}>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center' }}>
+              <tr key={heir.id || heir.srNo} className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.srNoGujarati)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.name)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.ageGujarati)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.relationship)}
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={4} style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b' }}>
+              <td
+                colSpan={4}
+                className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontFamily: docFontFamily }}
+              >
                 {toFont('કોઈ વારસદાર ઉમેરાયેલ નથી (કૃપા કરીને કુટુંબ વૃક્ષમાં સભ્યો ઉમેરો)')}
               </td>
             </tr>
@@ -227,10 +267,11 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         <div style={{ flex: 1 }}>
           {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
           <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-            {toFont(`ડીસ્ટ્રીકટ : ${district}, સબ ડિસ્ટ્રીકટ : ${taluka}ના મોજે ગામ : ${moje}`)}
+            {toFont(`ડીસ્ટ્રીકટ : ${propertyDistrict}, સબ ડિસ્ટ્રીકટ : ${propertyTaluka}ના મોજે ગામ : ${propertyMoje}`)}
           </strong>{' '}
           {toFont('ખાતે આવેલ')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(propertyDetails)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(cleanPropertyDetails)}</strong>{' '}
+          {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
         </div>
       </div>
 
@@ -243,11 +284,11 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       <div style={{ marginTop: 'auto', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div style={{ lineHeight: '1.3', fontSize: fontMode === 'ghanshyam' ? '13px' : '12px' }}>
           <div>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('સ્થળ :')}</span>{' '}
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(place)}</strong>
           </div>
           <div>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('તારીખ :')}</span>{' '}
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('તારીખ :')}</span>
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
           </div>
         </div>

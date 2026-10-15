@@ -352,11 +352,11 @@ export default function PedhinamuPrintDocument({
             {/* Left: Place & Date */}
             <div style={{ fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '10.5pt', lineHeight: 1.7, minWidth: '150pt' }}>
               <div>
-                <span>{toFont('સ્થળ : ')}</span>
+                <span style={{ display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.place || '')}</span>
               </div>
               <div>
-                <span>{toFont('તારીખ : ')}</span>
+                <span style={{ display: 'inline-block', marginRight: '12px' }}>{toFont('તારીખ :')}</span>
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.currentDate || '')}</span>
               </div>
             </div>
@@ -527,11 +527,11 @@ export default function PedhinamuPrintDocument({
             {/* Left: Place & Date */}
             <div style={{ fontSize: fontMode === 'ghanshyam' ? '12.5pt' : '11pt', lineHeight: 1.9, minWidth: '110pt' }}>
               <div>
-                <span>{toFont('સ્થળ : ')}</span>
+                <span style={{ display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.place || '')}</span>
               </div>
               <div>
-                <span>{toFont('તારીખ : ')}</span>
+                <span style={{ display: 'inline-block', marginRight: '12px' }}>{toFont('તારીખ :')}</span>
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(general.currentDate || '')}</span>
               </div>
             </div>

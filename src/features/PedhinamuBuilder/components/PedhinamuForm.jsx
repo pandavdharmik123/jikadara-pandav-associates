@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, Row, Col, Tabs, Card, Typography, Space } from 'antd';
-import { User, FileText, Users, ShieldCheck, MapPin } from 'lucide-react';
+import { User, FileText, Users, ShieldCheck, MapPin, Home } from 'lucide-react';
 import FamilyTreeEditor from './FamilyTreeEditor';
 import PhotoUploadBox from './PhotoUploadBox';
 import GhanshyamInput from './GhanshyamInput';
@@ -306,7 +306,7 @@ export default function PedhinamuForm({
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col span={24}>
                 <Form.Item label="જાતિ / ધર્મ (Caste)" style={{ marginBottom: 0, marginTop: 8 }}>
                   <GhanshyamInput
                     value={data.applicant.caste || 'હિન્દુ'}
@@ -315,13 +315,58 @@ export default function PedhinamuForm({
                   />
                 </Form.Item>
               </Col>
+            </Row>
+          </Card>
 
-              <Col span={16}>
-                <Form.Item label="વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે)" style={{ marginBottom: 0, marginTop: 8 }}>
+          {/* Separate Section: વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે) */}
+          <Card
+            size="small"
+            style={{ marginTop: 12, borderRadius: 8, borderColor: '#e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}
+            title={
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                <Home size={15} color="#4f46e5" /> વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે)
+              </span>
+            }
+          >
+            <Row gutter={[12, 10]}>
+              <Col span={8}>
+                <Form.Item label="ડીસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
                   <GhanshyamInput
-                    value={data.general?.propertyDetails || ''}
-                    placeholder="દા.ત. દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮ માં વારસાઈ કરવા માટે કરેલ છે."
-                    onChange={(e) => handleGeneralChange('propertyDetails', e.target.value)}
+                    value={data.applicant?.propertyDistrict !== undefined ? data.applicant.propertyDistrict : (data.general?.district || '')}
+                    placeholder="દા.ત. સુરત"
+                    onChange={(e) => handleApplicantChange('propertyDistrict', e.target.value)}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item label="સબ ડિસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
+                  <GhanshyamInput
+                    value={data.applicant?.propertyTaluka !== undefined ? data.applicant.propertyTaluka : (data.general?.taluka || '')}
+                    placeholder="દા.ત. કતારગામ"
+                    onChange={(e) => handleApplicantChange('propertyTaluka', e.target.value)}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item label="મોજે ગામ" style={{ marginBottom: 0 }}>
+                  <GhanshyamInput
+                    value={data.applicant?.propertyMoje !== undefined ? data.applicant.propertyMoje : (data.general?.moje || data.general?.talatiMoje || '')}
+                    placeholder="દા.ત. ડભોલી"
+                    onChange={(e) => handleApplicantChange('propertyMoje', e.target.value)}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="મિલકતની વિગત" style={{ marginBottom: 0, marginTop: 4 }}>
+                  <GhanshyamInput
+                    isTextArea={true}
+                    rows={2}
+                    value={data.applicant?.propertyDetails !== undefined ? data.applicant.propertyDetails : (data.general?.propertyDetails || '')}
+                    placeholder="દા.ત. દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮"
+                    onChange={(e) => {
+                      handleApplicantChange('propertyDetails', e.target.value);
+                      handleGeneralChange('propertyDetails', e.target.value);
+                    }}
                   />
                 </Form.Item>
               </Col>

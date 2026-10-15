@@ -12,7 +12,9 @@ import {
   Tag,
   Divider,
   Tree,
-  Alert
+  Alert,
+  Row,
+  Col
 } from 'antd';
 import {
   UserPlus,
@@ -520,22 +522,27 @@ export default function FamilyTreeEditor({
             />
           </Form.Item>
 
-          <Form.Item name="deceased" valuePropName="checked" label="અવસાન થયેલ છે? (Is Deceased?)">
-            <Switch />
-          </Form.Item>
-
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, curr) => prev.deceased !== curr.deceased}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('deceased') ? (
-                <Form.Item name="deathDate" label="અવસાન તારીખ (Death Date)">
-                  <GhanshyamInput placeholder="દા.ત. ૦૮-૦૧-૧૯૯૪" />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
+          <Row gutter={16} align="top">
+            <Col span={12}>
+              <Form.Item name="deceased" valuePropName="checked" label="અવસાન થયેલ છે?">
+                <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prev, curr) => prev.deceased !== curr.deceased}
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('deceased') ? (
+                    <Form.Item name="deathDate" label="અવસાન તારીખ">
+                      <GhanshyamInput placeholder="દા.ત. ૦૮-૦૧-૧૯૯૪" />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
@@ -543,7 +550,7 @@ export default function FamilyTreeEditor({
       <Modal
         title={
           <span>
-            વ્યક્તિ વિગત સુધારો (Edit Member:{' '}
+            વ્યક્તિ વિગત સુધારો ({''}
             <span
               className="font-ghanshyam"
               style={{ fontFamily: "'Ghanshyam', sans-serif" }}
@@ -593,22 +600,27 @@ export default function FamilyTreeEditor({
             />
           </Form.Item>
 
-          <Form.Item name="deceased" valuePropName="checked" label="અવસાન થયેલ છે?">
-            <Switch />
-          </Form.Item>
-
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, curr) => prev.deceased !== curr.deceased}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('deceased') ? (
-                <Form.Item name="deathDate" label="અવસાન તારીખ">
-                  <GhanshyamInput placeholder="દા.ત. ૦૮-૦૧-૧૯૯૪" />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
+          <Row gutter={16} align="top">
+            <Col span={12}>
+              <Form.Item name="deceased" valuePropName="checked" label="અવસાન થયેલ છે?">
+                <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prev, curr) => prev.deceased !== curr.deceased}
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('deceased') ? (
+                    <Form.Item name="deathDate" label="અવસાન તારીખ">
+                      <GhanshyamInput placeholder="દા.ત. ૦૮-૦૧-૧૯૯૪" />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
     </div>

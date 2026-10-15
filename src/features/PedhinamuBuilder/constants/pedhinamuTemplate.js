@@ -23,7 +23,7 @@ export const DEFAULT_PEDHINAMU_DATA = {
     place: 'સુરત',
     currentDate: '૨૧-૧૦-૨૦૨૪',
     applicationDate: '૨૧-૧૦-૨૦૨૪',
-    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮ માં વારસાઈ કરવા માટે કરેલ છે.'
+    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
   applicant: {
     name: 'દિનેશભાઇ મધુભાઇ જીકાદરા',
@@ -33,7 +33,11 @@ export const DEFAULT_PEDHINAMU_DATA = {
     address: '૧૪૯, બાપાસીતારામ નગર સોસા., ડભોલી રોડ, કતારગામ, સુરત-૩૯૫૦૦૪.',
     mobileNumber: '',
     relationWithDeceased: 'મારા પિતા',
-    photoUrl: ''
+    photoUrl: '',
+    propertyDistrict: 'સુરત',
+    propertyTaluka: 'કતારગામ',
+    propertyMoje: 'ડભોલી',
+    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
   deceased: {
     name: 'મધુભાઇ પરશોતમભાઇ જીકાદરા',

@@ -10,7 +10,7 @@ export const SAMPLE_GHOGHARI_DATA = {
     place: 'સુરત',
     currentDate: '૨૧-૧૦-૨૦૨૪',
     applicationDate: '૨૧-૧૦-૨૦૨૪',
-    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮ માં વારસાઈ કરવા માટે કરેલ છે.'
+    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
   applicant: {
     name: 'ઘોઘારી અનિલકુમાર ધીરૂભાઈ',
@@ -20,7 +20,11 @@ export const SAMPLE_GHOGHARI_DATA = {
     address: 'બી-૨૮ દાનેવ આશિષ સોસાયટી, કતારગામ સુરત.',
     mobileNumber: '',
     relationWithDeceased: 'મારા પિતા',
-    photoUrl: ''
+    photoUrl: '',
+    propertyDistrict: 'સુરત',
+    propertyTaluka: 'કતારગામ',
+    propertyMoje: 'કતારગામ',
+    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
   deceased: {
     name: 'ધીરૂભાઈ લાખાભાઈ ઘોઘારી',

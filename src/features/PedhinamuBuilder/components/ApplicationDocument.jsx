@@ -79,24 +79,71 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
         flexDirection: 'column'
       }}
     >
-      {/* Top Header: Applicant Block (Right-aligned) */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-        <div style={{ minWidth: '300px', maxWidth: '300px', textAlign: 'left', lineHeight: '1.35', fontSize: fontMode === 'ghanshyam' ? '13.5px' : '12.5px' }}>
-          <div>
-            <strong style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{toFont('અરજદાર:-')}</strong>{' '}
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantName)},</strong>
-          </div>
-          <div>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('રહેવાસી :-')}</span>{' '}
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAddress)}</strong>
-          </div>
-          <div style={{ marginTop: '2px' }}>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('તારીખ :')}</span>{' '}
-            {applicationDate ? (
-              <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
-            ) : null}
-          </div>
-        </div>
+      {/* Top Header: Applicant Block (Starts from the second half of the page only, 2-column key-value table) */}
+      <div style={{ width: '50%', marginLeft: '50%', marginBottom: '8px' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            border: 'none',
+            fontSize: fontMode === 'ghanshyam' ? '13.5px' : '12.5px',
+            lineHeight: '1.35',
+            margin: 0
+          }}
+        >
+          <tbody>
+            <tr>
+              <td
+                style={{
+                  verticalAlign: 'top',
+                  whiteSpace: 'nowrap',
+                  padding: '0 6px 3px 0',
+                  border: 'none',
+                  width: '1%'
+                }}
+              >
+                <strong style={{ fontWeight: 700 }}>{toFont('અરજદાર:-')}</strong>
+              </td>
+              <td style={{ verticalAlign: 'top', padding: '0 0 3px 0', border: 'none' }}>
+                <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantName)},</strong>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style={{
+                  verticalAlign: 'top',
+                  whiteSpace: 'nowrap',
+                  padding: '0 6px 3px 0',
+                  border: 'none',
+                  width: '1%'
+                }}
+              >
+                <span style={{ whiteSpace: 'nowrap' }}>{toFont('રહેવાસી :-')}</span>
+              </td>
+              <td style={{ verticalAlign: 'top', padding: '0 0 3px 0', border: 'none' }}>
+                <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAddress)}</strong>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style={{
+                  verticalAlign: 'top',
+                  whiteSpace: 'nowrap',
+                  padding: '0 12px 0 0',
+                  border: 'none',
+                  width: '1%'
+                }}
+              >
+                <span style={{ whiteSpace: 'nowrap' }}>{toFont('તારીખ :')}</span>
+              </td>
+              <td style={{ verticalAlign: 'top', padding: '0', border: 'none' }}>
+                {applicationDate ? (
+                  <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
+                ) : null}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* Recipient Block (Left-aligned) */}
@@ -155,43 +202,71 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
           border: '1px solid #000000'
         }}
       >
-        <thead>
+        <thead className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}>
           <tr style={{ backgroundColor: '#ffffff' }}>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('ક્રમ')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('નામ')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('ઉંમર')}
             </th>
-            <th style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700 }}>
+            <th
+              className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+            >
               {toFont('સબંધ')}
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
           {heirs && heirs.length > 0 ? (
             heirs.map((heir) => (
-              <tr key={heir.id || heir.srNo}>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center' }}>
+              <tr key={heir.id || heir.srNo} className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.srNoGujarati)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.name)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.ageGujarati)}
                 </td>
-                <td style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: dynamicFontFamily }}>
+                <td
+                  className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                >
                   {toFont(heir.relationship)}
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={4} style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b' }}>
+              <td
+                colSpan={4}
+                className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
+                style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontFamily: docFontFamily }}
+              >
                 {toFont('કોઈ વારસદાર ઉમેરાયેલ નથી (કૃપા કરીને કુટુંબ વૃક્ષમાં સભ્યો ઉમેરો)')}
               </td>
             </tr>
@@ -227,11 +302,11 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
       <div style={{ marginTop: 'auto', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div style={{ lineHeight: '1.3', fontSize: fontMode === 'ghanshyam' ? '13px' : '12px' }}>
           <div>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('સ્થળ:-')}</span>{' '}
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(place)}.</strong>
           </div>
           <div>
-            <span style={{ whiteSpace: 'nowrap' }}>{toFont('તા.')}</span>{' '}
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('તારીખ :')}</span>
             {applicationDate ? (
               <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
             ) : null}
