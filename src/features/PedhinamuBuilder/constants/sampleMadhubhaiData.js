@@ -20,6 +20,16 @@ export const SAMPLE_MADHUBHAI_DATA = {
     relationWithDeceased: 'મારા પિતા',
     photoUrl: ''
   },
+  selfDeclaration: {
+    properties: [
+      {
+        district: 'સુરત',
+        taluka: 'કતારગામ',
+        moje: 'ડભોલી',
+        details: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+      }
+    ]
+  },
   deceased: {
     name: 'મધુભાઇ પરશોતમભાઇ જીકાદરા',
     deathDate: '૨૦-૦૧-૨૦૨૬',

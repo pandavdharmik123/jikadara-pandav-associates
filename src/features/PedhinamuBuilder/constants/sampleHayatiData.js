@@ -38,6 +38,16 @@ export const SAMPLE_HAYATI_DATA = {
     relationWithDeceased: 'પોતે',
     photoUrl: ''
   },
+  selfDeclaration: {
+    properties: [
+      {
+        district: 'સુરત',
+        taluka: 'કતારગામ',
+        moje: 'ડભોલી',
+        details: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+      }
+    ]
+  },
   deceased: {
     name: 'ટાપણીયા છગનભાઇ પીતાંબરભાઇ',
     deathDate: '',

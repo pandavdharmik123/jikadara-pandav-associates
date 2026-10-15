@@ -3,6 +3,8 @@ import { extractAliveHeirs, getHeirsSummary } from '../utils/heirsExtractor';
 import { toGujaratiNumber } from '../utils/gujaratiNumbers';
 import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy';
 
+const ROMAN_NUMERALS = ['(I)', '(II)', '(III)', '(IV)', '(V)', '(VI)', '(VII)', '(VIII)', '(IX)', '(X)', '(XI)', '(XII)', '(XIII)', '(XIV)', '(XV)'];
+
 const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
   { data = {}, scale = 1, fontMode = 'ghanshyam' },
   ref
@@ -50,21 +52,29 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
   const place = general.place || 'સુરત';
   const applicationDate = general.applicationDate || general.currentDate || '';
 
-  const propertyDistrict =
-    applicant.propertyDistrict || general.propertyDistrict || general.district || 'સુરત';
-  const propertyTaluka =
-    applicant.propertyTaluka || general.propertyTaluka || general.taluka || 'કતારગામ';
-  const propertyMoje =
-    applicant.propertyMoje || general.propertyMoje || general.moje || general.talatiMoje || 'કતારગામ';
+  const selfDeclaration = data.selfDeclaration || {};
+  let properties = selfDeclaration.properties;
+  if (!properties || !Array.isArray(properties) || properties.length === 0) {
+    const fallbackDistrict =
+      applicant.propertyDistrict || general.propertyDistrict || general.district || 'સુરત';
+    const fallbackTaluka =
+      applicant.propertyTaluka || general.propertyTaluka || general.taluka || 'કતારગામ';
+    const fallbackMoje =
+      applicant.propertyMoje || general.propertyMoje || general.moje || general.talatiMoje || 'કતારગામ';
+    const fallbackDetails =
+      applicant.propertyDetails ||
+      general.propertyDetails ||
+      'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮';
 
-  const rawPropertyDetails = (
-    applicant.propertyDetails ||
-    general.propertyDetails ||
-    'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
-  ).trim();
-  const cleanPropertyDetails = rawPropertyDetails
-    .replace(/\s*માં\s*વારસાઈ\s*કરવા\s*માટે\s*કરેલ\s*છે\.?$/g, '')
-    .trim();
+    properties = [
+      {
+        district: fallbackDistrict,
+        taluka: fallbackTaluka,
+        moje: fallbackMoje,
+        details: fallbackDetails
+      }
+    ];
+  }
 
   const heirs = extractAliveHeirs(tree);
   const heirsSummary = getHeirsSummary(heirs);
@@ -76,9 +86,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       style={{
         width: '794px',
         minHeight: '1123px',
-        height: '1123px',
-        maxHeight: '1123px',
-        padding: '80px 120px',
+        padding: '70px 100px 50px 100px',
         backgroundColor: '#ffffff',
         color: '#000000',
         fontFamily: docFontFamily,
@@ -259,21 +267,51 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         {toFont('વારસદારો છે. અને આ સિવાય અન્ય બીજા કોઈ વારસદારો દર્શાવાના બાકી રહેતા નથી, છતાં ભવિષ્યમાં કોઈ વારસદાર ઉપસ્થિત થાય કે ઉપર પેઢીનામામાં બતાવેલ વારસદારોમાંથી કોઈ ખોટો વારસદાર સાબિત થાય તો તેની તમામ જવાબદારી મારી રહેશે.')}
       </p>
 
-      {/* Section (I) */}
-      <div style={{ margin: '0 0 6px 0', textAlign: 'justify', display: 'flex', gap: '8px', alignItems: 'flex-start', lineHeight: '1.45' }}>
-        <div style={{ fontWeight: 800, fontSize: '14px', minWidth: '22px', fontFamily: 'Inter, system-ui, sans-serif' }}>
-          (I)
-        </div>
-        <div style={{ flex: 1 }}>
-          {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-            {toFont(`ડીસ્ટ્રીકટ : ${propertyDistrict}, સબ ડિસ્ટ્રીકટ : ${propertyTaluka}ના મોજે ગામ : ${propertyMoje}`)}
-          </strong>{' '}
-          {toFont('ખાતે આવેલ')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(cleanPropertyDetails)}</strong>{' '}
-          {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
-        </div>
-      </div>
+      {/* Sections: (I), (II), (III)... */}
+      {properties.map((prop, idx) => {
+        const roman = ROMAN_NUMERALS[idx] || `(${idx + 1})`;
+        const pDistrict = prop.district || '';
+        const pTaluka = prop.taluka || '';
+        const pMoje = prop.mojeVillage || prop.moje || '';
+        const rawDetails = (prop.details || '').trim();
+        const cleanDetails = rawDetails
+          .replace(/\s*માં\s*વારસાઈ\s*કરવા\s*માટે\s*કરેલ\s*છે\.?$/g, '')
+          .trim();
+
+        return (
+          <div
+            key={idx}
+            style={{
+              margin: '0 0 6px 0',
+              textAlign: 'justify',
+              display: 'flex',
+              gap: '8px',
+              alignItems: 'flex-start',
+              lineHeight: '1.45'
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '14px',
+                minWidth: '24px',
+                fontFamily: 'Inter, system-ui, sans-serif'
+              }}
+            >
+              {roman}
+            </div>
+            <div style={{ flex: 1 }}>
+              {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
+              <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+                {toFont(`ડીસ્ટ્રીકટ : ${pDistrict}, સબ ડિસ્ટ્રીકટ : ${pTaluka}ના મોજે ગામ : ${pMoje}`)}
+              </strong>{' '}
+              {toFont('ખાતે આવેલ')}{' '}
+              <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(cleanDetails)}</strong>{' '}
+              {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
+            </div>
+          </div>
+        );
+      })}
 
       {/* Penal warning */}
       <p style={{ margin: '0 0 10px 0', textAlign: 'justify', lineHeight: '1.45' }}>

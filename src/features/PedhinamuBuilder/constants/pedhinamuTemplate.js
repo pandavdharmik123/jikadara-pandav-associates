@@ -39,6 +39,16 @@ export const DEFAULT_PEDHINAMU_DATA = {
     propertyMoje: 'ડભોલી',
     propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
+  selfDeclaration: {
+    properties: [
+      {
+        district: 'સુરત',
+        taluka: 'કતારગામ',
+        moje: 'ડભોલી',
+        details: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+      }
+    ]
+  },
   deceased: {
     name: 'મધુભાઇ પરશોતમભાઇ જીકાદરા',
     deathDate: '૨૦-૦૧-૨૦૨૬',

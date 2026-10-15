@@ -26,6 +26,16 @@ export const SAMPLE_GHOGHARI_DATA = {
     propertyMoje: 'કતારગામ',
     propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
+  selfDeclaration: {
+    properties: [
+      {
+        district: 'સુરત',
+        taluka: 'કતારગામ',
+        moje: 'કતારગામ',
+        details: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+      }
+    ]
+  },
   deceased: {
     name: 'ધીરૂભાઈ લાખાભાઈ ઘોઘારી',
     deathDate: '૦૩-૦૬-૨૦૨૦',

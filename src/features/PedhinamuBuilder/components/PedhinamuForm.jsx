@@ -1,11 +1,12 @@
 import React from 'react';
-import { Form, Row, Col, Tabs, Card, Typography, Space } from 'antd';
-import { User, FileText, Users, ShieldCheck, MapPin, Home } from 'lucide-react';
+import { Form, Row, Col, Tabs, Card, Typography, Space, Button } from 'antd';
+import { User, FileText, Users, ShieldCheck, MapPin, Home, Plus, Trash2, FileCheck } from 'lucide-react';
 import FamilyTreeEditor from './FamilyTreeEditor';
 import PhotoUploadBox from './PhotoUploadBox';
 import GhanshyamInput from './GhanshyamInput';
 
 const { Text } = Typography;
+const ROMAN_NUMERALS = ['(I)', '(II)', '(III)', '(IV)', '(V)', '(VI)', '(VII)', '(VIII)', '(IX)', '(X)', '(XI)', '(XII)', '(XIII)', '(XIV)', '(XV)'];
 
 export default function PedhinamuForm({
   data,
@@ -86,6 +87,84 @@ export default function PedhinamuForm({
     onChange({
       ...data,
       panchas: newPanchas
+    });
+  };
+
+  const getProperties = () => {
+    if (data.selfDeclaration?.properties && Array.isArray(data.selfDeclaration.properties) && data.selfDeclaration.properties.length > 0) {
+      return data.selfDeclaration.properties;
+    }
+    return [
+      {
+        district: data.applicant?.propertyDistrict || data.general?.district || 'સુરત',
+        taluka: data.applicant?.propertyTaluka || data.general?.taluka || 'કતારગામ',
+        moje: data.applicant?.propertyMoje || data.general?.moje || data.general?.talatiMoje || 'ડભોલી',
+        details: data.applicant?.propertyDetails || data.general?.propertyDetails || 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+      }
+    ];
+  };
+
+  const handlePropertyChange = (index, field, value) => {
+    const currentProps = getProperties().map(p => ({ ...p }));
+    if (!currentProps[index]) return;
+    currentProps[index][field] = value;
+
+    const updatedApplicant = { ...data.applicant };
+    if (index === 0) {
+      if (field === 'district') updatedApplicant.propertyDistrict = value;
+      if (field === 'taluka') updatedApplicant.propertyTaluka = value;
+      if (field === 'moje') updatedApplicant.propertyMoje = value;
+      if (field === 'details') updatedApplicant.propertyDetails = value;
+    }
+
+    onChange({
+      ...data,
+      applicant: updatedApplicant,
+      selfDeclaration: {
+        ...data.selfDeclaration,
+        properties: currentProps
+      }
+    });
+  };
+
+  const handleAddProperty = () => {
+    const currentProps = getProperties().map(p => ({ ...p }));
+    currentProps.push({
+      district: data.general?.district || 'સુરત',
+      taluka: data.general?.taluka || 'કતારગામ',
+      moje: data.general?.moje || data.general?.talatiMoje || 'ડભોલી',
+      details: ''
+    });
+
+    onChange({
+      ...data,
+      selfDeclaration: {
+        ...data.selfDeclaration,
+        properties: currentProps
+      }
+    });
+  };
+
+  const handleRemoveProperty = (index) => {
+    const currentProps = getProperties().map(p => ({ ...p }));
+    if (currentProps.length <= 1) return;
+    currentProps.splice(index, 1);
+
+    const updatedApplicant = { ...data.applicant };
+    if (currentProps[0]) {
+      updatedApplicant.propertyDistrict = currentProps[0].district;
+      updatedApplicant.propertyTaluka = currentProps[0].taluka;
+      updatedApplicant.propertyMoje = currentProps[0].moje;
+      updatedApplicant.propertyDetails = currentProps[0].details;
+    }
+
+    onChange({
+      ...data,
+      applicant: updatedApplicant,
+      selfDeclaration: {
+        ...data.selfDeclaration,
+        properties: currentProps
+      }
     });
   };
 
@@ -317,61 +396,6 @@ export default function PedhinamuForm({
               </Col>
             </Row>
           </Card>
-
-          {/* Separate Section: વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે) */}
-          <Card
-            size="small"
-            style={{ marginTop: 12, borderRadius: 8, borderColor: '#e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}
-            title={
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-                <Home size={15} color="#4f46e5" /> વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે)
-              </span>
-            }
-          >
-            <Row gutter={[12, 10]}>
-              <Col span={8}>
-                <Form.Item label="ડીસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
-                  <GhanshyamInput
-                    value={data.applicant?.propertyDistrict !== undefined ? data.applicant.propertyDistrict : (data.general?.district || '')}
-                    placeholder="દા.ત. સુરત"
-                    onChange={(e) => handleApplicantChange('propertyDistrict', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="સબ ડિસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
-                  <GhanshyamInput
-                    value={data.applicant?.propertyTaluka !== undefined ? data.applicant.propertyTaluka : (data.general?.taluka || '')}
-                    placeholder="દા.ત. કતારગામ"
-                    onChange={(e) => handleApplicantChange('propertyTaluka', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="મોજે ગામ" style={{ marginBottom: 0 }}>
-                  <GhanshyamInput
-                    value={data.applicant?.propertyMoje !== undefined ? data.applicant.propertyMoje : (data.general?.moje || data.general?.talatiMoje || '')}
-                    placeholder="દા.ત. ડભોલી"
-                    onChange={(e) => handleApplicantChange('propertyMoje', e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={24}>
-                <Form.Item label="મિલકતની વિગત" style={{ marginBottom: 0, marginTop: 4 }}>
-                  <GhanshyamInput
-                    isTextArea={true}
-                    rows={2}
-                    value={data.applicant?.propertyDetails !== undefined ? data.applicant.propertyDetails : (data.general?.propertyDetails || '')}
-                    placeholder="દા.ત. દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮"
-                    onChange={(e) => {
-                      handleApplicantChange('propertyDetails', e.target.value);
-                      handleGeneralChange('propertyDetails', e.target.value);
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
         </Form>
       )
     },
@@ -549,6 +573,132 @@ export default function PedhinamuForm({
                 </Row>
               </Card>
             ))}
+          </Space>
+        </Form>
+      )
+    },
+    {
+      key: 'selfDeclaration',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+          <FileCheck size={15} /> સ્વ-ઘોષણા
+        </span>
+      ),
+      children: (
+        <Form layout="vertical" requiredMark={false} style={{ padding: '4px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Home size={15} color="#4f46e5" /> વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે)
+              </span>
+              <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
+                સ્વ-ઘોષણા પત્રકમાં અહીં દર્શાવેલ દરેક મિલકત માટે (I), (II), (III)... મુજબ વિગતો ઉમેરાશે.
+              </div>
+            </div>
+            <Button
+              type="primary"
+              size="small"
+              icon={<Plus size={14} />}
+              onClick={handleAddProperty}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 6 }}
+            >
+              નવી મિલકત ઉમેરો
+            </Button>
+          </div>
+
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            {getProperties().map((prop, idx) => (
+              <Card
+                key={idx}
+                size="small"
+                style={{
+                  borderRadius: 8,
+                  borderColor: '#e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}
+                title={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
+                    <Home size={15} color="#4f46e5" /> વારસાઈ મિલકત {ROMAN_NUMERALS[idx] || `(${idx + 1})`}
+                  </span>
+                }
+                extra={
+                  getProperties().length > 1 ? (
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<Trash2 size={14} />}
+                      onClick={() => handleRemoveProperty(idx)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      દૂર કરો
+                    </Button>
+                  ) : null
+                }
+              >
+                <Row gutter={[12, 10]}>
+                  <Col span={8}>
+                    <Form.Item label="ડીસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
+                      <GhanshyamInput
+                        value={prop.district}
+                        placeholder="દા.ત. સુરત"
+                        onChange={(e) => handlePropertyChange(idx, 'district', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item label="સબ ડિસ્ટ્રીકટ" style={{ marginBottom: 0 }}>
+                      <GhanshyamInput
+                        value={prop.taluka}
+                        placeholder="દા.ત. કતારગામ"
+                        onChange={(e) => handlePropertyChange(idx, 'taluka', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item label="મોજે ગામ" style={{ marginBottom: 0 }}>
+                      <GhanshyamInput
+                        value={prop.moje}
+                        placeholder="દા.ત. ડભોલી"
+                        onChange={(e) => handlePropertyChange(idx, 'moje', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={24}>
+                    <Form.Item label="મિલકતની વિગત" style={{ marginBottom: 0, marginTop: 4 }}>
+                      <GhanshyamInput
+                        isTextArea={true}
+                        rows={2}
+                        value={prop.details}
+                        placeholder="દા.ત. દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮"
+                        onChange={(e) => handlePropertyChange(idx, 'details', e.target.value)}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
+            ))}
+
+            <Button
+              type="dashed"
+              onClick={handleAddProperty}
+              icon={<Plus size={14} />}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                height: 38,
+                borderRadius: 8,
+                borderColor: '#cbd5e1',
+                color: '#4f46e5',
+                fontWeight: 600,
+                marginTop: 4
+              }}
+            >
+              + નવી મિલકત ઉમેરો (Add Property)
+            </Button>
           </Space>
         </Form>
       )
