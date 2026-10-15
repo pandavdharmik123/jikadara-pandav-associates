@@ -43,6 +43,25 @@ export default function PedhinamuPrintDocument({
     const parts = templateText.split('{applicationDate}');
     if (parts.length === 1) return toFont(templateText);
     const appDateVal = general.applicationDate || '૨૧-૧૦-૨૦૨૪';
+
+    const subParts = parts[1].split('અમો પંચો જવાબદાર છીએ.');
+    if (subParts.length === 2) {
+      const rest = subParts[1].split('તલાટીશ્રી લેશ માત્ર');
+      if (rest.length === 2) {
+        return (
+          <>
+            {toFont(parts[0])}
+            <span style={{ fontFamily: dynamicFontFamily }}>{toFont(appDateVal)}</span>
+            {toFont(subParts[0])}
+            <span style={{ whiteSpace: 'nowrap' }}>{toFont('અમો પંચો જવાબદાર છીએ.')}</span>
+            {toFont(rest[0])}
+            <span style={{ whiteSpace: 'nowrap' }}>{toFont('તલાટીશ્રી લેશ માત્ર')}</span>
+            {toFont(rest[1])}
+          </>
+        );
+      }
+    }
+
     return (
       <>
         {toFont(parts[0])}
@@ -247,8 +266,13 @@ export default function PedhinamuPrintDocument({
               </>
             ) : (
               <>
-                {toFont(statement.deceasedIntro)}
-                <span style={{ fontWeight: 600, fontFamily: dynamicFontFamily }}>{toFont(statement.deceasedName)}</span>
+                {toFont(statement.deceasedIntro ? statement.deceasedIntro.replace(/,\s*સ્વ\.\s*$/, ', ') : '')}
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  {toFont('સ્વ. ')}
+                  <span style={{ fontWeight: 600, fontFamily: dynamicFontFamily }}>
+                    {toFont(statement.deceasedName)}
+                  </span>
+                </span>
                 {toFont(statement.relationIntro)}
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.relation)}</span>
                 {toFont(statement.deathPlaceIntro)}
@@ -257,7 +281,9 @@ export default function PedhinamuPrintDocument({
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.deathDate)}</span>
                 {toFont(statement.purposeIntro)}
                 <span style={{ fontFamily: dynamicFontFamily }}>{toFont(statement.appDate)}</span>
-                {toFont(statement.statementSuffix)}
+                {toFont(' ના રોજ અરજી કરેલી છે. ')}
+                <span style={{ whiteSpace: 'nowrap' }}>{toFont('તે સંદર્ભે આજ રોજ લખાવું છું કે,')}</span>
+                {toFont(' વારસદારો જાહેર કરતું પેઢીનામું નીચે પ્રમાણે છે. જે હકીકત છે.')}
               </>
             )}
           </div>

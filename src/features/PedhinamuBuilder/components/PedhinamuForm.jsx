@@ -298,10 +298,30 @@ export default function PedhinamuForm({
                 <Form.Item label="રહેઠાણનું પૂરું સરનામું" style={{ marginBottom: 0, marginTop: 4 }}>
                   <GhanshyamInput
                     isTextArea={true}
-                    rows={3}
+                    rows={2}
                     value={data.applicant.address}
                     placeholder="દા.ત. ૧૪૯, બાપાસીતારામ નગર સોસા., ડભોલી રોડ, કતારગામ, સુરત-૩૯૫૦૦૪."
                     onChange={(e) => handleApplicantChange('address', e.target.value)}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item label="જાતિ / ધર્મ (Caste)" style={{ marginBottom: 0, marginTop: 8 }}>
+                  <GhanshyamInput
+                    value={data.applicant.caste || 'હિન્દુ'}
+                    placeholder="દા.ત. હિન્દુ"
+                    onChange={(e) => handleApplicantChange('caste', e.target.value)}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col span={16}>
+                <Form.Item label="વારસાઈ મિલકત વિગત (સ્વ-ઘોષણા માટે)" style={{ marginBottom: 0, marginTop: 8 }}>
+                  <GhanshyamInput
+                    value={data.general?.propertyDetails || ''}
+                    placeholder="દા.ત. દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮ માં વારસાઈ કરવા માટે કરેલ છે."
+                    onChange={(e) => handleGeneralChange('propertyDetails', e.target.value)}
                   />
                 </Form.Item>
               </Col>

@@ -468,8 +468,8 @@ export default function FamilyTreeCanvas({
       className={`pedhinamu-family-tree-canvas ${interactive ? 'interactive' : 'print-mode'}`}
       style={{
         position: 'relative',
-        width: '100%',
-        maxWidth: `${canvasWidth}px`,
+        width: `${canvasWidth}px`,
+        maxWidth: '100%',
         height: `${canvasHeight}px`,
         margin: '0 auto',
         userSelect: 'none',
