@@ -4,12 +4,14 @@ import { toPng } from 'html-to-image';
 
 const PNG_OPTIONS = {
   backgroundColor: '#ffffff',
-  pixelRatio: 3,
+  pixelRatio: 4, // 384+ DPI Ultra-HD resolution for crystal clear print
+  cacheBust: true,
   skipFonts: false,
   style: {
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
-    textRendering: 'geometricPrecision'
+    textRendering: 'geometricPrecision',
+    transform: 'none'
   },
   filter: (node) => {
     if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
@@ -23,15 +25,24 @@ const PNG_OPTIONS = {
 };
 
 /**
- * Capture an A4 portrait element and return a jsPDF instance
+ * Capture an A4 portrait element and return an HD jsPDF instance
  */
 export async function generateA4PortraitPdf(element, title = 'Document') {
   if (!element) throw new Error('Target element not found');
 
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const actualWidth = element.offsetWidth || 794;
+  const actualHeight = Math.max(element.scrollHeight, element.offsetHeight, 1123);
+
   const pngData = await toPng(element, {
     ...PNG_OPTIONS,
-    width: 794,
-    height: 1123
+    pixelRatio: 4,
+    width: actualWidth,
+    height: actualHeight
   });
 
   const pdf = new jsPDF({
@@ -41,7 +52,31 @@ export async function generateA4PortraitPdf(element, title = 'Document') {
     compress: true
   });
 
-  pdf.addImage(pngData, 'PNG', 0, 0, 595.28, 841.89, undefined, 'FAST');
+  const pdfWidth = 595.28;
+  const pdfHeight = 841.89;
+
+  const contentRatio = actualHeight / actualWidth;
+  const a4Ratio = pdfHeight / pdfWidth; // ~1.4143
+
+  let renderWidth = pdfWidth;
+  let renderHeight = pdfHeight;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (contentRatio > a4Ratio) {
+    // Content is taller than A4 ratio: fit by height and center horizontally
+    renderHeight = pdfHeight;
+    renderWidth = pdfHeight / contentRatio;
+    offsetX = (pdfWidth - renderWidth) / 2;
+  } else {
+    // Content fits within A4: fit by width and center vertically
+    renderWidth = pdfWidth;
+    renderHeight = pdfWidth * contentRatio;
+    offsetY = (pdfHeight - renderHeight) / 2;
+  }
+
+  // Use 'SLOW' compression for lossless, uncompressed crystal-clear HD text edges
+  pdf.addImage(pngData, 'PNG', offsetX, offsetY, renderWidth, renderHeight, undefined, 'SLOW');
   return pdf;
 }
 
@@ -50,6 +85,10 @@ export async function generateA4PortraitPdf(element, title = 'Document') {
  */
 export async function generatePedhinamuPdf(page1El, page2El) {
   if (!page1El || !page2El) throw new Error('Pedhinamu Page elements not found');
+
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
+  }
 
   // Ensure images are loaded
   const images = [
@@ -85,9 +124,9 @@ export async function generatePedhinamuPdf(page1El, page2El) {
     compress: true
   });
 
-  pdf.addImage(page1Png, 'PNG', 0, 0, 1008, 612, undefined, 'FAST');
+  pdf.addImage(page1Png, 'PNG', 0, 0, 1008, 612, undefined, 'SLOW');
   pdf.addPage([1008, 612], 'landscape');
-  pdf.addImage(page2Png, 'PNG', 0, 0, 1008, 612, undefined, 'FAST');
+  pdf.addImage(page2Png, 'PNG', 0, 0, 1008, 612, undefined, 'SLOW');
 
   return pdf;
 }

@@ -1376,13 +1376,11 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: '-10000px',
           width: '794px',
-          height: '1123px',
-          maxHeight: '1123px',
           minHeight: '1123px',
-          overflow: 'hidden',
-          zIndex: -9999,
+          overflow: 'visible',
+          zIndex: -1,
           pointerEvents: 'none',
           opacity: 1,
           backgroundColor: '#ffffff'
@@ -1402,13 +1400,11 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: '-10000px',
           width: '794px',
-          height: '1123px',
-          maxHeight: '1123px',
           minHeight: '1123px',
-          overflow: 'hidden',
-          zIndex: -9999,
+          overflow: 'visible',
+          zIndex: -1,
           pointerEvents: 'none',
           opacity: 1,
           backgroundColor: '#ffffff'

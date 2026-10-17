@@ -86,12 +86,12 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       style={{
         width: '794px',
         minHeight: '1123px',
-        padding: '70px 100px 50px 100px',
+        padding: '40px 55px 30px 55px',
         backgroundColor: '#ffffff',
         color: '#000000',
         fontFamily: docFontFamily,
-        fontSize: fontMode === 'ghanshyam' ? '14px' : '13px',
-        lineHeight: '1.45',
+        fontSize: '20px',
+        lineHeight: '1.4',
         WebkitFontSmoothing: 'antialiased',
         MozOsxFontSmoothing: 'grayscale',
         textRendering: 'geometricPrecision',
@@ -102,17 +102,17 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         borderRadius: '2px',
         transform: scale !== 1 ? `scale(${scale})` : undefined,
         transformOrigin: 'top center',
-        overflow: 'hidden',
+        overflow: 'visible',
         display: 'flex',
         flexDirection: 'column'
       }}
     >
       {/* Title */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '18px' }}>
         <h2
           style={{
             margin: 0,
-            fontSize: fontMode === 'ghanshyam' ? '32px' : '28px',
+            fontSize: '26px',
             fontWeight: 800,
             letterSpacing: '0.5px',
             color: '#000000',
@@ -121,7 +121,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         >
           <span style={{ fontFamily: dynamicFontFamily }}>{toFont('-:: સ્વ-ઘોષણા')}</span>
           {' '}
-          <span style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '26px', fontWeight: 700 }}>
+          <span style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '24px', fontWeight: 700 }}>
             (Self-Declaration)
           </span>
           {' '}
@@ -130,7 +130,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       </div>
 
       {/* Paragraph 1 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.45' }}>
+      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
         {toFont('આથી અમો નીચે સહી કરનાર')}{' '}
         <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantName)}</strong>
         <span style={{ whiteSpace: 'nowrap' }}>{toFont(', ઉ.આ.વ. :-')}</span>{' '}
@@ -146,7 +146,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       </p>
 
       {/* Paragraph 2 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.45' }}>
+      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
         {toFont('મારા પિતા નામે')}{' '}
         <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
         <span style={{ whiteSpace: 'nowrap' }}>{toFont('નું અવસાન તા.')}</span>{' '}
@@ -158,7 +158,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       </p>
 
       {/* Heading before table */}
-      <div style={{ textAlign: 'center', margin: '4px 0 4px 0', fontWeight: 600, fontSize: fontMode === 'ghanshyam' ? '14px' : '13px' }}>
+      <div style={{ textAlign: 'center', margin: '4px 0 6px 0', fontWeight: 600, fontSize: '20px' }}>
         {toFont('પિતા નામે')}{' '}
         <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
         {toFont('ના વારસદારો :-')}
@@ -170,7 +170,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
           width: '100%',
           borderCollapse: 'collapse',
           margin: '0 0 6px 0',
-          fontSize: fontMode === 'ghanshyam' ? '12.5px' : '11.5px',
+          fontSize: '20px',
           border: '1px solid #000000'
         }}
       >
@@ -178,25 +178,25 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
           <tr style={{ backgroundColor: '#ffffff' }}>
             <th
               className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
-              style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '8%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily, fontSize: '20px' }}
             >
               {toFont('ક્રમ')}
             </th>
             <th
               className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
-              style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+              style={{ border: '1px solid #000000', padding: '3px 8px', width: '62%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily, fontSize: '20px' }}
             >
               {toFont('નામ')}
             </th>
             <th
               className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
-              style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '14%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily, fontSize: '20px' }}
             >
               {toFont('ઉંમર')}
             </th>
             <th
               className={fontMode === 'ghanshyam' ? 'font-ghanshyam' : ''}
-              style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily }}
+              style={{ border: '1px solid #000000', padding: '3px 4px', width: '16%', textAlign: 'center', fontWeight: 700, fontFamily: dynamicFontFamily, fontSize: '20px' }}
             >
               {toFont('સબંધ')}
             </th>
@@ -208,25 +208,25 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
               <tr key={heir.id || heir.srNo} className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
-                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
                   {toFont(heir.srNoGujarati)}
                 </td>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
-                  style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: docFontFamily }}
+                  style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
                   {toFont(heir.name)}
                 </td>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
-                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
                   {toFont(heir.ageGujarati)}
                 </td>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
-                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily }}
+                  style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
                   {toFont(heir.relationship)}
                 </td>
@@ -237,7 +237,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
               <td
                 colSpan={4}
                 className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
-                style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontFamily: docFontFamily }}
+                style={{ border: '1px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontFamily: docFontFamily, fontSize: '20px' }}
               >
                 {toFont('કોઈ વારસદાર ઉમેરાયેલ નથી (કૃપા કરીને કુટુંબ વૃક્ષમાં સભ્યો ઉમેરો)')}
               </td>
@@ -247,13 +247,13 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       </table>
 
       {/* Paragraph 3 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.45' }}>
+      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
         <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
         {toFont('ના ઉપરોક્ત વારસદારો સિવાય અન્ય કોઈ વારસદાર નથી અને જે અંગેની ખરાઈ માટે આ સ્વ-ઘોષણા કરવામાં આવેલ છે.')}
       </p>
 
       {/* Paragraph 4 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.45' }}>
+      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
         {toFont('ઉપર મુજબ પેઢીનામાનું સ્વ-ઘોષણા મારા લખાવ્યા મુજબનું છે, જેમાં બતાવેલ')}{' '}
         <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
         {toFont('ના કુલ હયાત')}{' '}
@@ -287,20 +287,21 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
               display: 'flex',
               gap: '8px',
               alignItems: 'flex-start',
-              lineHeight: '1.45'
+              lineHeight: '1.4',
+              fontSize: '20px'
             }}
           >
             <div
               style={{
                 fontWeight: 800,
-                fontSize: '14px',
-                minWidth: '24px',
+                fontSize: '20px',
+                minWidth: '28px',
                 fontFamily: 'Inter, system-ui, sans-serif'
               }}
             >
               {roman}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, fontSize: '20px', lineHeight: '1.4' }}>
               {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
               <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
                 {toFont(`ડીસ્ટ્રીકટ : ${pDistrict}, સબ ડિસ્ટ્રીકટ : ${pTaluka}ના મોજે ગામ : ${pMoje}`)}
@@ -314,13 +315,13 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       })}
 
       {/* Penal warning */}
-      <p style={{ margin: '0 0 10px 0', textAlign: 'justify', lineHeight: '1.45' }}>
+      <p style={{ margin: '0 0 8px 0', textAlign: 'justify', lineHeight: '1.4', fontSize: '20px' }}>
         {toFont('ખોટું સ્વ-ઘોષણા કરવુ, કરાવવુ કે લખાવવુ ફોજદારી ગુનો બને છે, જેની મને ખબર છે.')}
       </p>
 
       {/* Footer layout */}
-      <div style={{ marginTop: 'auto', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div style={{ lineHeight: '1.3', fontSize: fontMode === 'ghanshyam' ? '13px' : '12px' }}>
+      <div style={{ marginTop: '70px', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '20px' }}>
+        <div style={{ lineHeight: '1.35', fontSize: '20px' }}>
           <div>
             <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(place)}</strong>
@@ -331,11 +332,11 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', minWidth: '220px' }}>
-          <div style={{ fontSize: '13px', letterSpacing: '1px', color: '#000000', marginBottom: '4px' }}>
+        <div style={{ textAlign: 'center', minWidth: '240px' }}>
+          <div style={{ fontSize: '18px', letterSpacing: '1px', color: '#000000', marginBottom: '4px' }}>
             ..................................................
           </div>
-          <div style={{ fontSize: fontMode === 'ghanshyam' ? '13.5px' : '12.5px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, whiteSpace: 'nowrap' }}>
             {fontMode === 'ghanshyam' ? (
               <span>{`{ ${toFont('સ્વ-ઘોષણા કરનારની સહી')} }`}</span>
             ) : (
