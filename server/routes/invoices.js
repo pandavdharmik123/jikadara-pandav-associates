@@ -4,6 +4,10 @@ import requireAuth from '../middleware/requireAuth.js';
 
 const router = Router();
 
+const getUserFilter = (req) => {
+  return req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
+};
+
 // Create an invoice
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -20,10 +24,40 @@ router.post('/', requireAuth, async (req, res) => {
       items
     } = req.body;
 
+    const userFilter = getUserFilter(req);
+    const trimmedNo = invoiceNo?.toString().trim();
+
+    // If an active invoice with this invoice number already exists, update it instead of creating a duplicate
+    const existing = await prisma.invoice.findFirst({
+      where: {
+        invoiceNo: trimmedNo,
+        ...userFilter,
+        isDeleted: false,
+      }
+    });
+
+    if (existing) {
+      const updatedInvoice = await prisma.invoice.update({
+        where: { id: existing.id },
+        data: {
+          taskId: taskId || null,
+          clientName,
+          date: new Date(date),
+          discountAmount,
+          jamaAmount,
+          subTotal,
+          total,
+          balance,
+          items
+        }
+      });
+      return res.status(200).json({ invoice: updatedInvoice });
+    }
+
     const invoice = await prisma.invoice.create({
       data: {
         userId: req.user.id,
-        invoiceNo,
+        invoiceNo: trimmedNo,
         taskId: taskId || null,
         clientName,
         date: new Date(date),
@@ -46,9 +80,10 @@ router.post('/', requireAuth, async (req, res) => {
 // Get active invoices for user
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const userFilter = getUserFilter(req);
     const invoices = await prisma.invoice.findMany({
       where: {
-        userId: req.user.id,
+        ...userFilter,
         isDeleted: false,
       },
       orderBy: { createdAt: 'desc' },
@@ -82,9 +117,10 @@ router.put('/:id', requireAuth, async (req, res) => {
       items
     } = req.body;
 
-    // Ensure the invoice belongs to the user
+    const userFilter = getUserFilter(req);
+    // Ensure the invoice belongs to the user or admin
     const existingInvoice = await prisma.invoice.findFirst({
-      where: { id, userId: req.user.id, isDeleted: false }
+      where: { id, ...userFilter, isDeleted: false }
     });
 
     if (!existingInvoice) {
@@ -94,7 +130,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     const updatedInvoice = await prisma.invoice.update({
       where: { id },
       data: {
-        invoiceNo,
+        invoiceNo: invoiceNo?.toString().trim(),
         taskId: taskId || null,
         clientName,
         date: new Date(date),
@@ -118,9 +154,10 @@ router.put('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const userFilter = getUserFilter(req);
 
     const existing = await prisma.invoice.findFirst({
-      where: { id, userId: req.user.id, isDeleted: false }
+      where: { id, ...userFilter, isDeleted: false }
     });
 
     if (!existing) {
