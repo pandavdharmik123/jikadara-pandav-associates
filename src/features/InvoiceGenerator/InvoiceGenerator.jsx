@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space, Segmented } from 'antd';
+import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space, Tag, Popconfirm } from 'antd';
 import dayjs from 'dayjs';
-import { Plus, Trash2, FileSignature, Printer, Eye, Edit } from 'lucide-react';
+import { Plus, Trash2, FileSignature, Printer, Eye, Edit, Save, RefreshCw } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import html2pdf from 'html2pdf.js';
 import { useTasks } from '../../hooks/useTasks';
-import { useInvoices, useCreateInvoice, useUpdateInvoice } from '../../hooks/useInvoices';
+import { useInvoices, useCreateInvoice, useUpdateInvoice, useDeleteInvoice } from '../../hooks/useInvoices';
 import InvoicePrintLayout from './InvoicePrintLayout';
 
 const { Title, Text } = Typography;
@@ -25,19 +25,30 @@ export default function InvoiceGenerator({ currentAccentColor }) {
   const [previewVisible, setPreviewVisible] = useState(false);
   const previewPrintRef = useRef();
 
-
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
 
   const { data: tasks } = useTasks('', 'ACTIVE');
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
   const createInvoiceMutation = useCreateInvoice();
   const updateInvoiceMutation = useUpdateInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
 
-  // Auto-set Invoice No based on total invoices
+  const isSaving = Boolean(
+    createInvoiceMutation.isPending ||
+    updateInvoiceMutation.isPending ||
+    createInvoiceMutation.isLoading ||
+    updateInvoiceMutation.isLoading
+  );
+
+  // Auto-set Invoice No based on max invoice number in list
   useEffect(() => {
     if (invoices && !invoiceNo && !editingInvoiceId) {
-      const nextNo = invoices.length + 1;
-      setInvoiceNo(nextNo.toString().padStart(3, '0'));
+      const maxNo = invoices.reduce((max, inv) => {
+        const num = parseInt(inv.invoiceNo, 10);
+        return !isNaN(num) && num > max ? num : max;
+      }, 0);
+      const nextNo = (maxNo + 1).toString().padStart(3, '0');
+      setInvoiceNo(nextNo);
     }
   }, [invoices, editingInvoiceId, invoiceNo]);
 
@@ -68,6 +79,22 @@ export default function InvoiceGenerator({ currentAccentColor }) {
     setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
   const removeItem = (id) => setItems(items.filter(item => item.id !== id));
+
+  const handleResetForm = () => {
+    setEditingInvoiceId(null);
+    const maxNo = invoices?.reduce((max, inv) => {
+      const num = parseInt(inv.invoiceNo, 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0) || 0;
+    const nextNo = (maxNo + 1).toString().padStart(3, '0');
+    setInvoiceNo(nextNo);
+    setClientName('');
+    setSelectedTaskId(null);
+    setInvoiceDate(dayjs());
+    setDiscountAmount(0);
+    setJamaAmount(0);
+    setItems([{ id: Date.now(), description: '', qty: 1, price: 0 }]);
+  };
 
   const handleGeneratePDF = async (ref, fileName) => {
     const element = ref.current;
@@ -176,37 +203,73 @@ export default function InvoiceGenerator({ currentAccentColor }) {
     await handleGeneratePDF(componentRef, clientName);
   };
 
-  const handlePrintAndSave = async () => {
+  const saveInvoiceData = async () => {
     if (!clientName || !clientName.trim()) {
       message.error('Please enter the Client Name (Invoice To).');
-      return;
+      return null;
     }
 
-    try {
-      const payload = {
-        invoiceNo,
-        taskId: selectedTaskId,
-        clientName,
-        date: invoiceDate.toISOString(),
-        discountAmount: discountVal,
-        jamaAmount,
-        subTotal,
-        total,
-        balance,
-        items
-      };
+    const trimmedInvoiceNo = invoiceNo?.toString().trim();
+    if (!trimmedInvoiceNo) {
+      message.error('Please enter the Invoice Number.');
+      return null;
+    }
 
-      if (editingInvoiceId) {
-        await updateInvoiceMutation.mutateAsync({ id: editingInvoiceId, data: payload });
-        setEditingInvoiceId(null);
-      } else {
-        await createInvoiceMutation.mutateAsync(payload);
+    const payload = {
+      invoiceNo: trimmedInvoiceNo,
+      taskId: selectedTaskId || null,
+      clientName: clientName.trim(),
+      date: invoiceDate ? invoiceDate.toISOString() : new Date().toISOString(),
+      discountAmount: discountVal,
+      jamaAmount: Number(jamaAmount) || 0,
+      subTotal,
+      total,
+      balance,
+      items
+    };
+
+    // Determine target ID to edit:
+    // 1. If user explicitly clicked edit on an invoice -> editingInvoiceId
+    // 2. OR if an existing active invoice matches this invoiceNo -> existingByNo.id
+    const existingByNo = invoices?.find(
+      inv => inv.invoiceNo?.toString().trim().toLowerCase() === trimmedInvoiceNo.toLowerCase()
+    );
+    const targetId = editingInvoiceId || existingByNo?.id;
+
+    let result;
+    if (targetId) {
+      result = await updateInvoiceMutation.mutateAsync({ id: targetId, data: payload });
+      // Keep editingInvoiceId set so subsequent clicks to Save or Print & Save continue to update this invoice
+      setEditingInvoiceId(targetId);
+      message.success(`Invoice #${trimmedInvoiceNo} updated successfully!`);
+    } else {
+      result = await createInvoiceMutation.mutateAsync(payload);
+      if (result?.id) {
+        setEditingInvoiceId(result.id);
       }
-      
-      await handleGeneratePDF(componentRef, clientName);
+      message.success(`Invoice #${trimmedInvoiceNo} saved successfully!`);
+    }
+    return result;
+  };
+
+  const handleSaveOnly = async () => {
+    try {
+      await saveInvoiceData();
     } catch (error) {
-      console.error(error);
-      message.error('Failed to save invoice to database.');
+      console.error('Save invoice error:', error);
+      message.error(error?.response?.data?.error || 'Failed to save invoice.');
+    }
+  };
+
+  const handlePrintAndSave = async () => {
+    try {
+      const saved = await saveInvoiceData();
+      if (saved) {
+        await handleGeneratePDF(componentRef, clientName);
+      }
+    } catch (error) {
+      console.error('Print & Save error:', error);
+      message.error(error?.response?.data?.error || 'Failed to save and print invoice.');
     }
   };
 
@@ -229,13 +292,27 @@ export default function InvoiceGenerator({ currentAccentColor }) {
   const handleEditInvoice = (invoice) => {
     setEditingInvoiceId(invoice.id);
     setInvoiceNo(invoice.invoiceNo);
-    setClientName(invoice.clientName);
-    setInvoiceDate(dayjs(invoice.date));
-    setSelectedTaskId(invoice.taskId);
-    setDiscountAmount(invoice.discountAmount || 0);
-    setJamaAmount(invoice.jamaAmount || 0);
-    setItems(invoice.items || [{ id: Date.now(), description: '', qty: 1, price: 0 }]);
+    setClientName(invoice.clientName || '');
+    setInvoiceDate(invoice.date ? dayjs(invoice.date) : dayjs());
+    setSelectedTaskId(invoice.taskId || null);
+    setDiscountAmount(Number(invoice.discountAmount) || 0);
+    setJamaAmount(Number(invoice.jamaAmount) || 0);
+
+    let parsedItems = invoice.items;
+    if (typeof parsedItems === 'string') {
+      try {
+        parsedItems = JSON.parse(parsedItems);
+      } catch (e) {
+        parsedItems = [];
+      }
+    }
+    setItems(
+      Array.isArray(parsedItems) && parsedItems.length > 0
+        ? parsedItems.map((item, idx) => ({ ...item, id: item.id || Date.now() + idx }))
+        : [{ id: Date.now(), description: '', qty: 1, price: 0 }]
+    );
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    message.info(`Editing Invoice #${invoice.invoiceNo}`);
   };
 
   const invoiceColumns = [
@@ -243,12 +320,22 @@ export default function InvoiceGenerator({ currentAccentColor }) {
       title: 'Invoice No.',
       dataIndex: 'invoiceNo',
       key: 'invoiceNo',
+      render: (val, record) => (
+        <Space>
+          <span>{val}</span>
+          {record.id === editingInvoiceId && (
+            <Tag color="blue" style={{ fontSize: 10, lineHeight: '16px', padding: '0 4px', margin: 0 }}>
+              Editing
+            </Tag>
+          )}
+        </Space>
+      ),
     },
     {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
     },
     {
       title: 'Client Name',
@@ -265,31 +352,51 @@ export default function InvoiceGenerator({ currentAccentColor }) {
       title: 'Action',
       key: 'action',
       render: (_, record) => (
-        <Space>
-          <Button 
-            type="text" 
-            icon={<Edit size={16} />} 
+        <Space size="small">
+          <Button
+            type="text"
+            icon={<Edit size={16} />}
             onClick={() => handleEditInvoice(record)}
             style={{ color: currentAccentColor }}
           >
             Edit
           </Button>
-          <Button 
-            type="text" 
-            icon={<Eye size={16} />} 
+          <Button
+            type="text"
+            icon={<Eye size={16} />}
             onClick={() => handleViewInvoice(record)}
             style={{ color: currentAccentColor }}
           >
             View
           </Button>
+          <Popconfirm
+            title="Delete Invoice"
+            description="Are you sure you want to delete this invoice?"
+            onConfirm={async () => {
+              try {
+                await deleteInvoiceMutation.mutateAsync(record.id);
+                message.success('Invoice moved to recycle bin');
+                if (editingInvoiceId === record.id) {
+                  handleResetForm();
+                }
+              } catch (err) {
+                console.error(err);
+                message.error('Failed to delete invoice');
+              }
+            }}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              type="text"
+              danger
+              icon={<Trash2 size={16} />}
+            />
+          </Popconfirm>
         </Space>
       ),
     },
   ];
-
-  // Theme colors (black & gray)
-  const themeBlue = '#333333';
-  const tableHeaderBg = '#f4f4f4';
 
   return (
     <div className="invoice-generator-wrap" style={{ padding: '4px 0 12px' }}>
@@ -298,13 +405,40 @@ export default function InvoiceGenerator({ currentAccentColor }) {
           <FileSignature size={16} style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Invoice Generator</Title>
         </div>
+        <Button
+          icon={<Plus size={16} />}
+          onClick={handleResetForm}
+          style={{ borderColor: currentAccentColor, color: currentAccentColor }}
+        >
+          New Invoice
+        </Button>
       </div>
 
       <Row gutter={[16, 16]} style={{ position: 'relative', zIndex: 10 }}>
         {/* Editor Inputs */}
         <Col xs={24} lg={12}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
+            {editingInvoiceId && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: 'rgba(24, 144, 255, 0.08)',
+                border: '1px solid rgba(24, 144, 255, 0.25)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Tag color="processing" style={{ margin: 0, fontWeight: 600 }}>Editing Mode</Tag>
+                  <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                    Editing Invoice #{invoiceNo}
+                  </Text>
+                </div>
+                <Button size="small" onClick={handleResetForm} icon={<RefreshCw size={14} />}>
+                  Cancel / New Invoice
+                </Button>
+              </div>
+            )}
 
             <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Invoice Details</span>} style={{ position: 'relative', zIndex: 99 }}>
               <Row gutter={[8, 8]}>
@@ -333,16 +467,6 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                     lang="gu"
                   />
                 </Col>
-                {/* <Col xs={24}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Address</Text>
-                  <IndicTransliterate
-                    containerClassName="transliterate-wrapper"
-                    renderComponent={(props) => <textarea {...props} className="custom-transliterate-input" style={{ width: '100%', padding: '4px 8px', minHeight: '60px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }} />}
-                    value={clientAddress}
-                    onChangeText={setClientAddress}
-                    lang="gu"
-                  />
-                </Col> */}
                 <Col xs={12}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Invoice #</Text>
                   <Input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} style={{ height: '28px' }} />
@@ -401,10 +525,10 @@ export default function InvoiceGenerator({ currentAccentColor }) {
               </Row>
             </Card>
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
-              <Button 
-                size="large" 
-                icon={<Eye size={18} />} 
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12, flexWrap: 'wrap' }}>
+              <Button
+                size="large"
+                icon={<Eye size={18} />}
                 onClick={() => {
                   setPreviewInvoice({
                     clientName,
@@ -423,23 +547,32 @@ export default function InvoiceGenerator({ currentAccentColor }) {
               >
                 Preview
               </Button>
-              <Button 
-                size="large" 
-                icon={<Printer size={18} />} 
-                onClick={handlePrintOnly} 
+              <Button
+                size="large"
+                icon={<Printer size={18} />}
+                onClick={handlePrintOnly}
                 style={{ color: currentAccentColor, borderColor: currentAccentColor }}
               >
                 Print
               </Button>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Printer size={18} />} 
-                onClick={handlePrintAndSave} 
-                style={{ backgroundColor: currentAccentColor }}
-                loading={createInvoiceMutation.isLoading}
+              <Button
+                size="large"
+                icon={<Save size={18} />}
+                onClick={handleSaveOnly}
+                loading={isSaving}
+                style={{ color: currentAccentColor, borderColor: currentAccentColor }}
               >
-                Print & Save
+                {editingInvoiceId ? 'Update' : 'Save'}
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                icon={<Printer size={18} />}
+                onClick={handlePrintAndSave}
+                style={{ backgroundColor: currentAccentColor }}
+                loading={isSaving}
+              >
+                {editingInvoiceId ? 'Update & Print' : 'Print & Save'}
               </Button>
             </div>
           </div>
@@ -455,6 +588,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
               loading={invoicesLoading}
               pagination={{ pageSize: 10 }}
               size="small"
+              rowClassName={(record) => (record.id === editingInvoiceId ? 'ant-table-row-selected' : '')}
             />
           </Card>
         </Col>
@@ -481,9 +615,9 @@ export default function InvoiceGenerator({ currentAccentColor }) {
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
             <span>Invoice Preview</span>
-            <Button 
-              type="primary" 
-              icon={<Printer size={16} />} 
+            <Button
+              type="primary"
+              icon={<Printer size={16} />}
               onClick={() => handleGeneratePDF(previewPrintRef, previewInvoice?.clientName)}
               style={{ backgroundColor: currentAccentColor }}
             >
