@@ -7,7 +7,8 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
   { data = {}, scale = 1, fontMode = 'ghanshyam' },
   ref
 ) {
-  const { applicant = {}, deceased = {}, general = {}, tree = {} } = data;
+  const { applicant = {}, deceased = {}, general = {}, tree = {}, pedhinamuType = 'DECEASED' } = data;
+  const isAlive = pedhinamuType === 'ALIVE';
 
   const toFont = (text) => {
     if (!text) return '';
@@ -29,10 +30,15 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', 'Shruti', system-ui, sans-serif";
 
-  const rawAppName = (applicant.name || '').trim();
-  const applicantName = rawAppName.startsWith('શ્રી') ? rawAppName : `શ્રી ${rawAppName || 'ઘોઘારી અનિલકુમાર ધીરૂભાઈ'}`;
-  const applicantAddress = applicant.address || 'બી-૨૮ દાનેવ આશિષ સોસાયટી, કતારગામ સુરત.';
+  // Applicant Name handling
+  const rawAppName = (applicant.name || (isAlive ? (tree?.rootNode?.name || deceased.name) : '') || '').trim();
+  const applicantName = rawAppName.startsWith('શ્રી')
+    ? rawAppName
+    : `શ્રી ${rawAppName || (isAlive ? 'મનજીભાઇ શામજીભાઇ આંબલીયા' : 'ઘોઘારી અનિલકુમાર ધીરૂભાઈ')}`;
+  const applicantAddress = applicant.address || (isAlive ? '૧૦૧,પાર્વતી નગર સોસા., કતારગામ, સુરત-૩૯૫૦૦૪' : 'બી-૨૮ દાનેવ આશિષ સોસાયટી, કતારગામ સુરત.');
+  const applicantMobile = general.mobileNumber || applicant.mobileNumber || '';
 
+  // Deceased fields (for DECEASED mode)
   const rawDeceasedName = (deceased.name || '').trim();
   const deceasedNameWithSwa = rawDeceasedName.startsWith('સ્વ.')
     ? rawDeceasedName
@@ -41,13 +47,18 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
   const deathDate = deceased.deathDate || '૦૩-૦૬-૨૦૨૦';
   const deathPlace = deceased.deathPlace || 'સુરત';
 
+  // General fields
   const district = general.district || 'સુરત';
   const taluka = general.taluka || 'કતારગામ';
-  const place = general.place || 'સુરત';
+  const place = general.place || taluka || 'સુરત';
   const applicationDate = general.applicationDate || general.currentDate || '';
 
+  // Heirs extraction from family tree
   const heirs = extractAliveHeirs(tree);
   const heirsSummary = getHeirsSummary(heirs);
+
+  // Alive mode heading name with "ના"
+  const applicantNameWithNa = applicantName.endsWith('ના') ? applicantName : `${applicantName}ના`;
 
   return (
     <div
@@ -122,17 +133,37 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
                 <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAddress)}</strong>
               </td>
             </tr>
+            {isAlive && (
+              <tr>
+                <td
+                  style={{
+                    verticalAlign: 'top',
+                    whiteSpace: 'nowrap',
+                    padding: '0 6px 3px 0',
+                    border: 'none',
+                    width: '1%'
+                  }}
+                >
+                  <span style={{ whiteSpace: 'nowrap' }}>{toFont('મો.નં :-')}</span>
+                </td>
+                <td style={{ verticalAlign: 'top', padding: '0 0 3px 0', border: 'none' }}>
+                  {applicantMobile ? (
+                    <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantMobile)}</strong>
+                  ) : null}
+                </td>
+              </tr>
+            )}
             <tr>
               <td
                 style={{
                   verticalAlign: 'top',
                   whiteSpace: 'nowrap',
-                  padding: '0 12px 0 0',
+                  padding: isAlive ? '0 6px 0 0' : '0 12px 0 0',
                   border: 'none',
                   width: '1%'
                 }}
               >
-                <span style={{ whiteSpace: 'nowrap' }}>{toFont('તારીખ :')}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{toFont(isAlive ? 'તા.' : 'તારીખ :')}</span>
               </td>
               <td style={{ verticalAlign: 'top', padding: '0', border: 'none' }}>
                 {applicationDate ? (
@@ -151,7 +182,9 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
         </div>
         <div>{toFont('તલાટી કમ મંત્રીશ્રી,')}</div>
         <div style={{ fontFamily: dynamicFontFamily }}>{toFont(`${taluka},`)}</div>
-        <div style={{ fontFamily: dynamicFontFamily }}>{toFont(`${district}.`)}</div>
+        <div style={{ fontFamily: dynamicFontFamily }}>
+          {toFont(isAlive ? (district.startsWith('જી.') ? `${district}.` : `જી. ${district}.`) : `${district}.`)}
+        </div>
       </div>
 
       {/* Subject Line (Centered) */}
@@ -179,16 +212,22 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
         {toFont('હમો અરજદારની માનસર અરજ છે કે...')}
       </p>
 
-      {/* Paragraph 1 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
-        {toFont('મારા પિતા નામે')}{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
-        <span style={{ whiteSpace: 'nowrap' }}>{toFont('નું અવસાન તા.')}</span>{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathDate)}</strong>{' '}
-        <span style={{ whiteSpace: 'nowrap' }}>{toFont('ના રોજ')}</span>{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathPlace)}</strong>{' '}
-        {toFont('બિનવસિયતે અવસાન થયેલ છે, અને તેમના સીધીલીટીના વારસદારો તરીકે.')}
-      </p>
+      {/* Heading / Lead paragraph before table */}
+      {isAlive ? (
+        <p style={{ margin: '0 0 6px 0', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', fontWeight: 700, fontFamily: dynamicFontFamily }}>
+          {toFont(`${applicantNameWithNa} સીધીલીટીના વારસદારો નીચે મુજબ છે.`)}
+        </p>
+      ) : (
+        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+          {toFont('મારા પિતા નામે')}{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+          <span style={{ whiteSpace: 'nowrap' }}>{toFont('નું અવસાન તા.')}</span>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathDate)}</strong>{' '}
+          <span style={{ whiteSpace: 'nowrap' }}>{toFont('ના રોજ')}</span>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathPlace)}</strong>{' '}
+          {toFont('બિનવસિયતે અવસાન થયેલ છે, અને તેમના સીધીલીટીના વારસદારો તરીકે.')}
+        </p>
+      )}
 
       {/* Heirs Table */}
       <table
@@ -272,39 +311,66 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
         </tbody>
       </table>
 
-      {/* Paragraph 2 */}
-      <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
-        {toFont('હમો અરજદારના')}{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
-        {toFont('ના હાલ હયાત')}{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-          {fontMode === 'ghanshyam' ? (
-            <span>{`${toFont(heirsSummary.gujaratiDigits)} { ${toFont(heirsSummary.gujaratiWords)} }`}</span>
-          ) : (
-            heirsSummary.combinedText
-          )}
-        </strong>{' '}
-        {toFont('સીધીલીટીના વારસદારો છીએ, તે સિવાય બીજા અન્ય કોઈ વારસદારો દર્શાવાના બાકી રહેતા નથી, છતાં ભવિષ્યમાં કોઈ વારસદાર ઉપસ્થિત થાય કે ઉપરોક્ત બતાવેલ વારસદારોમાંથી કોઈ ખોટો વારસદાર સાબિત થાય તો તેની તમામ જવાબદારી મારી રહેશે. અને આ સાથે હમોના પિતા નામે')}{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
-        {toFont('ના સીધીલીટીના વારસદારોની વિગત દર્શાવતુ સ્વ-ઘોષણા તેમજ જરૂરી પુરાવા રજુ કરેલ છે,')}
-      </p>
+      {/* Paragraphs after table */}
+      {isAlive ? (
+        <>
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+            {toFont('હમો અરજદારના ના હાલ')}{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {fontMode === 'ghanshyam' ? (
+                <span>{`${toFont(heirsSummary.gujaratiDigits)} { ${toFont(heirsSummary.gujaratiWords)} }`}</span>
+              ) : (
+                heirsSummary.combinedText
+              )}
+            </strong>{' '}
+            {toFont('સીધીલીટીના વારસદારો છે, તે સિવાય બીજા અન્ય કોઈ વારસદારો નથી તેમજ દર્શાવવાનાં બાકી રહેતા નથી તેમ છતાં ભવિષ્યમાં કોઈ વારસદાર ઉપસ્થિત થાય કે ઉપરોક્ત બતાવેલ વારસદારોમાંથી કોઇ ખોટો વારસદાર સાબિત થાય તો તેની તમામ જવાબદારી મારી રહેશે. અને આ સાથે અમો અરજદારનાં ના સીધીલીટીના વારસદારોની વિગત દર્શાવતુ એફિડેવીટ તેમજ જરૂરી પુરાવા રજુ કરેલ છે,')}
+          </p>
 
-      {/* Paragraph 3 */}
-      <p style={{ margin: '0 0 8px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
-        {toFont('હમો અરજદારના પિતા નામે')}{' '}
-        <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
-        {toFont('ના સીધીલીટીના વારસદારોની વિગત તેમજ રજુ કરેલ પુરાવાના આધારે હમોને મારા પિતા નું અવસાન થતા વારસાઈ કરવા માટે જરૂરી હોય જેથી પેઢીનામું કરી આપવા હમો અરજદારની નમ્રતા પુર્વકની અરજ છે.')}
-      </p>
+          <p style={{ margin: '0 0 8px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+            {toFont('હમો અરજદારના સીધીલીટીના વારસદારોની વિગત તેમજ રજુ કરેલ પુરાવાના આધારે વારસાઇ કરવા માંટે જરૂરી હોય જેથી પેઢીનામું કરી આપવા હમો અરજદારની નમ્રતા પુર્વકની અરજ છે.')}
+          </p>
+        </>
+      ) : (
+        <>
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+            {toFont('હમો અરજદારના')}{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+            {toFont('ના હાલ હયાત')}{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {fontMode === 'ghanshyam' ? (
+                <span>{`${toFont(heirsSummary.gujaratiDigits)} { ${toFont(heirsSummary.gujaratiWords)} }`}</span>
+              ) : (
+                heirsSummary.combinedText
+              )}
+            </strong>{' '}
+            {toFont('સીધીલીટીના વારસદારો છીએ, તે સિવાય બીજા અન્ય કોઈ વારસદારો દર્શાવાના બાકી રહેતા નથી, છતાં ભવિષ્યમાં કોઈ વારસદાર ઉપસ્થિત થાય કે ઉપરોક્ત બતાવેલ વારસદારોમાંથી કોઈ ખોટો વારસદાર સાબિત થાય તો તેની તમામ જવાબદારી મારી રહેશે. અને આ સાથે હમોના પિતા નામે')}{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+            {toFont('ના સીધીલીટીના વારસદારોની વિગત દર્શાવતુ સ્વ-ઘોષણા તેમજ જરૂરી પુરાવા રજુ કરેલ છે,')}
+          </p>
+
+          <p style={{ margin: '0 0 8px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+            {toFont('હમો અરજદારના પિતા નામે')}{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+            {toFont('ના સીધીલીટીના વારસદારોની વિગત તેમજ રજુ કરેલ પુરાવાના આધારે હમોને મારા પિતા નું અવસાન થતા વારસાઈ કરવા માટે જરૂરી હોય જેથી પેઢીનામું કરી આપવા હમો અરજદારની નમ્રતા પુર્વકની અરજ છે.')}
+          </p>
+        </>
+      )}
 
       {/* Footer */}
       <div style={{ marginTop: '30px', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '20px' }}>
         <div style={{ lineHeight: '1.35', fontSize: '20px' }}>
           <div>
-            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('સ્થળ :')}</span>
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(place)}.</strong>
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '6px' }}>
+              {toFont(isAlive ? 'સ્થળ:-' : 'સ્થળ :')}
+            </span>
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {toFont(isAlive ? `${taluka || place}.` : `${place}.`)}
+            </strong>
           </div>
           <div>
-            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '12px' }}>{toFont('તારીખ :')}</span>
+            <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '6px' }}>
+              {toFont(isAlive ? 'તા.' : 'તારીખ :')}
+            </span>
             {applicationDate ? (
               <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
             ) : null}
@@ -313,7 +379,9 @@ const ApplicationDocument = forwardRef(function ApplicationDocument(
 
         <div style={{ textAlign: 'center', minWidth: '240px' }}>
           <div style={{ fontSize: '20px', letterSpacing: '1px', color: '#000000', whiteSpace: 'nowrap' }}>
-            {fontMode === 'ghanshyam' ? 'sh) ............................................' : 'સહી ............................................'}
+            {isAlive
+              ? 'sh) .............................................'
+              : (fontMode === 'ghanshyam' ? 'sh) ............................................' : 'સહી ............................................')}
           </div>
         </div>
       </div>

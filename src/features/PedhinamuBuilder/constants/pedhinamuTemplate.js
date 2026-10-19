@@ -23,6 +23,7 @@ export const DEFAULT_PEDHINAMU_DATA = {
     place: 'સુરત',
     currentDate: '૨૧-૧૦-૨૦૨૪',
     applicationDate: '૨૧-૧૦-૨૦૨૪',
+    mobileNumber: '',
     propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
   },
   applicant: {

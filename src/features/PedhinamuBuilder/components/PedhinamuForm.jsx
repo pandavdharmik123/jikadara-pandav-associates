@@ -298,6 +298,30 @@ export default function PedhinamuForm({
                   />
                 </Form.Item>
               </Col>
+              {data.pedhinamuType === 'ALIVE' && (
+                <Col span={12}>
+                  <Form.Item label="મોબાઇલ નંબર (Mobile No.)" style={{ marginBottom: 0, marginTop: 4 }}>
+                    <GhanshyamInput
+                      value={data.general.mobileNumber || data.applicant?.mobileNumber || ''}
+                      placeholder="દા.ત. ૯૮૨૫૦XXXXX"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        onChange({
+                          ...data,
+                          general: {
+                            ...data.general,
+                            mobileNumber: val
+                          },
+                          applicant: {
+                            ...data.applicant,
+                            mobileNumber: val
+                          }
+                        });
+                      }}
+                    />
+                  </Form.Item>
+                </Col>
+              )}
             </Row>
           </Card>
         </Form>
