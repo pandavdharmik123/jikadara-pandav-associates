@@ -42,7 +42,7 @@ export default function PedhinamuPrintDocument({
     if (!templateText) return null;
     const parts = templateText.split('{applicationDate}');
     if (parts.length === 1) return toFont(templateText);
-    const appDateVal = general.applicationDate || '૨૧-૧૦-૨૦૨૪';
+    const appDateVal = general.applicationDate || general.currentDate || '................';
 
     const subParts = parts[1].split('અમો પંચો જવાબદાર છીએ.');
     if (subParts.length === 2) {
@@ -136,7 +136,14 @@ export default function PedhinamuPrintDocument({
     : "'Anek Gujarati', 'Noto Sans Gujarati', system-ui, sans-serif";
 
   // Build Statement Paragraph depending on Alive vs Deceased mode
-  const statement = template.getApplicantStatement({ applicant, deceased, general });
+  const effectiveApplicant = isAliveMode
+    ? {
+        ...applicant,
+        name: applicant.name || tree?.rootNode?.name || deceased.name || '',
+        age: applicant.age || tree?.rootNode?.age || deceased.age || ''
+      }
+    : applicant;
+  const statement = template.getApplicantStatement({ applicant: effectiveApplicant, deceased, general });
 
   return (
     <div
@@ -202,9 +209,9 @@ export default function PedhinamuPrintDocument({
             >
               <div>
                 <span>{toFont('રજી. નં.')}</span>
-                <span>{toFont(general.registrationNo || '...............')}</span>
+                <span>{toFont(general.registrationNo || '')}</span>
                 <span>/</span>
-                <span>{toFont(general.registrationYear || '૨૦૨૬')}</span>
+                <span>{toFont(general.registrationYear || '')}</span>
               </div>
               <div>
                 <span>{toFont('મોજે : ')}</span>
@@ -306,6 +313,7 @@ export default function PedhinamuPrintDocument({
             <FamilyTreeCanvas
               tree={tree}
               deceased={deceased}
+              applicant={applicant}
               pedhinamuType={pedhinamuType}
               onNodeMove={onNodeMove}
               onNodeResize={onNodeResize}

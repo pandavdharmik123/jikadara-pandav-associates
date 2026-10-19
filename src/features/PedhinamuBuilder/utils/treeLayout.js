@@ -4,7 +4,7 @@ import { normalizeFamilyTree } from './treeModel.js';
  * Recursive Multi-Generation Auto-Layout for Family Tree
  * Canvas width: 980pt (fits standard 1008pt legal landscape)
  */
-export function calculateTreeLayout(treeData, deceased, overrides = {}) {
+export function calculateTreeLayout(treeData, deceased, overrides = {}, pedhinamuType = 'DECEASED', applicant = {}) {
   const normalized = normalizeFamilyTree(treeData, deceased);
   const root = normalized.rootNode;
 
@@ -21,10 +21,15 @@ export function calculateTreeLayout(treeData, deceased, overrides = {}) {
   // Estimate root box width based on single-line fit-content text
   let rootText = '';
   if (root) {
-    if (root.deceased) {
-      rootText = `સ્વ. ${root.name || ''}${root.deathDate ? ` - (મરણ તા. ${root.deathDate})` : ''}`;
+    const rawName = (root.name || deceased?.name || (pedhinamuType === 'ALIVE' ? applicant?.name : '') || '').trim();
+    if (pedhinamuType === 'ALIVE' || !root.deceased) {
+      const withShri = rawName ? (rawName.startsWith('શ્રી') ? rawName : `શ્રી ${rawName}`) : 'શ્રી';
+      const age = root.age || deceased?.age || applicant?.age;
+      rootText = `${withShri}${age ? ` (ઉ.આ.વ. ${age})` : ''}`;
     } else {
-      rootText = `શ્રી ${root.name || ''}${root.age ? ` (ઉ.આ.વ. ${root.age})` : ''}`;
+      const withSwa = rawName ? (rawName.startsWith('સ્વ.') ? rawName : `સ્વ. ${rawName}`) : 'સ્વ.';
+      const deathDate = root.deathDate || deceased?.deathDate;
+      rootText = `${withSwa}${deathDate ? ` - (મરણ તા. ${deathDate})` : ''}`;
     }
   }
 

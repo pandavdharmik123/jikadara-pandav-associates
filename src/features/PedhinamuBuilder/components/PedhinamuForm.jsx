@@ -26,12 +26,38 @@ export default function PedhinamuForm({
   };
 
   const handleApplicantChange = (field, value) => {
+    let updatedDeceased = data.deceased;
+    let updatedTree = data.tree;
+
+    if (data.pedhinamuType === 'ALIVE') {
+      if (field === 'name' && (!data.deceased?.name || data.deceased.name === data.applicant?.name)) {
+        updatedDeceased = { ...updatedDeceased, name: value };
+        if (updatedTree?.rootNode) {
+          updatedTree = {
+            ...updatedTree,
+            rootNode: { ...updatedTree.rootNode, name: value }
+          };
+        }
+      }
+      if (field === 'age' && (!data.deceased?.age || data.deceased.age === data.applicant?.age)) {
+        updatedDeceased = { ...updatedDeceased, age: value };
+        if (updatedTree?.rootNode) {
+          updatedTree = {
+            ...updatedTree,
+            rootNode: { ...updatedTree.rootNode, age: value }
+          };
+        }
+      }
+    }
+
     onChange({
       ...data,
       applicant: {
         ...data.applicant,
         [field]: value
-      }
+      },
+      deceased: updatedDeceased,
+      tree: updatedTree
     });
   };
 
@@ -54,10 +80,21 @@ export default function PedhinamuForm({
       };
     }
 
+    let updatedApplicant = data.applicant;
+    if (data.pedhinamuType === 'ALIVE') {
+      if (field === 'name' && (!data.applicant?.name || data.applicant.name === data.deceased?.name || data.applicant.name === data.tree?.rootNode?.name)) {
+        updatedApplicant = { ...updatedApplicant, name: value };
+      }
+      if (field === 'age' && (!data.applicant?.age || data.applicant.age === data.deceased?.age || data.applicant.age === data.tree?.rootNode?.age)) {
+        updatedApplicant = { ...updatedApplicant, age: value };
+      }
+    }
+
     onChange({
       ...data,
       deceased: updatedDeceased,
-      tree: updatedTree
+      tree: updatedTree,
+      applicant: updatedApplicant
     });
   };
 
@@ -96,10 +133,10 @@ export default function PedhinamuForm({
     }
     return [
       {
-        district: data.applicant?.propertyDistrict || data.general?.district || 'સુરત',
-        taluka: data.applicant?.propertyTaluka || data.general?.taluka || 'કતારગામ',
-        moje: data.applicant?.propertyMoje || data.general?.moje || data.general?.talatiMoje || 'ડભોલી',
-        details: data.applicant?.propertyDetails || data.general?.propertyDetails || 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+        district: data.applicant?.propertyDistrict || data.general?.district || '',
+        taluka: data.applicant?.propertyTaluka || data.general?.taluka || '',
+        moje: data.applicant?.propertyMoje || data.general?.moje || data.general?.talatiMoje || '',
+        details: data.applicant?.propertyDetails || data.general?.propertyDetails || ''
       }
     ];
   };
@@ -130,9 +167,9 @@ export default function PedhinamuForm({
   const handleAddProperty = () => {
     const currentProps = getProperties().map(p => ({ ...p }));
     currentProps.push({
-      district: data.general?.district || 'સુરત',
-      taluka: data.general?.taluka || 'કતારગામ',
-      moje: data.general?.moje || data.general?.talatiMoje || 'ડભોલી',
+      district: data.general?.district || '',
+      taluka: data.general?.taluka || '',
+      moje: data.general?.moje || data.general?.talatiMoje || '',
       details: ''
     });
 
@@ -412,7 +449,7 @@ export default function PedhinamuForm({
               <Col span={24}>
                 <Form.Item label="જાતિ / ધર્મ (Caste)" style={{ marginBottom: 0, marginTop: 8 }}>
                   <GhanshyamInput
-                    value={data.applicant.caste || 'હિન્દુ'}
+                    value={data.applicant.caste || ''}
                     placeholder="દા.ત. હિન્દુ"
                     onChange={(e) => handleApplicantChange('caste', e.target.value)}
                   />

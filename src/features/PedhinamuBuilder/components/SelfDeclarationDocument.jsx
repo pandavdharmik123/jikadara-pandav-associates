@@ -32,55 +32,55 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
     ? "'Ghanshyam', sans-serif"
     : "'Anek Gujarati', 'Noto Sans Gujarati', 'Shruti', system-ui, sans-serif";
 
-  // Common or deceased fields
+  // Applicant fields
   const rawAppName = (applicant.name || (isAlive ? (tree?.rootNode?.name || deceased.name) : '') || '').trim();
-  const applicantName = rawAppName.startsWith('શ્રી')
-    ? rawAppName
-    : `શ્રી ${rawAppName || (isAlive ? 'મનજીભાઇ શામજીભાઇ આંબલીયા' : 'ઘોઘારી અનિલકુમાર ધીરૂભાઈ')}`;
+  const applicantName = rawAppName
+    ? (rawAppName.startsWith('શ્રી') ? rawAppName : `શ્રી ${rawAppName}`)
+    : '';
 
-  const applicantAge = toGujaratiNumber(applicant.age || (isAlive ? (tree?.rootNode?.age || deceased.age || '૬૭') : '૩૬'));
-  const caste = applicant.caste || 'હિન્દુ';
-  const occupation = applicant.occupation || (isAlive ? 'મજુરી' : 'વેપાર');
-  const applicantAddress = applicant.address || (isAlive ? '૧૦૧,પાર્વતી નગર સોસા., કતારગામ, સુરત-૩૯૫૦૦૪.' : 'બી-૨૮ દાનેવ આશિષ સોસાયટી, કતારગામ સુરતના.');
+  const rawAge = applicant.age || (isAlive ? (tree?.rootNode?.age || deceased.age || '') : '');
+  const applicantAge = rawAge ? toGujaratiNumber(rawAge) : '';
+  const caste = applicant.caste || '';
+  const occupation = applicant.occupation || '';
+  const applicantAddress = applicant.address || '';
 
+  // Deceased fields
   const rawDeceasedName = (deceased.name || '').trim();
-  const deceasedNameWithSwa = rawDeceasedName.startsWith('સ્વ.')
-    ? rawDeceasedName
-    : `સ્વ. ${rawDeceasedName || 'ધીરૂભાઈ લાખાભાઈ ઘોઘારી'}`;
+  const deceasedNameWithSwa = rawDeceasedName
+    ? (rawDeceasedName.startsWith('સ્વ.') ? rawDeceasedName : `સ્વ. ${rawDeceasedName}`)
+    : '';
 
-  const deathDate = deceased.deathDate || '૦૩-૦૬-૨૦૨૦';
-  const deathPlace = deceased.deathPlace || 'સુરત';
+  const deathDate = deceased.deathDate || '';
+  const deathPlace = deceased.deathPlace || '';
 
-  const district = general.district || 'સુરત';
-  const taluka = general.taluka || 'કતારગામ';
-  const moje = general.moje || general.talatiMoje || 'કતારગામ';
-  const place = general.place || taluka || 'સુરત';
+  // General fields
+  const district = general.district || '';
+  const taluka = general.taluka || '';
+  const moje = general.moje || general.talatiMoje || '';
+  const place = general.place || taluka || '';
   const applicationDate = general.applicationDate || general.currentDate || '';
 
+  // Properties handling without dummy defaults
   const selfDeclaration = data.selfDeclaration || {};
   let properties = selfDeclaration.properties;
   if (!properties || !Array.isArray(properties) || properties.length === 0) {
-    const fallbackDistrict =
-      applicant.propertyDistrict || general.propertyDistrict || general.district || (isAlive ? 'અમરેલી' : 'સુરત');
-    const fallbackTaluka =
-      applicant.propertyTaluka || general.propertyTaluka || general.taluka || (isAlive ? 'ખાંભા' : 'કતારગામ');
-    const fallbackMoje =
-      applicant.propertyMoje || general.propertyMoje || general.moje || general.talatiMoje || (isAlive ? 'ખાંભા' : 'કતારગામ');
-    const fallbackDetails =
-      applicant.propertyDetails ||
-      general.propertyDetails ||
-      (isAlive
-        ? 'ખેતીની જમીન રે.સ.નંબર : ૨૯૪/૧ પૈકી ૨, હે.આરે. ચો.મી. ૧-૪૭-૪૬, જેનો આકાર રૂા. ૪.૫૬, જેનો ખાતા નંબર : ૩૫૭'
-        : 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮');
+    const fallbackDistrict = applicant.propertyDistrict || general.propertyDistrict || general.district || '';
+    const fallbackTaluka = applicant.propertyTaluka || general.propertyTaluka || general.taluka || '';
+    const fallbackMoje = applicant.propertyMoje || general.propertyMoje || general.moje || general.talatiMoje || '';
+    const fallbackDetails = applicant.propertyDetails || general.propertyDetails || '';
 
-    properties = [
-      {
-        district: fallbackDistrict,
-        taluka: fallbackTaluka,
-        moje: fallbackMoje,
-        details: fallbackDetails
-      }
-    ];
+    if (fallbackDistrict || fallbackTaluka || fallbackMoje || fallbackDetails) {
+      properties = [
+        {
+          district: fallbackDistrict,
+          taluka: fallbackTaluka,
+          moje: fallbackMoje,
+          details: fallbackDetails
+        }
+      ];
+    } else {
+      properties = [];
+    }
   }
 
   const heirs = extractAliveHeirs(tree);
@@ -125,6 +125,8 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
     return result;
   };
 
+  const hasAnyPropertyInfo = properties && properties.length > 0 && properties.some(p => p.district || p.taluka || p.moje || p.details);
+
   return (
     <div
       ref={ref}
@@ -149,6 +151,8 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         transform: scale !== 1 ? `scale(${scale})` : undefined,
         transformOrigin: 'top center',
         overflow: 'visible',
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word',
         display: 'flex',
         flexDirection: 'column'
       }}
@@ -183,31 +187,51 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
 
       {/* Paragraph 1 */}
       {isAlive ? (
-        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {toFont('આથી અમો નીચે સહી કરનાર')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantName)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+            {toFont(applicantName || '...................................................')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(' ઉ.આ.વ. :- ')}</span>
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAge)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(applicantAge || '.....')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', ધર્મ:-')}</span>
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(caste)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(caste || '.......')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', ધંધો:- ')}</span>
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(occupation)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(occupation || '.......')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', રહે.:- ')}</span>
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAddress)}</strong>{' '}
-          {toFont('અમારા ધર્મના સોગંદ ઉપર આજરોજ જાહેર કરીએ છીએ કે :-')}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+            {toFont(applicantAddress || '..................................................')}
+          </strong>{' '}
+          {toFont('. અમારા ધર્મના સોગંદ ઉપર આજરોજ જાહેર કરીએ છીએ કે :-')}
         </p>
       ) : (
-        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {toFont('આથી અમો નીચે સહી કરનાર')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantName)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+            {toFont(applicantName || '...................................................')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', ઉ.આ.વ. :-')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAge)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(applicantAge || '.....')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', જાતના :-')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(caste)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(caste || '.......')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', ધંધો :')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(occupation)}</strong>
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(occupation || '.......')}
+          </strong>
           <span style={{ whiteSpace: 'nowrap' }}>{toFont(', રહેવાસી :-')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicantAddress)}</strong>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+            {toFont(applicantAddress || '..................................................')}
+          </strong>{' '}
           {toFont('અમારા ધર્મના સોગંદ ઉપર આજરોજ')}{' '}
           <span style={{ whiteSpace: 'nowrap' }}>{toFont('જાહેર કરીએ છીએ કે :-')}</span>
         </p>
@@ -215,9 +239,9 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
 
       {/* Paragraph 2 */}
       {isAlive ? (
-        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {toFont('હું આ સ્વ-ઘોષણા લખી જાહેર કરૂં છું કે, મારી માલીકીની')}{' '}
-          {properties && properties.length > 0 ? (
+          {hasAnyPropertyInfo ? (
             properties.map((prop, idx) => {
               const formatted = formatPropertyAlive(prop);
               const suffixIn = formatted.trim().endsWith('માં') ? '' : ' માં';
@@ -232,17 +256,29 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
                 </span>
               );
             })
-          ) : null}{' '}
+          ) : (
+            <>
+              <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily, overflowWrap: 'anywhere', wordBreak: 'break-all' }}>
+                {toFont('........................................................................')}
+              </strong>{' '}
+            </>
+          )}{' '}
           {toFont('મારી હયાતી દરમિયાન મારા વારસદારોના નામો દાખલ કરવા જરૂરી હોય જેથી આ સ્વ-ઘોષણાથી જણાવુ છુ કે મારા સીધીલીટીના વારસદારો નીચે મુજબના છે.')}
         </p>
       ) : (
-        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+        <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {toFont('મારા પિતા નામે')}{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(deceasedNameWithSwa || '...................................................')}
+          </strong>{' '}
           <span style={{ whiteSpace: 'nowrap' }}>{toFont('નું અવસાન તા.')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathDate)}</strong>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(deathDate || '................')}
+          </strong>{' '}
           <span style={{ whiteSpace: 'nowrap' }}>{toFont('ના રોજ')}</span>{' '}
-          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deathPlace)}</strong>{' '}
+          <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+            {toFont(deathPlace || '................')}
+          </strong>{' '}
           {toFont('મુકામે અવસાન થયેલ છે, અને તેમના સીધીલીટીના વારસદારો')}{' '}
           <span style={{ whiteSpace: 'nowrap' }}>{toFont('નીચે મુજબ છે.')}</span>
         </p>
@@ -252,12 +288,14 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       <div style={{ textAlign: 'center', margin: '4px 0 6px 0', fontWeight: 700, fontSize: '20px' }}>
         {isAlive ? (
           <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-            {toFont(`${applicantName} ના સીધીલીટીના વારસદારો નીચે મુજબ છે.`)}
+            {toFont(applicantName ? `${applicantName} ના સીધીલીટીના વારસદારો નીચે મુજબ છે.` : 'સીધીલીટીના વારસદારો નીચે મુજબ છે.')}
           </strong>
         ) : (
           <>
             {toFont('પિતા નામે')}{' '}
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {toFont(deceasedNameWithSwa || '...................................................')}
+            </strong>{' '}
             {toFont('ના વારસદારો :-')}
           </>
         )}
@@ -348,7 +386,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
       {/* Paragraphs after table */}
       {isAlive ? (
         <>
-          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {toFont('સદરહું સ્વ-ઘોષણા મારી હયાતીમાં મારા સીધી લીટીના વારસદારો અંગેનું')}{' '}
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
               “{toFont('પેઢીનામું')}”
@@ -360,7 +398,7 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
             {toFont('મેળવવા માટે કોઈ સ્વ-ઘોષણા કે કોઈપણ જગ્યાએ અરજી કરેલ નથી.')}
           </p>
 
-          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {toFont('ઉપર મુજબનું પેઢીનામાની સ્વ-ઘોષણા મારા લખાવ્યા મુજબની છે, જેમાં બતાવેલ હમો સ્વ-ઘોષણા કરનારના કુલ')}{' '}
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
               {fontMode === 'ghanshyam' ? (
@@ -374,14 +412,18 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         </>
       ) : (
         <>
-          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {toFont(deceasedNameWithSwa || '...................................................')}
+            </strong>{' '}
             {toFont('ના ઉપરોક્ત વારસદારો સિવાય અન્ય કોઈ વારસદાર નથી અને જે અંગેની ખરાઈ માટે આ સ્વ-ઘોષણા કરવામાં આવેલ છે.')}
           </p>
 
-          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px' }}>
+          <p style={{ margin: '0 0 6px 0', textAlign: 'justify', textIndent: '28px', lineHeight: '1.4', fontSize: '20px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {toFont('ઉપર મુજબ પેઢીનામાનું સ્વ-ઘોષણા મારા લખાવ્યા મુજબનું છે, જેમાં બતાવેલ')}{' '}
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(deceasedNameWithSwa)}</strong>{' '}
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {toFont(deceasedNameWithSwa || '...................................................')}
+            </strong>{' '}
             {toFont('ના કુલ હયાત')}{' '}
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
               {fontMode === 'ghanshyam' ? (
@@ -394,51 +436,89 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
           </p>
 
           {/* Sections: (I), (II), (III)... for DECEASED mode */}
-          {properties.map((prop, idx) => {
-            const roman = ROMAN_NUMERALS[idx] || `(${idx + 1})`;
-            const pDistrict = prop.district || '';
-            const pTaluka = prop.taluka || '';
-            const pMoje = prop.mojeVillage || prop.moje || '';
-            const rawDetails = (prop.details || '').trim();
-            const cleanDetails = rawDetails
-              .replace(/\s*માં\s*વારસાઈ\s*કરવા\s*માટે\s*કરેલ\s*છે\.?$/g, '')
-              .trim();
+          {hasAnyPropertyInfo ? (
+            properties.map((prop, idx) => {
+              const roman = ROMAN_NUMERALS[idx] || `(${idx + 1})`;
+              const pDistrict = prop.district || '';
+              const pTaluka = prop.taluka || '';
+              const pMoje = prop.mojeVillage || prop.moje || '';
+              const rawDetails = (prop.details || '').trim();
+              const cleanDetails = rawDetails
+                .replace(/\s*માં\s*વારસાઈ\s*કરવા\s*માટે\s*કરેલ\s*છે\.?$/g, '')
+                .trim();
 
-            return (
-              <div
-                key={idx}
-                style={{
-                  margin: '0 0 6px 0',
-                  textAlign: 'justify',
-                  display: 'flex',
-                  gap: '8px',
-                  alignItems: 'flex-start',
-                  lineHeight: '1.4',
-                  fontSize: '20px'
-                }}
-              >
+              return (
                 <div
+                  key={idx}
                   style={{
-                    fontWeight: 800,
-                    fontSize: '20px',
-                    minWidth: '28px',
-                    fontFamily: 'Inter, system-ui, sans-serif'
+                    margin: '0 0 6px 0',
+                    textAlign: 'justify',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'flex-start',
+                    lineHeight: '1.4',
+                    fontSize: '20px'
                   }}
                 >
-                  {roman}
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      fontSize: '20px',
+                      minWidth: '28px',
+                      fontFamily: 'Inter, system-ui, sans-serif'
+                    }}
+                  >
+                    {roman}
+                  </div>
+                  <div style={{ flex: 1, fontSize: '20px', lineHeight: '1.4' }}>
+                    {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
+                    <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+                      {toFont(`ડીસ્ટ્રીકટ : ${pDistrict || '................'}, સબ ડિસ્ટ્રીકટ : ${pTaluka || '................'}ના મોજે ગામ : ${pMoje || '................'}`)}
+                    </strong>{' '}
+                    {toFont('ખાતે આવેલ')}{' '}
+                    <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+                      {toFont(cleanDetails || '....................................................')}
+                    </strong>{' '}
+                    {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
+                  </div>
                 </div>
-                <div style={{ flex: 1, fontSize: '20px', lineHeight: '1.4' }}>
-                  {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
-                  <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-                    {toFont(`ડીસ્ટ્રીકટ : ${pDistrict}, સબ ડિસ્ટ્રીકટ : ${pTaluka}ના મોજે ગામ : ${pMoje}`)}
-                  </strong>{' '}
-                  {toFont('ખાતે આવેલ')}{' '}
-                  <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(cleanDetails)}</strong>{' '}
-                  {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
-                </div>
+              );
+            })
+          ) : (
+            <div
+              style={{
+                margin: '0 0 6px 0',
+                textAlign: 'justify',
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'flex-start',
+                lineHeight: '1.4',
+                fontSize: '20px'
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: '20px',
+                  minWidth: '28px',
+                  fontFamily: 'Inter, system-ui, sans-serif'
+                }}
+              >
+                (I)
               </div>
-            );
-          })}
+              <div style={{ flex: 1, fontSize: '20px', lineHeight: '1.4' }}>
+                {toFont('સદરહું સ્વ-ઘોષણા')}{' '}
+                <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+                  {toFont('ડીસ્ટ્રીકટ : ................, સબ ડિસ્ટ્રીકટ : ................ના મોજે ગામ : ................')}
+                </strong>{' '}
+                {toFont('ખાતે આવેલ')}{' '}
+                <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+                  {toFont('....................................................')}
+                </strong>{' '}
+                {toFont('માં વારસાઈ કરવા માટે કરેલ છે.')}
+              </div>
+            </div>
+          )}
 
           <p style={{ margin: '0 0 8px 0', textAlign: 'justify', lineHeight: '1.4', fontSize: '20px' }}>
             {toFont('ખોટું સ્વ-ઘોષણા કરવુ, કરાવવુ કે લખાવવુ ફોજદારી ગુનો બને છે, જેની મને ખબર છે.')}
@@ -454,14 +534,16 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
               {toFont(isAlive ? 'સ્થળ:-' : 'સ્થળ :')}
             </span>
             <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
-              {toFont(isAlive ? `${place}.` : place)}
+              {place ? toFont(isAlive ? `${taluka || place}.` : place) : ''}
             </strong>
           </div>
           <div>
             <span style={{ whiteSpace: 'nowrap', display: 'inline-block', marginRight: '6px' }}>
               {toFont(isAlive ? 'તા.:' : 'તારીખ :')}
             </span>
-            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>{toFont(applicationDate)}</strong>
+            <strong style={{ fontWeight: 700, fontFamily: dynamicFontFamily }}>
+              {applicationDate ? toFont(applicationDate) : ''}
+            </strong>
           </div>
         </div>
 
