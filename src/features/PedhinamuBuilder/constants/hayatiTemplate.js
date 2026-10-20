@@ -19,10 +19,15 @@ export const ALIVE_TEMPLATE = {
    *  આજરોજ તલાટી {talatiMoje} તા. {taluka} રૂબરૂ હાજર થઈ પુછવાથી લખાવું છું કે, વારસાઈ ના કામે પેઢીનામાની જરૂર હોઈ પેઢીનામું મેળવવા માટે તા. {applicationDate} ના રોજ અરજી કરેલી છે.
    *  તે સંદર્ભે આજ રોજ લખાવું છું કે, વારસદારો જાહેર કરતું પેઢીનામું નીચે પ્રમાણે છે. જે હકીકત છે."
    */
-  getApplicantStatement: ({ applicant, general }) => {
+  getApplicantStatement: ({ applicant = {}, general = {} }) => {
+    const rawName = (applicant?.name || '').trim();
+    const applicantName = rawName
+      ? (rawName.startsWith('શ્રી') ? rawName : `શ્રી ${rawName}`)
+      : 'શ્રી ...................................................';
+
     return {
       prefix: 'હું નીચે સહી કરનાર ',
-      applicantName: applicant.name || '...................................................',
+      applicantName,
       ageLabel: ' ઉ.વ.આ. ',
       applicantAge: applicant.age || '.....',
       occLabel: ' ધંધો. ',

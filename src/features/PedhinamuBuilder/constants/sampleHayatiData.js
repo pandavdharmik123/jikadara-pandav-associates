@@ -27,7 +27,8 @@ export const SAMPLE_HAYATI_DATA = {
     district: 'સુરત',
     place: 'સુરત',
     currentDate: '૦૫-૦૮-૨૦૨૬',
-    applicationDate: '૦૫-૦૮-૨૦૨૬'
+    applicationDate: '૦૫-૦૮-૨૦૨૬',
+    mobileNumber: ''
   },
   applicant: {
     name: 'ટાપણીયા છગનભાઇ પીતાંબરભાઇ',

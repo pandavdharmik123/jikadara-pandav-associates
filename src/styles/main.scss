@@ -180,8 +180,12 @@ body {
 
 /* Transliterate Container Override */
 .transliterate-wrapper {
-  position: relative !important;
-  z-index: 999999 !important;
+  position: relative;
+  z-index: 5;
+
+  &:focus-within {
+    z-index: 25;
+  }
 }
 
 .react-transliterate-dropdown-item {

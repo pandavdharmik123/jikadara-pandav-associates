@@ -5,6 +5,7 @@ import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy'
 export default function FamilyTreeCanvas({
   tree,
   deceased,
+  applicant = {},
   pedhinamuType = 'DECEASED',
   onNodeMove,
   onNodeResize,
@@ -69,7 +70,7 @@ export default function FamilyTreeCanvas({
   const fmt = toFont;
 
   // Compute layout with live local dragging overrides for 60fps responsiveness
-  const layout = calculateTreeLayout(tree, deceased, localDragPositions);
+  const layout = calculateTreeLayout(tree, deceased, localDragPositions, pedhinamuType, applicant);
   const { nodes, connections, canvasWidth, canvasHeight, isUltraCompact } = layout;
 
   // Node mouse down: handles Shift/Ctrl multi-toggle and initiates group drag
@@ -650,6 +651,7 @@ export default function FamilyTreeCanvas({
                 fontSize: rootFontSize,
                 color: '#000000',
                 width: 'fit-content',
+                minWidth: '70px',
                 maxWidth: 'none',
                 ...(localHeights[node.id] || node.customHeight
                   ? { height: `${localHeights[node.id] || node.customHeight}px`, minHeight: 'unset' }
@@ -711,13 +713,17 @@ export default function FamilyTreeCanvas({
                   />
                 </>
               )}
-              {toFont(
-                pedhinamuType === 'ALIVE'
-                  ? `શ્રી ${node.name}${node.age ? ` (ઉ.આ.વ. ${node.age})` : ''}`
-                  : (node.deceased
-                      ? `સ્વ. ${node.name}${node.deathDate ? ` - (મરણ તા. ${node.deathDate})` : ''}`
-                      : `${node.name}${node.age ? ` - (ઉ.આ.વ. ${node.age})` : ''}`)
-              )}
+              {(() => {
+                const rawName = (node.name || (isRoot ? (deceased?.name || (pedhinamuType === 'ALIVE' ? applicant?.name : '')) : '') || '').trim();
+                if (pedhinamuType === 'ALIVE' || !node.deceased) {
+                  const withShri = rawName ? (rawName.startsWith('શ્રી') ? rawName : `શ્રી ${rawName}`) : 'શ્રી';
+                  const age = node.age || (isRoot ? (deceased?.age || applicant?.age) : '');
+                  return toFont(`${withShri}${age ? ` (ઉ.આ.વ. ${age})` : ''}`);
+                }
+                const withSwa = rawName ? (rawName.startsWith('સ્વ.') ? rawName : `સ્વ. ${rawName}`) : 'સ્વ.';
+                const dDate = node.deathDate || (isRoot ? deceased?.deathDate : '');
+                return toFont(`${withSwa}${dDate ? ` - (મરણ તા. ${dDate})` : ''}`);
+              })()}
             </div>
           );
         }

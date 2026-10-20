@@ -11,56 +11,58 @@ export const PEDHINAMU_TEMPLATES = {
 // Default static text export retained for 100% backward compatibility
 export const PEDHINAMU_STATIC_TEXT = DECEASED_TEMPLATE;
 
-export const DEFAULT_PEDHINAMU_DATA = {
-  pedhinamuType: 'DECEASED', // 'DECEASED' | 'ALIVE'
+export const createBlankPedhinamuData = (pedhinamuType = 'DECEASED') => ({
+  pedhinamuType, // 'DECEASED' | 'ALIVE'
   general: {
-    registrationNo: '............',
-    registrationYear: '૨૦૨૬',
-    moje: 'ડભોલી',
-    talatiMoje: 'ડભોલી',
-    taluka: 'કતારગામ',
-    district: 'સુરત',
-    place: 'સુરત',
-    currentDate: '૨૧-૧૦-૨૦૨૪',
-    applicationDate: '૨૧-૧૦-૨૦૨૪',
-    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+    registrationNo: '',
+    registrationYear: '',
+    moje: '',
+    talatiMoje: '',
+    taluka: '',
+    district: '',
+    place: '',
+    currentDate: '',
+    applicationDate: '',
+    mobileNumber: '',
+    propertyDetails: ''
   },
   applicant: {
-    name: 'દિનેશભાઇ મધુભાઇ જીકાદરા',
-    age: '૪૮',
-    caste: 'હિન્દુ',
-    occupation: 'વેપાર',
-    address: '૧૪૯, બાપાસીતારામ નગર સોસા., ડભોલી રોડ, કતારગામ, સુરત-૩૯૫૦૦૪.',
+    name: '',
+    age: '',
+    caste: '',
+    occupation: '',
+    address: '',
     mobileNumber: '',
-    relationWithDeceased: 'મારા પિતા',
+    relationWithDeceased: '',
     photoUrl: '',
-    propertyDistrict: 'સુરત',
-    propertyTaluka: 'કતારગામ',
-    propertyMoje: 'ડભોલી',
-    propertyDetails: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+    propertyDistrict: '',
+    propertyTaluka: '',
+    propertyMoje: '',
+    propertyDetails: ''
   },
   selfDeclaration: {
     properties: [
       {
-        district: 'સુરત',
-        taluka: 'કતારગામ',
-        moje: 'ડભોલી',
-        details: 'દાનેવ આશિષ સોસાયટીમાં આવેલ મકાન નં. ૨૮'
+        district: '',
+        taluka: '',
+        moje: '',
+        details: ''
       }
     ]
   },
   deceased: {
-    name: 'મધુભાઇ પરશોતમભાઇ જીકાદરા',
-    deathDate: '૨૦-૦૧-૨૦૨૬',
-    deathPlace: 'સુરત'
+    name: '',
+    deathDate: '',
+    deathPlace: '',
+    age: ''
   },
   tree: {
     rootNode: {
       id: 'root',
-      name: 'મધુભાઇ પરશોતમભાઇ જીકાદરા',
-      deceased: true,
-      deathDate: '૨૦-૦૧-૨૦૨૬',
-      age: '૬૮',
+      name: '',
+      deceased: pedhinamuType !== 'ALIVE',
+      deathDate: '',
+      age: '',
       gender: 'male',
       relationship: 'મુખ્ય વ્યક્તિ',
       parentId: null,
@@ -97,4 +99,6 @@ export const DEFAULT_PEDHINAMU_DATA = {
       photoUrl: ''
     }
   ]
-};
+});
+
+export const DEFAULT_PEDHINAMU_DATA = createBlankPedhinamuData('DECEASED');

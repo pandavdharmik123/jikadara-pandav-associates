@@ -218,3 +218,138 @@
     background-color: #f9fafb !important;
   }
 }
+
+.nondh-status-table {
+  .ant-table-header {
+    margin-bottom: 0 !important;
+  }
+
+  /* Completely remove the phantom scrollbar column and header cell */
+  col.ant-table-cell-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+  }
+
+  .ant-table-thead > tr > th.ant-table-cell-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-bottom: none !important;
+  }
+
+  /* Ensure the Actions header cell is flush against the right edge without any reserved gap */
+  .ant-table-thead > tr > th.ant-table-cell-fix-right,
+  .ant-table-thead > tr > th.ant-table-cell-fix-right-first {
+    right: 0 !important;
+  }
+
+  .ant-table-thead > tr > th {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+  }
+
+  .ant-table-tbody > tr:not(.ant-table-measure-row) > td {
+    padding: 10px 12px !important;
+    font-size: 13.5px;
+  }
+
+  .ant-table-tbody > tr.ant-table-measure-row,
+  .ant-table-tbody > tr.ant-table-measure-row > td {
+    padding: 0 !important;
+    height: 0 !important;
+    border: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  .ant-table-tbody > tr:not(.ant-table-measure-row):hover > td {
+    background-color: #f8fafc !important;
+  }
+
+  /* Sleek custom scrollbars inside table body */
+  .ant-table-body {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+}
+
+/* Modal transliteration dropdown and row stacking */
+.ant-modal {
+  .ant-row {
+    position: relative;
+    &:focus-within {
+      z-index: 100 !important;
+    }
+  }
+
+  .ant-col {
+    position: relative;
+    &:focus-within {
+      z-index: 101 !important;
+    }
+  }
+
+  .ant-form-item {
+    position: relative;
+    &:focus-within {
+      z-index: 102 !important;
+    }
+  }
+
+  .transliterate-wrapper {
+    position: relative;
+    width: 100%;
+    &:focus-within {
+      z-index: 105 !important;
+    }
+
+    ul,
+    ul[data-testid="rt-suggestions-list"] {
+      z-index: 99999 !important;
+      background: #ffffff !important;
+      border: 1px solid #2563eb !important;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+      min-width: 140px !important;
+      padding: 4px !important;
+      text-align: left !important;
+
+      li {
+        padding: 6px 12px !important;
+        font-size: 13.5px !important;
+        color: #0f172a !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        text-align: left !important;
+        transition: all 0.15s ease !important;
+
+        &:hover,
+        &[style*="background-color: rgb(101, 195, 215)"],
+        &[style*="backgroundColor: #65c3d7"] {
+          background-color: #2563eb !important;
+          color: #ffffff !important;
+        }
+      }
+    }
+  }
+}

@@ -44,7 +44,7 @@ import SavedDraftsModal from './components/SavedDraftsModal';
 import SavePedhinamuModal from './components/SavePedhinamuModal';
 import GhanshyamInput from './components/GhanshyamInput';
 
-import { DEFAULT_PEDHINAMU_DATA } from './constants/pedhinamuTemplate';
+import { DEFAULT_PEDHINAMU_DATA, createBlankPedhinamuData } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
 import { SAMPLE_HAYATI_DATA } from './constants/sampleHayatiData';
 import { SAMPLE_GHOGHARI_DATA } from './constants/sampleGhoghariData';
@@ -360,12 +360,15 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       okText: 'Reset Form',
       okType: 'danger',
       onOk: () => {
-        setData(DEFAULT_PEDHINAMU_DATA);
+        const blankData = createBlankPedhinamuData(data.pedhinamuType || 'DECEASED');
+        setData(blankData);
         setSelectedNodeId('root');
         setSelectedNodeIds(['root']);
         setDraftTitle('');
         setDraftId(null);
         localStorage.removeItem('pedhinamu_active_draft_title');
+        localStorage.removeItem('pedhinamu_active_draft_id');
+        localStorage.setItem('pedhinamu_active_data', JSON.stringify(blankData));
         message.info('Form reset to blank template');
       }
     });
@@ -1376,13 +1379,11 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: '-10000px',
           width: '794px',
-          height: '1123px',
-          maxHeight: '1123px',
           minHeight: '1123px',
-          overflow: 'hidden',
-          zIndex: -9999,
+          overflow: 'visible',
+          zIndex: -1,
           pointerEvents: 'none',
           opacity: 1,
           backgroundColor: '#ffffff'
@@ -1402,13 +1403,11 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         style={{
           position: 'fixed',
           top: 0,
-          left: 0,
+          left: '-10000px',
           width: '794px',
-          height: '1123px',
-          maxHeight: '1123px',
           minHeight: '1123px',
-          overflow: 'hidden',
-          zIndex: -9999,
+          overflow: 'visible',
+          zIndex: -1,
           pointerEvents: 'none',
           opacity: 1,
           backgroundColor: '#ffffff'

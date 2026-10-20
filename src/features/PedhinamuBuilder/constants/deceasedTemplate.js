@@ -31,7 +31,7 @@ export const DECEASED_TEMPLATE = {
       relationIntro: ' કે જેઓ ',
       relation: applicant.relationWithDeceased ? `${applicant.relationWithDeceased} થાય` : 'મારા પિતા થાય',
       deathPlaceIntro: '. તેઓનું ',
-      deathPlace: deceased?.deathPlace || 'સુરત',
+      deathPlace: deceased?.deathPlace || '................',
       deathDateIntro: ' મુકામે તા. ',
       deathDate: deceased?.deathDate || '................',
       purposeIntro: ' ના રોજ અવસાન થયેલુ છે. વારસાઈ કામે તેમના પેઢીનામાની જરૂર હોઈ પેઢીનામું મેળવવા માટે તા. ',
