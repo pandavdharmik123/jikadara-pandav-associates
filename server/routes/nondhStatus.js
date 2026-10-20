@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * GET /api/nondh-status
- * Fetch all active Nondh Status records with optional search and filters
+ * Fetch the current user's active Nondh Status records with optional search and filters
  */
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -14,6 +14,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const whereClause = {
       isDeleted: false,
+      userId: req.user.id,
     };
 
     if (status && status.trim()) {
@@ -83,10 +84,11 @@ router.post('/', requireAuth, async (req, res) => {
       paymentDate,
     } = req.body;
 
-    // Calculate number if not provided
+    // Calculate number if not provided (per user)
     let num = Number(number);
     if (!num || isNaN(num) || num <= 0) {
       const maxRecord = await prisma.nondhStatus.findFirst({
+        where: { userId: req.user.id, isDeleted: false },
         orderBy: { number: 'desc' },
         select: { number: true },
       });
@@ -138,11 +140,15 @@ router.put('/:id', requireAuth, async (req, res) => {
       paymentDate,
     } = req.body;
 
-    const existing = await prisma.nondhStatus.findUnique({
-      where: { id },
+    const existing = await prisma.nondhStatus.findFirst({
+      where: {
+        id,
+        userId: req.user.id,
+        isDeleted: false,
+      },
     });
 
-    if (!existing || existing.isDeleted) {
+    if (!existing) {
       return res.status(404).json({ error: 'Nondh Status record not found' });
     }
 
@@ -181,11 +187,15 @@ router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.nondhStatus.findUnique({
-      where: { id },
+    const existing = await prisma.nondhStatus.findFirst({
+      where: {
+        id,
+        userId: req.user.id,
+        isDeleted: false,
+      },
     });
 
-    if (!existing || existing.isDeleted) {
+    if (!existing) {
       return res.status(404).json({ error: 'Nondh Status record not found' });
     }
 

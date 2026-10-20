@@ -219,137 +219,107 @@
   }
 }
 
+/* Nondh Status - inline row editing */
 .nondh-status-table {
-  .ant-table-header {
-    margin-bottom: 0 !important;
+
+  /* Light table header */
+  .ant-table-thead>tr>th {
+    background-color: #e0e7ff !important;
+    color: #3730a3 !important;
+    border-bottom: 1px solid #c7d2fe !important;
+    border-inline-end-color: rgba(55, 48, 163, 0.12) !important;
   }
 
-  /* Completely remove the phantom scrollbar column and header cell */
-  col.ant-table-cell-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
+  .ant-table-thead>tr>th .ant-table-column-sorter,
+  .ant-table-thead>tr>th .ant-table-column-sorter-up,
+  .ant-table-thead>tr>th .ant-table-column-sorter-down {
+    color: rgba(55, 48, 163, 0.45) !important;
   }
 
-  .ant-table-thead > tr > th.ant-table-cell-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    border-bottom: none !important;
+  .ant-table-thead>tr>th .ant-table-column-sorter-up.active,
+  .ant-table-thead>tr>th .ant-table-column-sorter-down.active {
+    color: #3730a3 !important;
   }
 
-  /* Ensure the Actions header cell is flush against the right edge without any reserved gap */
-  .ant-table-thead > tr > th.ant-table-cell-fix-right,
-  .ant-table-thead > tr > th.ant-table-cell-fix-right-first {
-    right: 0 !important;
-  }
+  /* Light row tint per status type (kept on hover) */
+  $nondh-status-tints: (
+    certified: #eaf8ef,
+    pending: #fff8e5,
+    notice: #e9f2fe,
+    dispute: #fff1e7,
+    rejected: #fdecec,
+  );
 
-  .ant-table-thead > tr > th {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
-    font-weight: 700 !important;
-    font-size: 13px !important;
-    border-bottom: 2px solid #e2e8f0 !important;
-  }
+@each $name, $color in $nondh-status-tints {
 
-  .ant-table-tbody > tr:not(.ant-table-measure-row) > td {
-    padding: 10px 12px !important;
-    font-size: 13.5px;
-  }
-
-  .ant-table-tbody > tr.ant-table-measure-row,
-  .ant-table-tbody > tr.ant-table-measure-row > td {
-    padding: 0 !important;
-    height: 0 !important;
-    border: 0 !important;
-    font-size: 0 !important;
-    line-height: 0 !important;
-  }
-
-  .ant-table-tbody > tr:not(.ant-table-measure-row):hover > td {
-    background-color: #f8fafc !important;
-  }
-
-  /* Sleek custom scrollbars inside table body */
-  .ant-table-body {
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background-color: #cbd5e1;
-      border-radius: 4px;
-    }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
+  .ant-table-tbody>tr.nondh-row-#{$name}>td,
+  .ant-table-tbody>tr.nondh-row-#{$name}:hover>td,
+  .ant-table-tbody>tr.nondh-row-#{$name}>td.ant-table-cell-row-hover {
+    background-color: $color !important;
   }
 }
 
-/* Modal transliteration dropdown and row stacking */
-.ant-modal {
-  .ant-row {
-    position: relative;
-    &:focus-within {
-      z-index: 100 !important;
-    }
+/* Row currently being edited inline (overrides the status tint) */
+.ant-table-tbody>tr.nondh-row-editing>td,
+.ant-table-tbody>tr.nondh-row-editing:hover>td,
+.ant-table-tbody>tr.nondh-row-editing>td.ant-table-cell-row-hover {
+  background-color: #eef2ff !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+  vertical-align: middle !important;
+}
+
+/* Keep the pinned Actions column above the transliterate inputs */
+.ant-table-cell-fix-end {
+  z-index: 6 !important;
+}
+
+.transliterate-wrapper {
+  z-index: 1 !important;
+}
+
+.custom-transliterate-input.ant-input {
+  background-color: #ffffff !important;
+  border: 1px solid #d9d9d9 !important;
+  height: 30px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  padding: 0 8px !important;
+  line-height: 28px !important;
+  color: #0f172a !important;
+}
+
+/* Allow the suggestion list to escape the scrollable table body */
+.ant-table-body:has(.transliterate-wrapper ul) {
+  overflow: visible !important;
+}
+
+.ant-table-body {
+  min-height: calc(-335px + 100vh);
+}
+}
+
+/* Transliterate input style unification with standard antd Input */
+.custom-transliterate-input.ant-input {
+  background-color: #ffffff !important;
+  border: 1px solid #d9d9d9 !important;
+  color: #0f172a !important;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  box-shadow: none;
+
+  &:hover {
+    border-color: #4096ff !important;
   }
 
-  .ant-col {
-    position: relative;
-    &:focus-within {
-      z-index: 101 !important;
-    }
+  &:focus,
+  &:focus-within {
+    border-color: #1677ff !important;
+    box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1) !important;
+    outline: none !important;
+    background-color: #ffffff !important;
   }
 
-  .ant-form-item {
-    position: relative;
-    &:focus-within {
-      z-index: 102 !important;
-    }
-  }
-
-  .transliterate-wrapper {
-    position: relative;
-    width: 100%;
-    &:focus-within {
-      z-index: 105 !important;
-    }
-
-    ul,
-    ul[data-testid="rt-suggestions-list"] {
-      z-index: 99999 !important;
-      background: #ffffff !important;
-      border: 1px solid #2563eb !important;
-      border-radius: 8px !important;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-      min-width: 140px !important;
-      padding: 4px !important;
-      text-align: left !important;
-
-      li {
-        padding: 6px 12px !important;
-        font-size: 13.5px !important;
-        color: #0f172a !important;
-        border-radius: 6px !important;
-        cursor: pointer !important;
-        text-align: left !important;
-        transition: all 0.15s ease !important;
-
-        &:hover,
-        &[style*="background-color: rgb(101, 195, 215)"],
-        &[style*="backgroundColor: #65c3d7"] {
-          background-color: #2563eb !important;
-          color: #ffffff !important;
-        }
-      }
-    }
+  &::placeholder {
+    color: #94a3b8;
   }
 }
