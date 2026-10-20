@@ -10,6 +10,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/dashboard', label: 'Dashboard', description: 'Overview, analytics & metrics' },
       { key: '/app/clients', label: 'Clients', description: 'Client profiles & records' },
       { key: '/app/tasks', label: 'Tasks', description: 'Task, case & financial ledger tracking' },
+      { key: '/app/nondh-status', label: 'Nondh Status', description: 'Revenue mutation & nondh status tracking' },
       { key: '/app/reports', label: 'Reports', description: 'Monthly & yearly financial reports' },
       { key: '/app/upad', label: 'Upad List', description: 'User profit withdrawal ledger' },
       { key: '/app/recycle-bin', label: 'Recycle Bin', description: 'Restoration & permanent removal of deleted items' },

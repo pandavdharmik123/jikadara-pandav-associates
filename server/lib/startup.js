@@ -26,6 +26,7 @@ export async function initializeDocumentTypes() {
   }
 }
 
+
 export async function runStartupTasks() {
   const url = getDatabaseUrl();
   console.log(`📦 Database: ${maskDatabaseUrl(url)}`);
@@ -50,13 +51,13 @@ export async function runStartupTasks() {
       console.error('❌ Database TLS error:', err.message);
       console.error(
         '   Fix: use Supabase Session pooler (*.pooler.supabase.com:5432).\n' +
-          '   Remove sslmode=require from DATABASE_URL if you added it manually — the app sets sslmode=no-verify automatically.'
+        '   Remove sslmode=require from DATABASE_URL if you added it manually — the app sets sslmode=no-verify automatically.'
       );
     } else {
       console.error('❌ Database connection failed:', err.message);
       console.error(
         '   Fix: In Render → Environment, set DATABASE_URL to your provider\'s pooled URL.\n' +
-          '   Supabase: use Session pooler (*.pooler.supabase.com:5432), not direct (db.*.supabase.co).'
+        '   Supabase: use Session pooler (*.pooler.supabase.com:5432), not direct (db.*.supabase.co).'
       );
     }
   }

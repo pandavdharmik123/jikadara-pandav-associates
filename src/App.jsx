@@ -16,6 +16,7 @@ import ClientRoutes from './features/Clients';
 import TaskRoutes from './features/Tasks';
 import ExpenseReport from './features/Reports/ExpenseReport';
 import UpadList from './features/Upad/UpadList';
+import NondhStatusList from './features/NondhStatus/NondhStatusList';
 import AdminUsers from './features/Admin/AdminUsers';
 import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
 import RecycleBin from './features/RecycleBin/RecycleBin';
@@ -148,6 +149,10 @@ export default function App() {
 
                 <Route element={<ProtectedRoute pageKey="/app/tasks" />}>
                   <Route path="tasks/*" element={<TaskRoutes />} />
+                </Route>
+
+                <Route element={<ProtectedRoute pageKey="/app/nondh-status" />}>
+                  <Route path="nondh-status" element={<NondhStatusList />} />
                 </Route>
 
                 <Route element={<ProtectedRoute pageKey="/app/reports" />}>
