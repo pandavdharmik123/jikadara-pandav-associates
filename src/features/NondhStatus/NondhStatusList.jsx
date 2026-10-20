@@ -31,6 +31,7 @@ import {
   DollarSign,
   Filter,
   X,
+  Check,
 } from 'lucide-react';
 import { IndicTransliterate } from '@ai4bharat/indic-transliterate';
 import dayjs from 'dayjs';
@@ -88,9 +89,14 @@ function TransliterateInput({
           placeholder={placeholder}
           style={{
             width: '100%',
-            height: 38,
+            height: 32,
             borderRadius: 8,
             fontSize: '14px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #d9d9d9',
+            color: '#0f172a',
+            padding: '4px 11px',
+            boxSizing: 'border-box',
             ...style,
           }}
         />
@@ -120,6 +126,40 @@ const DEFAULT_DOCUMENT_TYPES = [
   'વેચાણ',
 ];
 
+const STATUS_OPTIONS = ['પ્રમાણિત', 'કાચી નોંધ', '૧૩૫-ડી નોટીસ', 'તકરારી નોંધ', 'નામંજૂર'];
+
+const DONE_OPTIONS = ['Done', 'Pending', '-'];
+
+// Light row tint per status type
+const STATUS_ROW_CLASSES = {
+  'પ્રમાણિત': 'nondh-row-certified',
+  'કાચી નોંધ': 'nondh-row-pending',
+  '૧૩૫-ડી નોટીસ': 'nondh-row-notice',
+  'તકરારી નોંધ': 'nondh-row-dispute',
+  'નામંજૂર': 'nondh-row-rejected',
+};
+
+const getStatusRowClass = (status) => {
+  const value = String(status || '').trim();
+  if (!value) return '';
+  // Accept both plain Gujarati values and values with an English suffix, e.g. "પ્રમાણિત (Certified)"
+  const match = Object.keys(STATUS_ROW_CLASSES).find(
+    (key) => value === key || value.startsWith(`${key} (`)
+  );
+  return match ? STATUS_ROW_CLASSES[match] : '';
+};
+
+// Compact styling for the inputs rendered inside the table cells
+const CELL_INPUT_STYLE = {
+  height: 30,
+  borderRadius: 6,
+  fontSize: 13,
+  padding: '0 8px',
+  backgroundColor: '#ffffff',
+  border: '1px solid #d9d9d9',
+  color: '#0f172a',
+};
+
 export default function NondhStatusList() {
   const { data: serverRecords = [], isLoading } = useNondhStatuses();
   const createMutation = useCreateNondhStatus();
@@ -134,6 +174,8 @@ export default function NondhStatusList() {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
   const [form] = Form.useForm();
 
   const screens = Grid.useBreakpoint();
@@ -246,6 +288,89 @@ export default function NondhStatusList() {
     }
   };
 
+  // ---- Inline row editing ----
+  const isEditingRow = (record) => editingId !== null && String(record.id) === String(editingId);
+
+  const handleStartEdit = (record) => {
+    if (isEditingRow(record)) return;
+    setEditingId(record.id);
+    setEditValues({
+      number: record.number ?? '',
+      placeName: record.placeName ?? '',
+      documentType: record.documentType ?? '',
+      nondhNumber: record.nondhNumber ?? '',
+      date: record.date ? dayjs(record.date) : null,
+      partyName: record.partyName ?? '',
+      status: record.status ?? 'પ્રમાણિત',
+      referenceName: record.referenceName ?? '',
+      doneOrNot: record.doneOrNot ?? '-',
+      vahivatFee: record.vahivatFee ?? '',
+      paymentDate: record.paymentDate ? dayjs(record.paymentDate) : null,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    const missing = [];
+    if (editValues.number === '' || editValues.number === null || editValues.number === undefined) {
+      missing.push('Number');
+    }
+    if (!String(editValues.placeName ?? '').trim()) missing.push('Place name');
+    if (!String(editValues.documentType ?? '').trim()) missing.push('Type of document');
+    if (!String(editValues.nondhNumber ?? '').trim()) missing.push('Nondh Number');
+    if (!editValues.date) missing.push('Date');
+    if (!String(editValues.partyName ?? '').trim()) missing.push('Party Name');
+    if (!String(editValues.status ?? '').trim()) missing.push('Status');
+
+    if (missing.length) {
+      message.warning(`Please fill: ${missing.join(', ')}`);
+      return;
+    }
+
+    const numVal = Number(String(editValues.number).replace(/[^0-9]/g, ''));
+    if (!numVal) {
+      message.warning('Please enter a valid Number');
+      return;
+    }
+
+    const rawFee =
+      editValues.vahivatFee !== undefined && editValues.vahivatFee !== null
+        ? String(editValues.vahivatFee).trim()
+        : '';
+    const feeVal = rawFee ? Number(rawFee.replace(/[^0-9.]/g, '')) : null;
+
+    const payload = {
+      number: numVal,
+      placeName: String(editValues.placeName).trim(),
+      documentType: String(editValues.documentType).trim(),
+      nondhNumber: String(editValues.nondhNumber).trim(),
+      date: editValues.date ? editValues.date.format('YYYY-MM-DD') : null,
+      partyName: String(editValues.partyName).trim(),
+      status: String(editValues.status).trim(),
+      referenceName: editValues.referenceName ? String(editValues.referenceName).trim() : '',
+      doneOrNot: editValues.doneOrNot || '-',
+      vahivatFee: feeVal !== null && !Number.isNaN(feeVal) ? feeVal : null,
+      paymentDate: editValues.paymentDate ? editValues.paymentDate.format('YYYY-MM-DD') : null,
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: editingId, ...payload });
+      message.success('Record updated successfully');
+      setEditingId(null);
+      setEditValues({});
+    } catch (err) {
+      message.error(err?.response?.data?.error || 'Failed to update record');
+    }
+  };
+
   // Filtered & Sorted Data
   const filteredData = useMemo(() => {
     return data
@@ -285,7 +410,7 @@ export default function NondhStatusList() {
         );
       })
       .sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
-  }, [data, searchText, doneFilter, referenceFilter]);
+  }, [data, searchText, statusFilter, doneFilter, referenceFilter]);
 
   // Summary Metrics
   const stats = useMemo(() => {
@@ -312,6 +437,21 @@ export default function NondhStatusList() {
     };
   }, [data]);
 
+  const editStatusOptions = useMemo(() => {
+    const names = Array.from(new Set([...STATUS_OPTIONS, ...existingCustomStatuses]));
+    return names.map((status) => ({ label: status, value: status }));
+  }, [existingCustomStatuses]);
+
+  const documentTypeSelectOptions = useMemo(
+    () => documentTypeOptions.map((name) => ({ label: name, value: name })),
+    [documentTypeOptions]
+  );
+
+  // Editable cell helpers
+  const textCell = (text, { color = '#000080', size = '13.5px' } = {}) => (
+    <span style={{ fontWeight: 700, color, fontSize: size }}>{text || '-'}</span>
+  );
+
   // Table Columns matching the user's requested specification:
   // number, Place name, Type of document, Nondh Number, Date, Party Name, Status, Reference Name, Done or not, Vahivat Fee, Payment Date
   const columns = [
@@ -319,96 +459,149 @@ export default function NondhStatusList() {
       title: 'No. ',
       dataIndex: 'number',
       key: 'number',
-      width: 75,
+      width: 70,
       fixed: 'left',
       align: 'center',
       sorter: (a, b) => (Number(a.number) || 0) - (Number(b.number) || 0),
       render: (val) => (
-        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
-          {val}
-        </span>
+        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{val}</span>
       ),
     },
     {
       title: 'Place name',
       dataIndex: 'placeName',
       key: 'placeName',
-      width: 130,
-      render: (text) => (
-        <span style={{ fontWeight: 700, color: '#000080', fontSize: '14px' }}>
-          {text || '-'}
-        </span>
-      ),
+      width: 100,
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <TransliterateInput
+            value={editValues.placeName}
+            onChange={(value) => handleEditChange('placeName', value)}
+            placeholder="Place name"
+            style={CELL_INPUT_STYLE}
+          />
+        ) : (
+          textCell(text, { size: '14px' })
+        ),
     },
     {
       title: 'Type of document',
       dataIndex: 'documentType',
       key: 'documentType',
-      width: 180,
-      render: (text) => (
-        <span style={{ fontWeight: 700, color: '#000080', fontSize: '13.5px' }}>
-          {text || '-'}
-        </span>
-      ),
+      align: 'center',
+      width: 100,
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <Select
+            size="small"
+            value={editValues.documentType || undefined}
+            onChange={(value) => handleEditChange('documentType', value)}
+            options={documentTypeSelectOptions}
+            placeholder="Select type"
+            showSearch
+            optionFilterProp="label"
+            style={{ width: '100%' }}
+          />
+        ) : (
+          textCell(text)
+        ),
     },
     {
-      title: 'Nondh Number',
+      title: 'Nondh No.',
       dataIndex: 'nondhNumber',
       key: 'nondhNumber',
-      width: 150,
+      width: 100,
       align: 'center',
-      render: (text) => (
-        <span style={{ fontWeight: 700, color: '#000080', fontSize: '14px' }}>
-          {text || '-'}
-        </span>
-      ),
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <Input
+            size="small"
+            value={editValues.nondhNumber}
+            onChange={(e) => handleEditChange('nondhNumber', e.target.value)}
+            style={{ ...CELL_INPUT_STYLE, textAlign: 'center' }}
+          />
+        ) : (
+          textCell(text, { size: '14px' })
+        ),
     },
     {
       title: 'Date',
       dataIndex: 'date',
       key: 'date',
-      width: 105,
+      width: 100,
       align: 'center',
-      render: (date) => (
-        <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>
-          {date ? dayjs(date).format('M/D/YY') : '-'}
-        </span>
-      ),
+      render: (date, record) =>
+        isEditingRow(record) ? (
+          <DatePicker
+            size="small"
+            value={editValues.date}
+            onChange={(value) => handleEditChange('date', value)}
+            format="DD/MM/YY"
+            allowClear={false}
+            style={{ width: '100%' }}
+          />
+        ) : (
+          <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>
+            {date ? dayjs(date).format('M/D/YY') : '-'}
+          </span>
+        ),
     },
     {
       title: 'Party Name',
       dataIndex: 'partyName',
       key: 'partyName',
-      width: 220,
-      render: (text) => (
-        <span style={{ fontWeight: 700, color: '#000080', fontSize: '13.5px' }}>
-          {text || '-'}
-        </span>
-      ),
+      width: 170,
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <TransliterateInput
+            value={editValues.partyName}
+            onChange={(value) => handleEditChange('partyName', value)}
+            placeholder="Party name"
+            style={CELL_INPUT_STYLE}
+          />
+        ) : (
+          textCell(text)
+        ),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 190,
+      width: 100,
       align: 'center',
-      render: (text) => (
-        <span style={{ fontWeight: 700, color: '#000080', fontSize: '13.5px' }}>
-          {text || '-'}
-        </span>
-      ),
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <Select
+            size="small"
+            value={editValues.status || undefined}
+            onChange={(value) => handleEditChange('status', value)}
+            options={editStatusOptions}
+            placeholder="Select status"
+            showSearch
+            optionFilterProp="label"
+            style={{ width: '100%' }}
+          />
+        ) : (
+          textCell(text)
+        ),
     },
     {
       title: 'Reference',
       dataIndex: 'referenceName',
       key: 'referenceName',
-      width: 130,
+      width: 150,
       align: 'center',
-      render: (text) => (
-        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '13px' }}>
-          {text || '-'}
-        </span>
-      ),
+      render: (text, record) =>
+        isEditingRow(record) ? (
+          <TransliterateInput
+            value={editValues.referenceName}
+            onChange={(value) => handleEditChange('referenceName', value)}
+            placeholder="Reference"
+            style={CELL_INPUT_STYLE}
+          />
+        ) : (
+          <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '13px' }}>{text || '-'}</span>
+        ),
     },
     {
       title: 'Done Status',
@@ -416,7 +609,18 @@ export default function NondhStatusList() {
       key: 'doneOrNot',
       width: 140,
       align: 'center',
-      render: (val) => {
+      render: (val, record) => {
+        if (isEditingRow(record)) {
+          return (
+            <Select
+              size="small"
+              value={editValues.doneOrNot || '-'}
+              onChange={(value) => handleEditChange('doneOrNot', value)}
+              options={DONE_OPTIONS.map((option) => ({ label: option, value: option }))}
+              style={{ width: '100%' }}
+            />
+          );
+        }
         if (val === 'Done') {
           return (
             <Tag color="success" style={{ fontWeight: 600, borderRadius: 10, padding: '2px 10px' }}>
@@ -428,46 +632,89 @@ export default function NondhStatusList() {
       },
     },
     {
-      title: 'Vahivat',
+      title: 'Payment',
       dataIndex: 'vahivatFee',
       key: 'vahivatFee',
-      width: 110,
+      width: 100,
       align: 'center',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: val ? '#0f172a' : '#94a3b8', fontSize: '13px' }}>
-          {val ? Number(val).toLocaleString('en-IN') : '-'}
-        </span>
-      ),
+      render: (val, record) =>
+        isEditingRow(record) ? (
+          <Input
+            size="small"
+            value={editValues.vahivatFee}
+            onChange={(e) => handleEditChange('vahivatFee', e.target.value)}
+            style={{ ...CELL_INPUT_STYLE, textAlign: 'center' }}
+          />
+        ) : (
+          <span style={{ fontWeight: 600, color: val ? '#0f172a' : '#94a3b8', fontSize: '13px' }}>
+            {val ? Number(val).toLocaleString('en-IN') : '-'}
+          </span>
+        ),
     },
     {
       title: 'Pay. Date',
       dataIndex: 'paymentDate',
       key: 'paymentDate',
-      width: 115,
+      width: 90,
       align: 'center',
-      render: (date) => (
-        <span style={{ fontWeight: 500, color: date ? '#0f172a' : '#94a3b8', fontSize: '13px' }}>
-          {date ? dayjs(date).format('M/D/YY') : '-'}
-        </span>
-      ),
+      render: (date, record) =>
+        isEditingRow(record) ? (
+          <DatePicker
+            size="small"
+            value={editValues.paymentDate}
+            onChange={(value) => handleEditChange('paymentDate', value)}
+            format="DD/MM/YY"
+            style={{ width: '100%' }}
+          />
+        ) : (
+          <span style={{ fontWeight: 500, color: date ? '#0f172a' : '#94a3b8', fontSize: '13px' }}>
+            {date ? dayjs(date).format('M/D/YY') : '-'}
+          </span>
+        ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 120,
       fixed: 'right',
       align: 'center',
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Edit">
+      render: (_, record) => {
+        if (isEditingRow(record)) {
+          return (
+            <Space size="small">
+              {/* <Tooltip title="Save"> */}
+              <Button
+                type="text"
+                size="small"
+                loading={updateMutation.isPending}
+                icon={<Check size={16} color="#16a34a" />}
+                onClick={handleSaveEdit}
+              />
+              {/* </Tooltip> */}
+              {/* <Tooltip title="Cancel"> */}
+              <Button
+                type="text"
+                size="small"
+                disabled={updateMutation.isPending}
+                icon={<X size={16} color="#dc2626" />}
+                onClick={handleCancelEdit}
+              />
+              {/* </Tooltip> */}
+            </Space>
+          );
+        }
+        return (
+          <Space size="small">
+            {/* <Tooltip title="Edit"> */}
             <Button
               type="text"
               size="small"
+              disabled={editingId !== null}
               icon={<Edit size={15} color="#2563eb" />}
-              onClick={() => handleOpenModal(record)}
+              onClick={() => handleStartEdit(record)}
             />
-          </Tooltip>
-          <Tooltip title="Delete">
+            {/* </Tooltip> */}
+            {/* <Tooltip title="Delete"> */}
             <Popconfirm
               title="Delete Entry"
               description="Are you sure you want to delete this record?"
@@ -476,11 +723,18 @@ export default function NondhStatusList() {
               cancelText="No"
               okButtonProps={{ danger: true }}
             >
-              <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              <Button
+                type="text"
+                size="small"
+                danger
+                disabled={editingId !== null}
+                icon={<Trash2 size={15} />}
+              />
             </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+            {/* </Tooltip> */}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -655,6 +909,11 @@ export default function NondhStatusList() {
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
+          rowClassName={(record) =>
+            [isEditingRow(record) ? 'nondh-row-editing' : '', getStatusRowClass(record.status)]
+              .filter(Boolean)
+              .join(' ')
+          }
           loading={isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
           pagination={{ pageSize: 15, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries` }}
           scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
