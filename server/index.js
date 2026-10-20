@@ -18,6 +18,7 @@ import upadRoutes from './routes/upad.js';
 import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
+import nondhStatusRoutes from './routes/nondhStatus.js';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
+app.use('/api/nondh-status', nondhStatusRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {

@@ -26,7 +26,8 @@ import {
   Sparkles,
   Wallet,
   Trash2,
-  GitFork
+  GitFork,
+  FileCheck
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -193,6 +194,11 @@ export default function MainLayout() {
         key: '/app/tasks',
         icon: <CheckSquare size={20} />,
         label: 'Tasks',
+      },
+      {
+        key: '/app/nondh-status',
+        icon: <FileCheck size={20} />,
+        label: 'Nondh Status',
       },
       {
         key: '/app/reports',
