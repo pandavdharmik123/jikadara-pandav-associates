@@ -37,6 +37,9 @@ npm run start
 | `BREVO_API_KEY` | Recommended | `xkeysib-...` (Uses HTTPS port 443 — works on Render/Vercel free tier) |
 | `BREVO_SENDER_EMAIL` | Recommended | `dhamopandav1311@gmail.com` (Must match verified Brevo sender) |
 | `BREVO_SENDER_NAME` | Optional | `Jikadara & Pandav Associates` |
+| `GOOGLE_DRIVE_BACKUP_ENABLED` | Optional | `true` — starts the in-process backup scheduler |
+| `GOOGLE_DRIVE_CLIENT_ID` / `_SECRET` | Optional | Google OAuth client for Drive backups |
+| `GOOGLE_DRIVE_ACCOUNT_EMAIL` / `_REFRESH_TOKEN` | Optional | One Drive account (see `server/BACKUP.md`) |
 
 > **Preventing Render Inactivity Sleep (Free Tier):**
 > Render free instances spin down after 15 minutes of inactivity. To prevent sleep:
@@ -44,6 +47,10 @@ npm run start
 > 2. **External Pinger (Recommended):** Set up a free monitor on [UptimeRobot](https://uptimerobot.com) or [cron-job.org](https://cron-job.org) targeting `https://YOUR-SERVICE.onrender.com/api/health` every 10–14 minutes. This guarantees the server stays awake 24/7 even after cold restarts.
 
 Do **not** rely on a `.env` file in the repo — set variables in **Render → Environment** (or Vercel → Project Settings → Environment Variables).
+
+### Google Drive backups
+
+Database backups are documented in [`server/BACKUP.md`](./BACKUP.md). On Render's free tier the native Node runtime usually has no `pg_dump`, so run the nightly job from GitHub Actions (or a Render Cron Job) instead of relying on the in-process scheduler. The same `npm run backup` command works in both places.
 
 
 

@@ -199,3 +199,10 @@ ocr-service/venv/
 ocr-service/.venv/
 ocr-service/env/
 ocr-service/**/__pycache__/
+
+# Keep environment templates in git (the broad .env* rule above hides them)
+!**/.env.example
+!server/.env.example
+
+# Local database backup scratch files (never commit dumps/keys)
+server/backups/
