@@ -323,3 +323,29 @@ model NondhStatus {
   @@index([deletedAt])
   @@index([number])
 }
+
+// ─── BackupRun (Google Drive database backups) ───────────
+
+model BackupRun {
+  id            String    @id @default(uuid())
+  project       String    @default("advocate-management")
+  accountId     String    @default("")
+  accountEmail  String    @default("")
+  trigger       String    @default("manual")
+  status        String    @default("RUNNING")
+  fileName      String?
+  fileSizeBytes Int?
+  driveFileId   String?
+  driveWebLink  String?
+  sha256        String?
+  encrypted     Boolean   @default(false)
+  durationMs    Int?
+  error         String?
+  deletedAt     DateTime?
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  @@index([startedAt])
+  @@index([status])
+  @@index([accountEmail])
+}

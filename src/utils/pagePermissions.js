@@ -56,7 +56,7 @@ export function hasPageAccess(user, pageKey) {
 
   // ADMIN role access: user management, document types, recycle bin, and tools
   if (user.role === 'ADMIN') {
-    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/recycle-bin' || pageKey.startsWith('/app/tools/');
+    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/admin/backup' || pageKey === '/app/recycle-bin' || pageKey.startsWith('/app/tools/');
   }
 
   // Non-admin cannot access admin panel users

@@ -542,7 +542,7 @@ export default function NondhStatusList() {
           />
         ) : (
           <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>
-            {date ? dayjs(date).format('M/D/YY') : '-'}
+            {date ? dayjs(date).format('D/M/YY') : '-'}
           </span>
         ),
     },
@@ -668,7 +668,7 @@ export default function NondhStatusList() {
           />
         ) : (
           <span style={{ fontWeight: 500, color: date ? '#0f172a' : '#94a3b8', fontSize: '13px' }}>
-            {date ? dayjs(date).format('M/D/YY') : '-'}
+            {date ? dayjs(date).format('D/M/YY') : '-'}
           </span>
         ),
     },

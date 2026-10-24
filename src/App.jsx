@@ -19,6 +19,7 @@ import UpadList from './features/Upad/UpadList';
 import NondhStatusList from './features/NondhStatus/NondhStatusList';
 import AdminUsers from './features/Admin/AdminUsers';
 import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
+import BackupManager from './features/Admin/BackupManager';
 import RecycleBin from './features/RecycleBin/RecycleBin';
 import UserProfile from './features/Profile/UserProfile';
 
@@ -168,6 +169,7 @@ export default function App() {
                 {/* Admin Only Route */}
                 <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                   <Route path="admin/users" element={<AdminUsers />} />
+                  <Route path="admin/backup" element={<BackupManager />} />
                 </Route>
 
                 {/* Document Types Route */}

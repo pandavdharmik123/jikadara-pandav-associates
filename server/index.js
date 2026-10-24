@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import { runStartupTasks, pingDatabase } from './lib/startup.js';
 import { startKeepAlive } from './lib/keepAlive.js';
@@ -19,8 +19,8 @@ import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
-
-dotenv.config();
+import backupRoutes from './routes/backup.js';
+import { startBackupScheduler } from './services/backup/scheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Updated scanner pool active
@@ -51,6 +51,7 @@ app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
 app.use('/api/nondh-status', nondhStatusRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Health check (includes database connectivity)
 app.get('/api/health', async (req, res) => {
@@ -73,4 +74,5 @@ await runStartupTasks();
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   startKeepAlive();
+  startBackupScheduler();
 });

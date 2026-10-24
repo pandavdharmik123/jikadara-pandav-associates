@@ -9,7 +9,12 @@
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "backup": "node scripts/backup.js",
+    "backup:dry-run": "node scripts/backup.js --dry-run",
+    "backup:auth": "node scripts/backup-auth.js",
+    "backup:restore": "node scripts/backup-restore.js",
+    "backup:list": "node scripts/backup-restore.js --list"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -19,8 +24,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-auth-library": "^11.3.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "node-cron": "^4.6.0",
     "nodemailer": "^10.0.9",
     "otplib": "^13.4.1",
     "pg": "^8.16.3",
