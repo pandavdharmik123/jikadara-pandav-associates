@@ -27,7 +27,8 @@ import {
   Wallet,
   Trash2,
   GitFork,
-  FileCheck
+  FileCheck,
+  CloudUpload
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -160,6 +161,11 @@ export default function MainLayout() {
             key: '/app/admin/document-types',
             icon: <Files size={20} />,
             label: 'Document Types',
+          },
+          {
+            key: '/app/admin/backup',
+            icon: <CloudUpload size={20} />,
+            label: 'Database Backups',
           },
           {
             key: '/app/recycle-bin',
