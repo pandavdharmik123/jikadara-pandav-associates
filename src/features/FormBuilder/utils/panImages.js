@@ -201,3 +201,255 @@ export async function prepareDocumentImage(src, maxSide = 2000) {
 
   return { src: canvas.toDataURL('image/jpeg', 0.9), aspect: width / height, width, height };
 }
+
+/* ------------------------------------------------------------------ */
+/* Signature clean-up (remove background / lighting)                   */
+/* ------------------------------------------------------------------ */
+
+const CLEAN_MAX_SIDE = 1400;
+const CLEAN_INK = [17, 24, 39];
+
+/** Odd window size for the local threshold, scaled to the image. */
+function sauvolaWindow(width, height) {
+  const raw = Math.round(Math.min(width, height) * 0.055);
+  const size = Math.max(25, Math.min(101, raw));
+  return size % 2 === 0 ? size + 1 : size;
+}
+
+/** Summed-area tables used for the local mean / variance. */
+function buildIntegralImages(values, width, height) {
+  const stride = width + 1;
+  const sum = new Float64Array(stride * (height + 1));
+  const square = new Float64Array(stride * (height + 1));
+  for (let y = 0; y < height; y += 1) {
+    let rowSum = 0;
+    let rowSquare = 0;
+    for (let x = 0; x < width; x += 1) {
+      const value = values[y * width + x];
+      rowSum += value;
+      rowSquare += value * value;
+      const index = (y + 1) * stride + (x + 1);
+      sum[index] = sum[index - stride] + rowSum;
+      square[index] = square[index - stride] + rowSquare;
+    }
+  }
+  return { sum, square, stride };
+}
+
+function areaSum(integral, stride, left, top, right, bottom) {
+  const a = top * stride + left;
+  const b = top * stride + (right + 1);
+  const c = (bottom + 1) * stride + left;
+  const d = (bottom + 1) * stride + (right + 1);
+  return integral[d] - integral[b] - integral[c] + integral[a];
+}
+
+/**
+ * Drop paper grain / dust and anything that clearly belongs to the page edge.
+ * `alpha` is modified in place: removed pixels are set to 0.
+ */
+function filterSignatureComponents(alpha, width, height) {
+  const total = width * height;
+  const visited = new Uint8Array(total);
+  const stack = new Int32Array(total);
+  const components = [];
+  const minArea = Math.max(4, Math.min(40, Math.round(Math.min(width, height) * 0.02)));
+
+  for (let start = 0; start < total; start += 1) {
+    if (alpha[start] < 0.24 || visited[start]) continue;
+    let top = 0;
+    stack[top++] = start;
+    visited[start] = 1;
+    let area = 0;
+    let sumAlpha = 0;
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    let touchesBorder = false;
+    const pixels = [];
+
+    while (top > 0) {
+      const index = stack[--top];
+      const x = index % width;
+      const y = (index - x) / width;
+      area += 1;
+      sumAlpha += alpha[index];
+      pixels.push(index);
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) touchesBorder = true;
+
+      for (let oy = -1; oy <= 1; oy += 1) {
+        const ny = y + oy;
+        if (ny < 0 || ny >= height) continue;
+        for (let ox = -1; ox <= 1; ox += 1) {
+          if (!ox && !oy) continue;
+          const nx = x + ox;
+          if (nx < 0 || nx >= width) continue;
+          const next = ny * width + nx;
+          if (alpha[next] >= 0.24 && !visited[next]) {
+            visited[next] = 1;
+            stack[top++] = next;
+          }
+        }
+      }
+    }
+
+    components.push({ area, mean: sumAlpha / area, pixels, touchesBorder, minX, minY, maxX, maxY });
+  }
+
+  // Page edges / table shadows usually touch the border, and paper grain forms
+  // faint islands. Only keep components that are large and solid enough, and
+  // drop border components when at least one clean inner stroke survived (so a
+  // tightly cropped signature is never erased).
+  const viable = components.filter((component) => component.area >= minArea && component.mean >= 0.3);
+  const hasInner = viable.some((component) => !component.touchesBorder);
+  const kept = new Uint8Array(total);
+  let ink = 0;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (const component of viable) {
+    if (component.touchesBorder && hasInner) continue;
+    ink += component.area;
+    if (component.minX < minX) minX = component.minX;
+    if (component.minY < minY) minY = component.minY;
+    if (component.maxX > maxX) maxX = component.maxX;
+    if (component.maxY > maxY) maxY = component.maxY;
+    for (const index of component.pixels) kept[index] = 1;
+  }
+
+  // Keep one pixel of soft anti-aliasing around the chosen strokes, but drop
+  // every other faint pixel (paper edges, shadow gradients, dust).
+  const keep = new Uint8Array(total);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!kept[y * width + x]) continue;
+      for (let oy = -1; oy <= 1; oy += 1) {
+        const ny = y + oy;
+        if (ny < 0 || ny >= height) continue;
+        for (let ox = -1; ox <= 1; ox += 1) {
+          const nx = x + ox;
+          if (nx < 0 || nx >= width) continue;
+          keep[ny * width + nx] = 1;
+        }
+      }
+    }
+  }
+
+  return { ink, minX, minY, maxX, maxY, keep };
+}
+
+/**
+ * Turn an uploaded signature into clean ink: the paper / background and uneven
+ * lighting are removed with a Sauvola local threshold, specks and page edges
+ * are dropped, and the remaining strokes are recoloured to a dark ink tone on
+ * a transparent background.
+ *
+ * Returns the same shape as `prepareSignatureImage` plus the detected ink area.
+ */
+export async function cleanSignatureImage(src, { maxSide = CLEAN_MAX_SIDE, ink = CLEAN_INK } = {}) {
+  const image = await loadImage(src);
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+  if (!naturalWidth || !naturalHeight) throw new Error('The image could not be read.');
+
+  const scale = Math.min(1, maxSide / Math.max(naturalWidth, naturalHeight));
+  const width = Math.max(1, Math.round(naturalWidth * scale));
+  const height = Math.max(1, Math.round(naturalHeight * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(image, 0, 0, width, height);
+  const frame = ctx.getImageData(0, 0, width, height);
+  const pixels = frame.data;
+
+  // Work on luminance over white so transparent areas count as paper.
+  const luminance = new Float32Array(width * height);
+  for (let i = 0, p = 0; i < luminance.length; i += 1, p += 4) {
+    const alpha = pixels[p + 3] / 255;
+    const value = 0.299 * pixels[p] + 0.587 * pixels[p + 1] + 0.114 * pixels[p + 2];
+    luminance[i] = value * alpha + 255 * (1 - alpha);
+  }
+
+  const { sum, square, stride } = buildIntegralImages(luminance, width, height);
+  const window = sauvolaWindow(width, height);
+  const radius = (window - 1) / 2;
+  const k = 0.22;
+  const alpha = new Float32Array(width * height);
+
+  for (let y = 0; y < height; y += 1) {
+    const top = Math.max(0, y - radius);
+    const bottom = Math.min(height - 1, y + radius);
+    for (let x = 0; x < width; x += 1) {
+      const left = Math.max(0, x - radius);
+      const right = Math.min(width - 1, x + radius);
+      const count = (right - left + 1) * (bottom - top + 1);
+      const index = y * width + x;
+      const mean = areaSum(sum, stride, left, top, right, bottom) / count;
+      const meanSquare = areaSum(square, stride, left, top, right, bottom) / count;
+      const deviation = Math.sqrt(Math.max(0, meanSquare - mean * mean));
+      // Sauvola: threshold follows the local mean and adapts to shadows.
+      const threshold = mean * (1 + k * (deviation / 128 - 1));
+      const softness = Math.max(14, threshold * 0.26);
+      let value = (threshold - luminance[index]) / softness;
+      if (value > 1) value = 1;
+      else if (value < 0.07) value = 0;
+      alpha[index] = value;
+    }
+  }
+
+  const detected = filterSignatureComponents(alpha, width, height);
+  const coverage = detected.ink / (width * height);
+  if (detected.ink === 0 || coverage < 0.00015) {
+    throw new Error('No signature strokes were found.');
+  }
+  if (coverage > 0.7) {
+    throw new Error('The image is too dark to separate the signature.');
+  }
+
+  const pad = Math.max(4, Math.round(Math.max(detected.maxX - detected.minX + 1, detected.maxY - detected.minY + 1) * 0.02));
+  const cropX = Math.max(0, detected.minX - pad);
+  const cropY = Math.max(0, detected.minY - pad);
+  const cropW = Math.min(width, detected.maxX + pad + 1) - cropX;
+  const cropH = Math.min(height, detected.maxY + pad + 1) - cropY;
+  if (cropW < 8 || cropH < 8) throw new Error('No signature strokes were found.');
+
+  const output = document.createElement('canvas');
+  output.width = cropW;
+  output.height = cropH;
+  const outputCtx = output.getContext('2d');
+  const outputFrame = outputCtx.createImageData(cropW, cropH);
+  const outputPixels = outputFrame.data;
+  const [inkR, inkG, inkB] = ink;
+
+  for (let y = 0; y < cropH; y += 1) {
+    for (let x = 0; x < cropW; x += 1) {
+      const index = (cropY + y) * width + (cropX + x);
+      if (!detected.keep[index]) continue;
+      const value = alpha[index];
+      if (value <= 0.02) continue;
+      const p = (y * cropW + x) * 4;
+      outputPixels[p] = inkR;
+      outputPixels[p + 1] = inkG;
+      outputPixels[p + 2] = inkB;
+      outputPixels[p + 3] = Math.round(Math.min(1, (value - 0.04) / 0.96 * 1.05) * 255);
+    }
+  }
+  outputCtx.putImageData(outputFrame, 0, 0);
+
+  return {
+    src: output.toDataURL('image/png'),
+    aspect: cropW / cropH,
+    width: cropW,
+    height: cropH,
+    ink: detected.ink,
+  };
+}

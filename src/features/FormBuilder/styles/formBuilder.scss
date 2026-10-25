@@ -1200,13 +1200,51 @@ textarea.fbs-uppercase::placeholder {
 
 .fbs-signature-note {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   margin-top: 2px;
   font-size: 10px;
   line-height: 1.45;
   color: #94a3b8;
+
+  > span {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.fbs-signature-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fbs-clean-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid #c7d2fe;
+  border-radius: 7px;
+  background: #f8faff;
+  font-size: 10px;
+  font-weight: 650;
+  color: #4338ca;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
 }
 
 .fbs-op-tick {

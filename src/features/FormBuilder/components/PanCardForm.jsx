@@ -30,6 +30,7 @@ import {
   Trash2,
   User,
   Users,
+  Wand2,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
@@ -48,6 +49,7 @@ import {
 import { PAN_FORM_PAGES } from '../constants/panLayout';
 import {
   DEFAULT_SIGNATURE_ASPECT,
+  cleanSignatureImage,
   createDocumentPlacement,
   createSignaturePlacements,
   prepareDocumentImage,
@@ -131,7 +133,7 @@ function DigitsInput({ value, onChange, limit, placeholder, error, onBlur, class
   );
 }
 
-function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }) {
+function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch, optional = false }) {
   const set = (key, next) => onChange({ ...value, [key]: next });
   const keyOf = (key) => `${prefix}.${key}`;
   const err = (key) => (touched?.[keyOf(key)] ? errors[`${prefix}.${key}`] : undefined);
@@ -139,7 +141,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
   return (
     <div className="fbs-group">
       <div className="fbs-grid-2">
-        <Field label="Flat/Door/Building" required error={err('flat')}>
+        <Field label="Flat/Door/Building" required={!optional} error={err('flat')}>
           <CharInput
             value={value.flat}
             onChange={(next) => set('flat', next)}
@@ -149,7 +151,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             error={err('flat')}
           />
         </Field>
-        <Field label="Road/Street/Block/Sector" required error={err('road')}>
+        <Field label="Road/Street/Block/Sector" required={!optional} error={err('road')}>
           <CharInput
             value={value.road}
             onChange={(next) => set('road', next)}
@@ -169,7 +171,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             error={err('post')}
           />
         </Field>
-        <Field label="Area/Locality/Town/City" required error={err('area')}>
+        <Field label="Area/Locality/Town/City" required={!optional} error={err('area')}>
           <CharInput
             value={value.area}
             onChange={(next) => set('area', next)}
@@ -179,7 +181,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             error={err('area')}
           />
         </Field>
-        <Field label="District" required error={err('district')}>
+        <Field label="District" required={!optional} error={err('district')}>
           <CharInput
             value={value.district}
             onChange={(next) => set('district', next)}
@@ -189,7 +191,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             error={err('district')}
           />
         </Field>
-        <Field label="PIN / ZIP Code" required error={err('pin')}>
+        <Field label="PIN / ZIP Code" required={!optional} error={err('pin')}>
           <DigitsInput
             value={value.pin}
             onChange={(next) => set('pin', next)}
@@ -199,7 +201,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             error={err('pin')}
           />
         </Field>
-        <Field label="State/Union Territory" required error={err('state')}>
+        <Field label="State/Union Territory" required={!optional} error={err('state')}>
           <Input
             value={value.state}
             onChange={(event) => set('state', event.target.value.replace(/[^\x20-\x7E]/g, ''))}
@@ -210,7 +212,7 @@ function AddressBlock({ value, onChange, errors = {}, prefix, touched, onTouch }
             allowClear
           />
         </Field>
-        <Field label="Country/Region" required error={err('country')}>
+        <Field label="Country/Region" required={!optional} error={err('country')}>
           <Input
             value={value.country}
             onChange={(event) => set('country', event.target.value.replace(/[^\x20-\x7E]/g, ''))}
@@ -344,6 +346,7 @@ function UploadBox({ label, value, onChange, hint, aspect }) {
 export default function PanCardForm({ data, onChange, errors, showAllErrors, raMandatory }) {
   const [activeKeys, setActiveKeys] = useState(['A']);
   const [touched, setTouched] = useState({});
+  const [cleaningSignature, setCleaningSignature] = useState(false);
   const documentInputRef = useRef(null);
 
   const markTouched = (key) => setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
@@ -415,6 +418,28 @@ export default function PanCardForm({ data, onChange, errors, showAllErrors, raM
       ...current,
       signaturePlacements: createSignaturePlacements(current.signatureAspect || DEFAULT_SIGNATURE_ASPECT),
     }));
+  };
+
+  /**
+   * Remove the paper / lighting from the uploaded signature and re-draw the
+   * strokes as clean ink on a transparent background.
+   */
+  const handleCleanSignature = async () => {
+    if (!data.signature || cleaningSignature) return;
+    setCleaningSignature(true);
+    try {
+      const cleaned = await cleanSignatureImage(data.signature);
+      onChange((current) => ({
+        ...current,
+        signature: cleaned.src,
+        signatureAspect: cleaned.aspect,
+      }));
+      message.success('Signature cleaned — background removed.');
+    } catch (error) {
+      message.error(error?.message || 'Could not clean this signature.');
+    } finally {
+      setCleaningSignature(false);
+    }
   };
 
   /* ---------------- Other documents ---------------- */
@@ -631,6 +656,7 @@ export default function PanCardForm({ data, onChange, errors, showAllErrors, raM
             errors={errors}
             touched={touched}
             onTouch={markTouched}
+            optional
           />
 
           <div className="fbs-block-title">7. Residential Status</div>
@@ -1127,12 +1153,23 @@ export default function PanCardForm({ data, onChange, errors, showAllErrors, raM
           {data.signature && (
             <div className="fbs-signature-note">
               <span>
-                Drag the signature on the preview to move it, or drag its corner handle to resize. White paper is
-                removed automatically.
+                Drag the signature on the preview to move it, or drag its corner handle to resize. If the upload
+                still shows a background, use Clean signature.
               </span>
-              <button type="button" className="fbs-link-btn" onClick={resetSignaturePosition}>
-                Reset position
-              </button>
+              <div className="fbs-signature-actions">
+                <button
+                  type="button"
+                  className="fbs-clean-btn"
+                  onClick={handleCleanSignature}
+                  disabled={cleaningSignature}
+                >
+                  <Wand2 size={12} />
+                  {cleaningSignature ? 'Cleaning…' : 'Clean signature'}
+                </button>
+                <button type="button" className="fbs-link-btn" onClick={resetSignaturePosition}>
+                  Reset position
+                </button>
+              </div>
             </div>
           )}
         </>

@@ -82,11 +82,6 @@ export default function FormBuilderPage() {
         </div>
 
         <div className="fbs-topbar-spacer" />
-
-        <span className="fbs-topbar-hint">
-          <Info size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />
-          Values are drawn over the original PDF – nothing is redrawn
-        </span>
       </div>
 
       <div className="fbs-tab-content">

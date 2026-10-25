@@ -57,15 +57,25 @@ function toFormChars(value) {
  * Distribute characters over one or more character-box rows.
  * Extra characters that do not fit are dropped (the UI already blocks typing
  * beyond the available boxes).
+ *
+ * `align: 'right'` keeps the digits flush with the last box (used for country
+ * codes, e.g. "91" in a 3-box field prints in the 2nd and 3rd boxes).
  */
-function pushGrid(ops, page, rows, value) {
+function pushGrid(ops, page, rows, value, { align = 'left' } = {}) {
   if (!value) return;
   const rowList = Array.isArray(rows) ? rows : [rows];
   const chars = toFormChars(value);
+  if (!chars.length) return;
+  const capacity = rowList.reduce((total, row) => total + row.count, 0);
+  const offset = align === 'right' ? Math.max(0, capacity - chars.length) : 0;
   let index = 0;
+  let box = 0;
   for (let r = 0; r < rowList.length && index < chars.length; r += 1) {
     const row = rowList[r];
     for (let c = 0; c < row.count && index < chars.length; c += 1) {
+      const position = box;
+      box += 1;
+      if (position < offset) continue;
       const ch = chars[index];
       index += 1;
       if (!ch) continue;
@@ -164,7 +174,7 @@ export function buildPanOverlays(data) {
   pushGrid(ops, 1, p1.passport, data.passport);
   pushGrid(ops, 1, p1.tin, data.tin);
 
-  pushGrid(ops, 1, p1.mobileCode, data.contact?.mobileCode);
+  pushGrid(ops, 1, p1.mobileCode, data.contact?.mobileCode, { align: 'right' });
   pushGrid(ops, 1, p1.mobile, data.contact?.mobile);
   pushText(ops, 1, p1.email, data.contact?.email, { uppercase: false });
   pushGrid(ops, 1, p1.stdCode, data.contact?.stdCode);
@@ -213,7 +223,7 @@ export function buildPanOverlays(data) {
     pushGrid(ops, 2, p2.raPan, data.ra?.pan);
     pushGrid(ops, 2, p2.raAadhaar, data.ra?.aadhaar);
     pushAddress(ops, 2, p2.raAddress, data.ra?.address);
-    pushGrid(ops, 2, p2.raMobileCode, data.ra?.contact?.mobileCode);
+    pushGrid(ops, 2, p2.raMobileCode, data.ra?.contact?.mobileCode, { align: 'right' });
     pushGrid(ops, 2, p2.raMobile, data.ra?.contact?.mobile);
     pushText(ops, 2, p2.raEmail, data.ra?.contact?.email, { uppercase: false });
     pushGrid(ops, 2, p2.raStdCode, data.ra?.contact?.stdCode);
