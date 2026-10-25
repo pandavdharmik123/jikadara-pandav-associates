@@ -146,6 +146,10 @@ export default function PanPdfPreview({
   onSignaturePlacementChange,
   onDocumentPlacementChange,
   previewPages = Infinity,
+  templateUrl = PAN_TEMPLATE_URL,
+  buildOverlays = buildPanOverlays,
+  pageSize = PAN_PAGE,
+  templateLabel = 'PAN',
 }) {
   const [pages, setPages] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -158,7 +162,7 @@ export default function PanPdfPreview({
   const autoFitRef = useRef(true);
   const [dragPreview, setDragPreview] = useState(null);
 
-  const ops = useMemo(() => buildPanOverlays(data), [data]);
+  const ops = useMemo(() => buildOverlays(data), [data, buildOverlays]);
   const signatureAspect = data.signatureAspect || DEFAULT_SIGNATURE_ASPECT;
   const documents = useMemo(
     () => (data.documents || []).filter((doc) => doc && doc.src),
@@ -175,7 +179,7 @@ export default function PanPdfPreview({
 
   useEffect(() => {
     let cancelled = false;
-    renderTemplatePages(PAN_TEMPLATE_URL, previewPages)
+    renderTemplatePages(templateUrl, previewPages)
       .then((result) => {
         if (cancelled) return;
         setPages(result);
@@ -183,13 +187,13 @@ export default function PanPdfPreview({
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err?.message || 'Unable to render the PAN template.');
+        setError(err?.message || `Unable to render the ${templateLabel} template.`);
         setStatus('error');
       });
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, previewPages]);
+  }, [reloadKey, previewPages, templateUrl, templateLabel]);
 
   const retry = () => {
     setStatus('loading');
@@ -202,7 +206,7 @@ export default function PanPdfPreview({
     if (!viewport) return;
     const available = viewport.clientWidth - 48;
     if (available <= 0) return;
-    setZoom(Math.min(1.6, Math.max(0.3, Math.round((available / PAN_PAGE.width) * 100) / 100)));
+    setZoom(Math.min(1.6, Math.max(0.3, Math.round((available / pageSize.width) * 100) / 100)));
     autoFitRef.current = true;
   };
 
@@ -363,7 +367,7 @@ export default function PanPdfPreview({
         {status === 'loading' && (
           <div className="fbs-preview-state">
             <Spin />
-            <span>Loading the PAN template…</span>
+            <span>Loading the {templateLabel} template…</span>
           </div>
         )}
 
@@ -395,13 +399,13 @@ export default function PanPdfPreview({
               >
                 <div
                   className="fbs-page-scale"
-                  style={{ width: PAN_PAGE.width * zoom, height: PAN_PAGE.height * zoom }}
+                  style={{ width: pageSize.width * zoom, height: pageSize.height * zoom }}
                 >
                   <div
                     className="fbs-page"
                     style={{
-                      width: PAN_PAGE.width,
-                      height: PAN_PAGE.height,
+                      width: pageSize.width,
+                      height: pageSize.height,
                       transform: `scale(${zoom})`,
                       transformOrigin: 'top left',
                     }}
@@ -410,7 +414,7 @@ export default function PanPdfPreview({
                       <img
                         className="fbs-page-image"
                         src={page.src}
-                        alt={`PAN form page ${index + 1}`}
+                        alt={`${templateLabel} form page ${index + 1}`}
                         draggable={false}
                       />
                     ) : (

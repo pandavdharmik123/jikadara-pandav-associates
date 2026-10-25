@@ -1,0 +1,565 @@
+/* ==========================================================================
+   Marriage registration – HTML print document + preview canvas
+   ========================================================================== */
+
+.marriage-preview-pane {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #e9eef5;
+  overflow: hidden;
+}
+
+.marriage-preview-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.marriage-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
+.marriage-zoom-value {
+  min-width: 44px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+
+.marriage-preview-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 62px 24px 42px;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+    border: 2px solid #e9eef5;
+  }
+}
+
+.marriage-preview-track {
+  display: flex;
+  justify-content: center;
+  min-width: min-content;
+}
+
+.marriage-preview-zoom-outer {
+  position: relative;
+  flex: none;
+}
+
+.marriage-preview-sheet {
+  transform-origin: top left;
+  width: 794px;
+}
+
+.marriage-preview-sheet .mp-page {
+  box-shadow: 0 12px 38px rgba(15, 23, 42, 0.16);
+}
+
+.marriage-preview-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ---------- print / export plumbing ---------- */
+
+.marriage-export-container {
+  position: fixed;
+  left: -12000px;
+  top: 0;
+  width: 794px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.marriage-print-container {
+  display: none;
+}
+
+/* ==========================================================================
+   The printed document
+   ========================================================================== */
+
+.marriage-print-document {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mp-page {
+  width: 794px;
+  height: 1123px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Nilkanth', sans-serif;
+  font-size: 21px;
+  line-height: 1.42;
+  page-break-after: always;
+  break-after: page;
+}
+
+.mp-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.mp-page-1 {
+  padding: 22px 90px 34px 96px;
+}
+
+.mp-page-2 {
+  padding: 62px 90px 40px 84px;
+}
+
+.mp-page-3 {
+  padding: 82px 90px 40px 84px;
+}
+
+.mp-gh {
+  font-family: 'Ghanshyam', sans-serif;
+  font-weight: normal;
+}
+
+.mp-nl {
+  font-family: 'Nilkanth', sans-serif;
+  font-weight: normal;
+}
+
+.mp-center {
+  text-align: center;
+}
+
+.mp-mobile {
+  text-align: right;
+  font-size: 22px;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.mp-sample-title {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.mp-sample-rule {
+  font-size: 21px;
+  line-height: 1.32;
+}
+
+.mp-page-title {
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 1px 0 22px;
+}
+
+.mp-letter-head {
+  line-height: 1.5;
+}
+
+.mp-short-rule {
+  width: 245px;
+  height: 0;
+  border-bottom: 2px solid #000;
+  margin: 25px 0 0;
+}
+
+/* Leave a clear gap between the two address lines before the subject. */
+.mp-short-rule+.mp-short-rule {
+  margin-top: 22px;
+}
+
+.mp-subject {
+  font-size: 24px;
+  margin: 24px 0 20px;
+}
+
+.mp-salutation {
+  margin-bottom: 6px;
+}
+
+.mp-para {
+  margin: 0 0 12px;
+  text-indent: 61px;
+  text-align: justify;
+}
+
+.mp-para.mp-no-indent {
+  text-indent: 0;
+}
+
+.mp-list {
+  margin: 7px 0 0 24px;
+}
+
+.mp-list-item {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.mp-list-num {
+  flex: 0 0 34px;
+}
+
+.mp-list-body {
+  flex: 1;
+  min-width: 0;
+  text-align: justify;
+}
+
+.mp-sign-grid {
+  display: grid;
+  grid-template-columns: 44% 56%;
+  row-gap: 14px;
+  column-gap: 0;
+  margin-top: 28px;
+}
+
+.mp-sign-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mp-rule {
+  display: inline-block;
+  border-bottom: 2px solid #000;
+  height: 1em;
+  vertical-align: baseline;
+}
+
+.mp-sign-rule {
+  flex: 1 1 auto;
+  min-width: 70px;
+}
+
+.mp-enclosure {
+  margin-top: 16px;
+}
+
+.mp-enclosure-sub {
+  padding-left: 48px;
+}
+
+.mp-doc-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-left: 116px;
+  margin-top: 7px;
+}
+
+.mp-doc-rule {
+  width: 252px;
+  height: 1em;
+}
+
+/* ---------- page 2 / 3 items ---------- */
+
+.mp-doc-title {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.mp-doc-subtitle {
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 1px 0 26px;
+}
+
+.mp-items {
+  margin-top: 0;
+}
+
+.mp-item {
+  display: flex;
+  margin-bottom: 7px;
+}
+
+.mp-item-num {
+  flex: 0 0 28px;
+}
+
+.mp-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mp-sub-item {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.mp-sub-item.is-deep {
+  padding-left: 34px;
+}
+
+.mp-sub-letter {
+  flex: 0 0 34px;
+}
+
+.mp-sub-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mp-sub-note {
+  margin: 1px 0 2px 62px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.mp-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin: 4px 0 5px 62px;
+}
+
+.mp-status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mp-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 2px solid #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  color: #000;
+}
+
+.mp-box.is-checked {
+  font-weight: 700;
+}
+
+.mp-witness-gap {
+  height: 9px;
+}
+
+/* ---------- registrar certificate ---------- */
+
+.mp-certificate {
+  margin-top: 26px;
+  padding: 20px 22px 18px;
+  border: 2px solid #000;
+  border-radius: 18px;
+  font-family: 'Ghanshyam', sans-serif;
+  font-size: 20px;
+  line-height: 1.55;
+  text-align: justify;
+}
+
+.mp-certificate p {
+  margin: 0 0 8px;
+}
+
+.mp-blank {
+  display: inline-block;
+  height: 1em;
+  vertical-align: baseline;
+  border-bottom: 2px solid #000;
+  margin: 0 4px;
+}
+
+.mp-blank-sm {
+  width: 58px;
+}
+
+.mp-blank-md {
+  width: 88px;
+}
+
+.mp-blank-lg {
+  width: 132px;
+}
+
+.mp-cert-sign {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  margin-top: 18px;
+}
+
+.mp-cert-sign-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.mp-cert-registrar {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mp-cert-registrar-label {
+  margin-top: 4px;
+  padding-left: 34px;
+}
+
+/* ---------- screen preview only ---------- */
+
+.marriage-preview-sheet .mp-page {
+  box-shadow: 0 12px 38px rgba(15, 23, 42, 0.16);
+}
+
+/* ==========================================================================
+   Print
+   ========================================================================== */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .ant-layout,
+  .ant-layout-content {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .ant-layout-header,
+  .ant-layout-sider,
+  .ant-layout-footer,
+  .ant-drawer,
+  .fbs-topbar,
+  .fbs-toolbar,
+  .fbs-workspace,
+  .marriage-preview-pane,
+  .marriage-export-container,
+  .fbs-expand-btn {
+    display: none !important;
+  }
+
+  .ant-layout-content:has(.form-builder-page) {
+    padding: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .form-builder-page {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .fbs-tab-content {
+    display: block !important;
+  }
+
+  .fbs-tab-pane {
+    display: none !important;
+  }
+
+  .fbs-tab-pane[style*='flex'] {
+    display: block !important;
+  }
+
+  .fbs-builder {
+    display: block !important;
+  }
+
+  .marriage-print-container {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+  }
+
+  .marriage-print-document {
+    display: block !important;
+  }
+
+  .mp-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .mp-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}

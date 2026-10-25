@@ -6,17 +6,19 @@ export const PAN_TEMPLATE_URL = '/forms/pan-form-93.pdf';
 
 const INK = rgb(0.07, 0.09, 0.15);
 
-let templatePromise = null;
+const templatePromises = new Map();
 
-/** Fetch the original blank PDF once and keep it in memory. */
+/** Fetch an original blank PDF once and keep it in memory. */
 function loadTemplate(url = PAN_TEMPLATE_URL) {
-  if (!templatePromise) {
-    templatePromise = fetch(url).then((response) => {
-      if (!response.ok) throw new Error(`Could not load the PAN template (${response.status}).`);
+  if (!templatePromises.has(url)) {
+    const promise = fetch(url).then((response) => {
+      if (!response.ok) throw new Error(`Could not load the PDF template (${response.status}).`);
       return response.arrayBuffer();
     });
+    promise.catch(() => templatePromises.delete(url));
+    templatePromises.set(url, promise);
   }
-  return templatePromise;
+  return templatePromises.get(url);
 }
 
 async function embedImage(pdfDoc, src, cache) {
@@ -41,7 +43,16 @@ async function embedImage(pdfDoc, src, cache) {
  * two fillable form pages). Every attached document image appends one more
  * page with the image at the size / position chosen on the preview.
  */
-export async function buildPanPdf(data, { templateUrl = PAN_TEMPLATE_URL, maxPages = PAN_FORM_PAGES } = {}) {
+export async function buildPdf(
+  data,
+  {
+    templateUrl = PAN_TEMPLATE_URL,
+    maxPages = PAN_FORM_PAGES,
+    buildOverlays = buildPanOverlays,
+    formPages = PAN_FORM_PAGES,
+    pageSize = PAN_PAGE,
+  } = {}
+) {
   const template = await loadTemplate(templateUrl);
   const pdfDoc = await PDFDocument.load(template, { ignoreEncryption: true });
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -54,16 +65,16 @@ export async function buildPanPdf(data, { templateUrl = PAN_TEMPLATE_URL, maxPag
 
   // One extra page per attached document.
   const documents = (data.documents || []).filter((doc) => doc && doc.src);
-  documents.forEach(() => pdfDoc.addPage([PAN_PAGE.width, PAN_PAGE.height]));
+  documents.forEach(() => pdfDoc.addPage([pageSize.width, pageSize.height]));
 
   const pages = pdfDoc.getPages();
 
-  const ops = buildPanOverlays(data);
+  const ops = buildOverlays(data);
 
   for (const op of ops) {
     // Attachments always follow the kept form pages, whatever `maxPages` is.
     const pageIndex =
-      op.kind === 'document' ? keep + (op.page - PAN_FORM_PAGES) - 1 : op.page - 1;
+      op.kind === 'document' ? keep + (op.page - formPages) - 1 : op.page - 1;
     const page = pages[pageIndex];
     if (!page) continue;
     const pageHeight = page.getHeight();
@@ -128,15 +139,20 @@ export async function buildPanPdf(data, { templateUrl = PAN_TEMPLATE_URL, maxPag
   return bytes;
 }
 
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const buildPanPdf = (data, options = {}) => buildPdf(data, options);
+
 const safeName = (value) => String(value || '').replace(/[^a-z0-9]+/gi, '').slice(0, 30);
 
-export async function downloadPanPdf(data, options = {}) {
-  const bytes = await buildPanPdf(data, options);
+export async function downloadPdf(data, options = {}) {
+  const bytes = await buildPdf(data, options);
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
+  const surname = data?.lastName || data?.nameA?.last;
+  const prefix = options.filePrefix || 'PAN-Application';
   link.href = url;
-  link.download = `PAN-Application${data?.lastName ? `-${safeName(data.lastName)}` : ''}.pdf`;
+  link.download = `${prefix}${surname ? `-${safeName(surname)}` : ''}.pdf`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -144,19 +160,23 @@ export async function downloadPanPdf(data, options = {}) {
   return blob;
 }
 
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const downloadPanPdf = (data, options = {}) =>
+  downloadPdf(data, { ...options, filePrefix: 'PAN-Application' });
+
 /**
  * Open the completed PDF in a new tab and ask the browser to print it. If the
  * popup is blocked the caller can fall back to downloading the file.
  */
-export async function printPanPdf(data, options = {}) {
-  const bytes = await buildPanPdf(data, options);
+export async function printPdf(data, options = {}) {
+  const bytes = await buildPdf(data, options);
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, '_blank');
   if (!win) {
     // Pop-ups blocked – hand the completed file to the user instead.
     URL.revokeObjectURL(url);
-    await downloadPanPdf(data, options);
+    await downloadPdf(data, options);
     return 'downloaded';
   }
   win.opener = null;
@@ -178,3 +198,7 @@ export async function printPanPdf(data, options = {}) {
   window.setTimeout(() => URL.revokeObjectURL(url), 300000);
   return blob;
 }
+
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const printPanPdf = (data, options = {}) =>
+  printPdf(data, { ...options, filePrefix: 'PAN-Application' });

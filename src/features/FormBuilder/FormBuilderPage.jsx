@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileSignature, Info } from 'lucide-react';
+import { FileSignature } from 'lucide-react';
 import { message } from 'antd';
 import PanCardBuilder from './PanCardBuilder';
+import CorrectionPanBuilder from './CorrectionPanBuilder';
+import MarriageBuilder from './MarriageBuilder';
 import { PAN_FORM_PAGES } from './constants/panLayout';
 import { createPanData } from './constants/panData';
-import { readPanDraft } from './utils/panDraft';
+import { CORRECTION_FORM_PAGES } from './constants/correctionPanLayout';
+import { createCorrectionPanData } from './constants/correctionPanData';
+import { createMarriageData, MARRIAGE_FORM_PAGES } from './constants/marriageData';
+import {
+  CORRECTION_DRAFT_KEY,
+  MARRIAGE_DRAFT_KEY,
+  readPanDraft,
+} from './utils/panDraft';
 import './styles/formBuilder.scss';
 
 const PAN_TAB_KEY = 'pan-new-application';
+const CORRECTION_TAB_KEY = 'pan-correction';
+const MARRIAGE_TAB_KEY = 'marriage-registration';
 
 /**
  * Registry of the forms available in the builder. Adding a new form is only a
@@ -24,23 +35,59 @@ const FORM_TABS = [
       <PanCardBuilder data={data} onChange={onChange} previewPages={previewPages} />
     ),
   },
+  {
+    key: CORRECTION_TAB_KEY,
+    label: 'PAN Card – Correction',
+    badge: 'Request',
+    // Pages 3–4 of the template are the printed guidelines.
+    previewPages: CORRECTION_FORM_PAGES,
+    render: ({ data, onChange, previewPages }) => (
+      <CorrectionPanBuilder data={data} onChange={onChange} previewPages={previewPages} />
+    ),
+  },
+  {
+    key: MARRIAGE_TAB_KEY,
+    label: 'Marriage Registration',
+    badge: 'Gujarat',
+    previewPages: MARRIAGE_FORM_PAGES,
+    render: ({ data, onChange, previewPages }) => (
+      <MarriageBuilder data={data} onChange={onChange} previewPages={previewPages} />
+    ),
+  },
 ];
 
 export default function FormBuilderPage() {
-  const restoredDraft = useMemo(() => readPanDraft(), []);
+  const restoredDrafts = useMemo(
+    () => ({
+      pan: readPanDraft(),
+      correction: readPanDraft(CORRECTION_DRAFT_KEY, createCorrectionPanData),
+      marriage: readPanDraft(MARRIAGE_DRAFT_KEY, createMarriageData),
+    }),
+    []
+  );
   const notified = useRef(false);
 
   const [activeKey, setActiveKey] = useState(FORM_TABS[0].key);
   const [formState, setFormState] = useState(() => ({
-    [PAN_TAB_KEY]: restoredDraft?.data || createPanData(),
+    [PAN_TAB_KEY]: restoredDrafts.pan?.data || createPanData(),
+    [CORRECTION_TAB_KEY]: restoredDrafts.correction?.data || createCorrectionPanData(),
+    [MARRIAGE_TAB_KEY]: restoredDrafts.marriage?.data || createMarriageData(),
   }));
 
   useEffect(() => {
-    if (!restoredDraft?.savedAt || notified.current) return;
+    if (notified.current) return;
+    const saved = [restoredDrafts.pan, restoredDrafts.correction, restoredDrafts.marriage].filter(
+      (draft) => draft?.savedAt
+    );
+    if (saved.length === 0) return;
     notified.current = true;
-    const when = new Date(restoredDraft.savedAt);
-    message.info(`Restored the draft saved on this device on ${when.toLocaleString()}.`);
-  }, [restoredDraft]);
+    const latest = saved
+      .map((draft) => new Date(draft.savedAt))
+      .sort((a, b) => b - a)[0];
+    message.info(
+      `Restored ${saved.length === 1 ? 'the draft' : 'the drafts'} saved on this device on ${latest.toLocaleString()}.`
+    );
+  }, [restoredDrafts]);
 
   // Accepts a plain value or an updater function (used by the async uploads,
   // where several images can finish at the same time).
@@ -59,9 +106,6 @@ export default function FormBuilderPage() {
           </span>
           <div>
             <div className="fbs-brand-title">Form Builder</div>
-            <div className="fbs-brand-subtitle">
-              Fill the original government PDF — the printed layout is never redrawn.
-            </div>
           </div>
         </div>
 

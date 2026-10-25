@@ -44,11 +44,17 @@ export function fitPlacement(box, aspect, { align = 'center', inset = 5 } = {}) 
   return { x: round2(x), y: round2(y), w: round2(w) };
 }
 
-/** Default placement on page 1 (photograph) and page 2 (signature box). */
-export function createSignaturePlacements(aspect = DEFAULT_SIGNATURE_ASPECT) {
+/**
+ * Default placement on page 1 (photograph) and page 2 (signature box).
+ * Pass `boxes` when the form has its signature box in a different place.
+ */
+export function createSignaturePlacements(
+  aspect = DEFAULT_SIGNATURE_ASPECT,
+  boxes = { page1: PAN_LAYOUT.page1.photoLeft, page2: PAN_LAYOUT.page2.signature }
+) {
   return {
-    page1: fitPlacement(PAN_LAYOUT.page1.photoLeft, aspect, { align: 'bottom' }),
-    page2: fitPlacement(PAN_LAYOUT.page2.signature, aspect),
+    page1: fitPlacement(boxes.page1, aspect, { align: 'bottom' }),
+    page2: fitPlacement(boxes.page2, aspect),
   };
 }
 

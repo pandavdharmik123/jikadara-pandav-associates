@@ -61,7 +61,7 @@ function toFormChars(value) {
  * `align: 'right'` keeps the digits flush with the last box (used for country
  * codes, e.g. "91" in a 3-box field prints in the 2nd and 3rd boxes).
  */
-function pushGrid(ops, page, rows, value, { align = 'left' } = {}) {
+export function pushGrid(ops, page, rows, value, { align = 'left' } = {}) {
   if (!value) return;
   const rowList = Array.isArray(rows) ? rows : [rows];
   const chars = toFormChars(value);
@@ -93,7 +93,7 @@ function pushGrid(ops, page, rows, value, { align = 'left' } = {}) {
   }
 }
 
-function pushText(ops, page, box, value, { uppercase = true, maxSize = PAN_VALUE_SIZE, align = 'left' } = {}) {
+export function pushText(ops, page, box, value, { uppercase = true, maxSize = PAN_VALUE_SIZE, align = 'left' } = {}) {
   const text = (uppercase ? upper(value) : String(value || '')).trim();
   if (!text) return;
   const size = fitFontSize(text, box.w - 4, maxSize);
@@ -110,12 +110,12 @@ function pushText(ops, page, box, value, { uppercase = true, maxSize = PAN_VALUE
   });
 }
 
-function pushTick(ops, page, box, selected) {
+export function pushTick(ops, page, box, selected) {
   if (!selected) return;
   ops.push({ type: 'tick', page, x: box.x, y: box.top, w: box.w, h: box.h });
 }
 
-function pushAddress(ops, page, layout, value = {}) {
+export function pushAddress(ops, page, layout, value = {}) {
   pushGrid(ops, page, layout.flat, value.flat);
   pushGrid(ops, page, layout.road, value.road);
   pushGrid(ops, page, layout.post, value.post);
