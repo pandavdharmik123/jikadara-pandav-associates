@@ -282,6 +282,7 @@ export default function AdminUsers() {
         cancelText="Cancel"
         width={680}
         style={{ top: 20 }}
+        rootClassName='user-creation-modal'
       >
         <Form
           form={form}

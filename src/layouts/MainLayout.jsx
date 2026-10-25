@@ -144,6 +144,11 @@ export default function MainLayout() {
       icon: <GitFork size={20} />,
       label: 'Pedhinamu Builder',
     },
+    {
+      key: '/app/tools/form-builder',
+      icon: <FileSignature size={20} />,
+      label: 'Form Builder',
+    },
   ];
 
   if (user?.role === 'ADMIN') {
@@ -431,7 +436,16 @@ export default function MainLayout() {
           </div>
         </Header>
 
-        <Content style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
+        <Content
+          style={{
+            flex: 1,
+            padding: location.pathname.includes('/form-builder') ? 0 : '16px',
+            overflowY: location.pathname.includes('/form-builder') ? 'hidden' : 'auto',
+            ...(location.pathname.includes('/form-builder')
+              ? { display: 'flex', flexDirection: 'column' }
+              : {}),
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>

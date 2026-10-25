@@ -30,6 +30,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/number_to_words', label: 'Numbers to Words', description: 'Cheque/legal word formatting' },
       { key: '/app/tools/document-ai', label: 'Document AI & OCR', description: 'Gujarati OCR & text extraction' },
       { key: '/app/tools/pedhinamu', label: 'Pedhinamu Builder', description: 'Dynamic 2-Page Legal Landscape Family Tree' },
+      { key: '/app/tools/form-builder', label: 'Form Builder', description: 'Fill original government PDF forms (PAN Card – new application)' },
     ],
   },
 ];

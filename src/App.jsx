@@ -34,6 +34,7 @@ import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
 import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWordsConverter';
 import DocumentAI from './features/DocumentAI/DocumentAI';
 import PedhinamuBuilder from './features/PedhinamuBuilder/PedhinamuBuilder';
+import FormBuilderPage from './features/FormBuilder/FormBuilderPage';
 
 // Styles
 import './styles/main.scss';
@@ -244,6 +245,10 @@ export default function App() {
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/pedhinamu" />}>
                     <Route path="pedhinamu" element={<PedhinamuBuilder currentAccentColor={currentAccentColor} />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/form-builder" />}>
+                    <Route path="form-builder" element={<FormBuilderPage />} />
                   </Route>
                 </Route>
               </Route>
