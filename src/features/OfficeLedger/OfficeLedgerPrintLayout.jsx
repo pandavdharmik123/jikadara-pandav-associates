@@ -374,10 +374,7 @@ export default function OfficeLedgerPrintLayout({
           fontSize: '10px',
           color: '#64748b',
         }}
-      >
-        <span>Office Income & Expenses ledger</span>
-        <span>Generated from the Office Income & Expenses module</span>
-      </div>
+      />
     </div>
   );
 }
