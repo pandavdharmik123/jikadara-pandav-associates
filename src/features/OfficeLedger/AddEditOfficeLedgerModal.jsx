@@ -1,5 +1,14 @@
 import { useEffect } from 'react';
-import { Col, DatePicker, Form, InputNumber, Modal, Row, message } from 'antd';
+import {
+  Col,
+  DatePicker,
+  Form,
+  InputNumber,
+  Modal,
+  Row,
+  Select,
+  message,
+} from 'antd';
 import dayjs from 'dayjs';
 import TransliterateInput from '../../components/TransliterateInput';
 import {
@@ -7,6 +16,16 @@ import {
   useUpdateOfficeLedgerEntry,
 } from '../../hooks/useOfficeLedger';
 import { toISTDateString } from '../../utils/istDate';
+
+const EXPENSE_TYPE_OPTIONS = [
+  { label: 'પ્રિન્ટર રિફિલિંગ', value: 'પ્રિન્ટર રિફિલિંગ' },
+  { label: 'લાઈટ બિલ', value: 'લાઈટ બિલ' },
+  { label: 'બિલ્ડીંગ મેન્ટેનન્સ', value: 'બિલ્ડીંગ મેન્ટેનન્સ' },
+  { label: 'ઓફિસ ભાડું', value: 'ઓફિસ ભાડું' },
+  { label: 'કામવાળા માસી', value: 'કામવાળા માસી' },
+  { label: 'સ્ટેશનરી', value: 'સ્ટેશનરી' },
+  { label: 'અન્ય', value: 'અન્ય' },
+];
 
 function getDefaultEntryDate(fyRange) {
   if (!fyRange) return dayjs();
@@ -36,15 +55,31 @@ export default function AddEditOfficeLedgerModal({
   const accent = isIncome ? '#059669' : '#dc2626';
   const accentSoft = isIncome ? '#ecfdf5' : '#fef2f2';
 
+  // Keep any custom expense type already saved on an older record selectable
+  // while editing, so saving does not silently lose it.
+  const existingExpenseType = !isIncome ? record?.expenseType || '' : '';
+  const expenseTypeOptions =
+    existingExpenseType &&
+    !EXPENSE_TYPE_OPTIONS.some((option) => option.value === existingExpenseType)
+      ? [
+          ...EXPENSE_TYPE_OPTIONS,
+          { label: existingExpenseType, value: existingExpenseType },
+        ]
+      : EXPENSE_TYPE_OPTIONS;
+
   useEffect(() => {
     if (!open) return;
 
     form.resetFields();
     if (record) {
+      const recordExpenseType =
+        record.entryType === 'EXPENSE' ? record.expenseType || '' : '';
+
       form.setFieldsValue({
         entryDate: dayjs(toISTDateString(record.entryDate)),
         details: record.details || '',
         amount: Number(record.amount) || undefined,
+        expenseType: recordExpenseType || undefined,
       });
     } else {
       form.setFieldsValue({
@@ -64,11 +99,13 @@ export default function AddEditOfficeLedgerModal({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      const expenseType = isIncome ? null : values.expenseType?.trim();
       const payload = {
         fyStartDate: fyRange.startDate,
         fyEndDate: fyRange.endDate,
         entryType: resolvedEntryType,
         entryDate: values.entryDate.format('YYYY-MM-DD'),
+        expenseType,
         details: values.details.trim(),
         amount: Number(values.amount),
       };
@@ -94,6 +131,9 @@ export default function AddEditOfficeLedgerModal({
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
+    // Note: the modal body intentionally has no `overflow` style — a scroll
+    // container there clips the transliteration suggestion dropdown. The
+    // modal wrapper already scrolls when the form is taller than the viewport.
     <Modal
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -173,6 +213,22 @@ export default function AddEditOfficeLedgerModal({
             </Form.Item>
           </Col>
         </Row>
+
+        {!isIncome && (
+          <Form.Item
+            name="expenseType"
+            label={<span style={{ fontWeight: 600 }}>Expense Type</span>}
+            rules={[{ required: true, message: 'Please select the expense type' }]}
+          >
+            <Select
+              size="middle"
+              placeholder="Select expense type"
+              options={expenseTypeOptions}
+              showSearch
+              optionFilterProp="label"
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="details"

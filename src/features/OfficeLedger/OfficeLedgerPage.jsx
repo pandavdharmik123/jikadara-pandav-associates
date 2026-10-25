@@ -146,7 +146,16 @@ function LedgerSection({
               wordBreak: 'break-word',
             }}
           >
-            {value}
+            {/* "અન્ય" is a generic bucket, so show only the description for it. */}
+            {!isIncome && record.expenseType && record.expenseType !== 'અન્ય' ? (
+              <>
+                <span style={{ fontWeight: 700, color: accent }}>{record.expenseType}</span>
+                <span style={{ color: '#94a3b8' }}> - </span>
+                {value}
+              </>
+            ) : (
+              value
+            )}
           </Text>
         );
       },
@@ -302,7 +311,7 @@ function LedgerSection({
           rowKey="id"
           loading={loading}
           size="small"
-          scroll={{ x: compact ? 330 : 390 }}
+          scroll={paddedEntries.length > 0 ? { x: compact ? 330 : 390 } : undefined}
           pagination={false}
           rowClassName={(record) => (record.isEmpty ? 'office-ledger-empty-row' : '')}
           locale={{
@@ -1056,7 +1065,7 @@ function OfficeLedgerPageContent() {
               onAdd={() => openAddModal('INCOME')}
               onEdit={openEditModal}
               onDelete={handleDelete}
-              loading={isFetching}
+              loading={isFetching && !data}
               compact={isMobile}
               minRows={maxLedgerRows}
             />
@@ -1069,7 +1078,7 @@ function OfficeLedgerPageContent() {
               onAdd={() => openAddModal('EXPENSE')}
               onEdit={openEditModal}
               onDelete={handleDelete}
-              loading={isFetching}
+              loading={isFetching && !data}
               compact={isMobile}
               minRows={maxLedgerRows}
             />

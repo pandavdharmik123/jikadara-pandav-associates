@@ -351,10 +351,10 @@
   }
 
   .ant-table-placeholder {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    > td {
+      padding: 0 !important;
+      vertical-align: middle;
+    }
   }
 }
 
