@@ -15,6 +15,7 @@ import Dashboard from './features/Dashboard/Dashboard';
 import ClientRoutes from './features/Clients';
 import TaskRoutes from './features/Tasks';
 import ExpenseReport from './features/Reports/ExpenseReport';
+import OfficeLedgerPage from './features/OfficeLedger/OfficeLedgerPage';
 import UpadList from './features/Upad/UpadList';
 import NondhStatusList from './features/NondhStatus/NondhStatusList';
 import AdminUsers from './features/Admin/AdminUsers';
@@ -158,6 +159,10 @@ export default function App() {
 
                 <Route element={<ProtectedRoute pageKey="/app/reports" />}>
                   <Route path="reports" element={<ExpenseReport />} />
+                </Route>
+
+                <Route element={<ProtectedRoute pageKey="/app/office-expenses" />}>
+                  <Route path="office-expenses" element={<OfficeLedgerPage />} />
                 </Route>
 
                 <Route element={<ProtectedRoute pageKey="/app/upad" />}>

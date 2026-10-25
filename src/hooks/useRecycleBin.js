@@ -31,6 +31,7 @@ export const useRestoreItem = () => {
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['officeLedger'] });
       queryClient.invalidateQueries({ queryKey: ['upads'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
@@ -57,6 +58,7 @@ export const usePermanentDeleteItem = () => {
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['officeLedger'] });
       queryClient.invalidateQueries({ queryKey: ['upads'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['documentTypes'] });
@@ -81,6 +83,7 @@ export const useEmptyRecycleBin = () => {
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['generalExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['officeLedger'] });
       queryClient.invalidateQueries({ queryKey: ['upads'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['documentTypes'] });

@@ -12,6 +12,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tasks', label: 'Tasks', description: 'Task, case & financial ledger tracking' },
       { key: '/app/nondh-status', label: 'Nondh Status', description: 'Revenue mutation & nondh status tracking' },
       { key: '/app/reports', label: 'Reports', description: 'Monthly & yearly financial reports' },
+      { key: '/app/office-expenses', label: 'Income & Expenses', description: 'Isolated office income and expense ledger' },
       { key: '/app/upad', label: 'Upad List', description: 'User profit withdrawal ledger' },
       { key: '/app/recycle-bin', label: 'Recycle Bin', description: 'Restoration & permanent removal of deleted items' },
       { key: '/app/admin/document-types', label: 'Document Types', description: 'Document type configurations' },
