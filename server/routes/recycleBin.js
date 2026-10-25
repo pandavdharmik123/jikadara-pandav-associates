@@ -11,6 +11,10 @@ const getUserFilter = (req) => {
   return req.user.role === 'ADMIN' ? {} : { userId: req.user.id };
 };
 
+// Office ledger entries stay user-scoped even for admins because the module has
+// strict per-user isolation and is not part of the shared financial ledger.
+const getOfficeLedgerFilter = (req) => ({ userId: req.user.id });
+
 /**
  * GET /api/recycle-bin
  * Fetch all soft-deleted items across all entities
@@ -24,6 +28,7 @@ router.get('/', requireAuth, async (req, res) => {
       tasks,
       transactions,
       generalExpenses,
+      officeLedgerEntries,
       upads,
       invoices,
       pedhinamus,
@@ -58,6 +63,13 @@ router.get('/', requireAuth, async (req, res) => {
       }),
       prisma.generalExpense.findMany({
         where: { isDeleted: true, ...userFilter },
+        include: {
+          user: { select: { name: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+      }),
+      prisma.officeLedgerEntry.findMany({
+        where: { isDeleted: true, ...getOfficeLedgerFilter(req) },
         include: {
           user: { select: { name: true } },
         },
@@ -102,6 +114,7 @@ router.get('/', requireAuth, async (req, res) => {
       tasks: tasks.length,
       transactions: transactions.length,
       generalExpenses: generalExpenses.length,
+      officeLedgerEntries: officeLedgerEntries.length,
       upads: upads.length,
       invoices: invoices.length,
       pedhinamus: pedhinamus.length,
@@ -112,6 +125,7 @@ router.get('/', requireAuth, async (req, res) => {
         tasks.length +
         transactions.length +
         generalExpenses.length +
+        officeLedgerEntries.length +
         upads.length +
         invoices.length +
         pedhinamus.length +
@@ -126,6 +140,7 @@ router.get('/', requireAuth, async (req, res) => {
         tasks,
         transactions,
         generalExpenses,
+        officeLedgerEntries,
         upads,
         invoices,
         pedhinamus,
@@ -303,6 +318,22 @@ router.post('/restore', requireAuth, async (req, res) => {
         return res.json({ message: 'General expense restored successfully' });
       }
 
+      case 'OFFICE_LEDGER': {
+        const existing = await prisma.officeLedgerEntry.findFirst({
+          where: { id, isDeleted: true, ...getOfficeLedgerFilter(req) },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Deleted office ledger entry not found' });
+        }
+
+        await prisma.officeLedgerEntry.update({
+          where: { id },
+          data: { isDeleted: false, deletedAt: null },
+        });
+
+        return res.json({ message: 'Office ledger entry restored successfully' });
+      }
+
       case 'UPAD': {
         const existing = await prisma.upad.findFirst({
           where: { id, isDeleted: true, ...userFilter },
@@ -476,6 +507,17 @@ router.delete('/permanent', requireAuth, async (req, res) => {
         return res.json({ message: 'General expense permanently deleted' });
       }
 
+      case 'OFFICE_LEDGER': {
+        const existing = await prisma.officeLedgerEntry.findFirst({
+          where: { id, isDeleted: true, ...getOfficeLedgerFilter(req) },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Item not found in Recycle Bin' });
+        }
+        await prisma.officeLedgerEntry.delete({ where: { id } });
+        return res.json({ message: 'Office ledger entry permanently deleted' });
+      }
+
       case 'UPAD': {
         const existing = await prisma.upad.findFirst({
           where: { id, isDeleted: true, ...userFilter },
@@ -556,6 +598,7 @@ router.delete('/empty', requireAuth, async (req, res) => {
         prisma.task.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.client.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.generalExpense.deleteMany({ where: { isDeleted: true, ...userFilter } }),
+        prisma.officeLedgerEntry.deleteMany({ where: { isDeleted: true, ...getOfficeLedgerFilter(req) } }),
         prisma.upad.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.jantriCalculation.deleteMany({ where: { isDeleted: true, ...userFilter } }),
@@ -578,6 +621,11 @@ router.delete('/empty', requireAuth, async (req, res) => {
         break;
       case 'GENERAL_EXPENSE':
         await prisma.generalExpense.deleteMany({ where: { isDeleted: true, ...userFilter } });
+        break;
+      case 'OFFICE_LEDGER':
+        await prisma.officeLedgerEntry.deleteMany({
+          where: { isDeleted: true, ...getOfficeLedgerFilter(req) },
+        });
         break;
       case 'UPAD':
         await prisma.upad.deleteMany({ where: { isDeleted: true, ...userFilter } });

@@ -28,6 +28,7 @@ import {
   Trash2,
   GitFork,
   FileCheck,
+  Receipt,
   CloudUpload
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
@@ -210,6 +211,11 @@ export default function MainLayout() {
         key: '/app/reports',
         icon: <BarChart2 size={20} />,
         label: 'Reports',
+      },
+      {
+        key: '/app/office-expenses',
+        icon: <Receipt size={20} />,
+        label: 'Office Reports',
       },
       {
         key: '/app/upad',

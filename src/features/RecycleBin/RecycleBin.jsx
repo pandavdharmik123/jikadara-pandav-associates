@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, Tabs, Input, Modal, Popconfirm, message, Badge } from 'antd';
 import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files, GitFork } from 'lucide-react';
 import { useRecycleBin, useRestoreItem, usePermanentDeleteItem, useEmptyRecycleBin } from '../../hooks/useRecycleBin';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/currency';
+import { formatISTDate } from '../../utils/istDate';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -23,6 +24,7 @@ export default function RecycleBin() {
     tasks: 0,
     transactions: 0,
     generalExpenses: 0,
+    officeLedgerEntries: 0,
     upads: 0,
     invoices: 0,
     pedhinamus: 0,
@@ -35,6 +37,7 @@ export default function RecycleBin() {
     tasks: [],
     transactions: [],
     generalExpenses: [],
+    officeLedgerEntries: [],
     upads: [],
     invoices: [],
     pedhinamus: [],
@@ -102,6 +105,22 @@ export default function RecycleBin() {
         details: '',
         deletedAt: ge.deletedAt,
         amount: Number(ge.amount) || 0,
+      });
+    });
+
+    // Office Ledger
+    (rawData.officeLedgerEntries || []).forEach((entry) => {
+      const isIncome = entry.entryType === 'INCOME';
+      list.push({
+        id: entry.id,
+        type: 'OFFICE_LEDGER',
+        typeName: isIncome ? 'Office Income' : 'Office Expense',
+        typeColor: isIncome ? 'green' : 'volcano',
+        title: entry.details || 'Office Ledger Entry',
+        subtitle: `${isIncome ? 'Income' : 'Expense'} • Date: ${formatISTDate(entry.entryDate)}`,
+        details: '',
+        deletedAt: entry.deletedAt,
+        amount: Number(entry.amount) || 0,
       });
     });
 
@@ -383,6 +402,16 @@ export default function RecycleBin() {
           <Receipt size={14} />
           <span>General Expenses</span>
           <Badge count={counts.generalExpenses} overflowCount={999} style={{ backgroundColor: '#d946ef' }} />
+        </Space>
+      ),
+    },
+    {
+      key: 'OFFICE_LEDGER',
+      label: (
+        <Space size="small">
+          <Receipt size={14} />
+          <span>Office Ledger</span>
+          <Badge count={counts.officeLedgerEntries} overflowCount={999} style={{ backgroundColor: '#f97316' }} />
         </Space>
       ),
     },
