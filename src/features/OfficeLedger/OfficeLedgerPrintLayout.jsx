@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { formatCurrency, formatCurrencyPrecise } from '../../utils/currency';
 import { formatISTDate } from '../../utils/istDate';
 
-function PrintLedgerTable({ title, entries, total, accent, soft, border }) {
+function PrintLedgerTable({ title, entries, total, accent, soft, border, showExpenseType = false }) {
   return (
     <div
       style={{
@@ -76,7 +76,16 @@ function PrintLedgerTable({ title, entries, total, accent, soft, border }) {
                   {formatISTDate(entry.entryDate)}
                 </td>
                 <td style={{ padding: '6px 7px', color: '#0f172a', wordBreak: 'break-word' }}>
-                  {entry.details}
+                  {/* "અન્ય" is a generic bucket, so show only the description for it. */}
+                  {showExpenseType && entry.expenseType && entry.expenseType !== 'અન્ય' ? (
+                    <>
+                      <span style={{ fontWeight: 700, color: accent }}>{entry.expenseType}</span>
+                      <span style={{ color: '#94a3b8' }}> - </span>
+                      {entry.details}
+                    </>
+                  ) : (
+                    entry.details
+                  )}
                 </td>
                 <td
                   style={{
@@ -359,6 +368,7 @@ export default function OfficeLedgerPrintLayout({
           accent="#dc2626"
           soft="#fef2f2"
           border="#fecaca"
+          showExpenseType
         />
       </div>
 

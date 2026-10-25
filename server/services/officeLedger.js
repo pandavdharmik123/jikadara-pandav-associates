@@ -5,6 +5,7 @@ const entrySelect = {
   id: true,
   entryType: true,
   entryDate: true,
+  expenseType: true,
   details: true,
   amount: true,
   createdAt: true,

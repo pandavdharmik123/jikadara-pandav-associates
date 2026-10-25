@@ -116,7 +116,10 @@ export default function RecycleBin() {
         type: 'OFFICE_LEDGER',
         typeName: isIncome ? 'Office Income' : 'Office Expense',
         typeColor: isIncome ? 'green' : 'volcano',
-        title: entry.details || 'Office Ledger Entry',
+        title:
+          !isIncome && entry.expenseType
+            ? [entry.expenseType, entry.details].filter(Boolean).join(' - ')
+            : entry.details || 'Office Ledger Entry',
         subtitle: `${isIncome ? 'Income' : 'Expense'} • Date: ${formatISTDate(entry.entryDate)}`,
         details: '',
         deletedAt: entry.deletedAt,

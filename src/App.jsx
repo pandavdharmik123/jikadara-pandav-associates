@@ -77,7 +77,19 @@ window.fetch = async function (input, init) {
 };
 
 // Create a client
-const queryClient = new QueryClient();
+// Cached data stays "fresh" for a short while so simply switching tabs/pages
+// (or coming back to the browser tab) does not trigger a brand new network
+// request every single time. Mutations still invalidate their own query keys,
+// so screens refresh immediately after create/update/delete.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AppIndexRedirect() {
   const { user } = useAuthStore();

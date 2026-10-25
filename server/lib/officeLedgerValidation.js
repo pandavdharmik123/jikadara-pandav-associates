@@ -2,6 +2,7 @@ import { startOfDayIST, endOfDayIST, startOfMonthIST, endOfMonthIST } from './da
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_AMOUNT = 9999999999.99;
+const MAX_EXPENSE_TYPE_LENGTH = 120;
 const ENTRY_TYPES = new Set(['INCOME', 'EXPENSE']);
 
 export class OfficeLedgerValidationError extends Error {
@@ -179,6 +180,23 @@ export function parseEntryPayload(body = {}, { partial = false, fy } = {}) {
 
   if (!partial || has('entryType')) {
     data.entryType = parseEntryType(body.entryType, { required: true });
+  }
+
+  const expenseTypeProvided = has('expenseType');
+
+  if (!partial || expenseTypeProvided || data.entryType) {
+    if (data.entryType === 'INCOME') {
+      // Income entries never carry an expense type.
+      data.expenseType = null;
+    } else {
+      const expenseType = parseOptionalText(
+        body.expenseType,
+        'Expense type',
+        MAX_EXPENSE_TYPE_LENGTH
+      );
+      if (!expenseType) fail('Expense type is required');
+      data.expenseType = expenseType;
+    }
   }
 
   if (!partial || has('details')) {
