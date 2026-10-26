@@ -351,7 +351,7 @@
   }
 
   .ant-table-placeholder {
-    > td {
+    >td {
       padding: 0 !important;
       vertical-align: middle;
     }
@@ -365,7 +365,15 @@
     cursor: default !important;
   }
 
-  &:hover > td {
+  &:hover>td {
     background: transparent !important;
+  }
+}
+
+.user-creation-modal {
+  .ant-modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: scroll;
+    overflow-x: hidden;
   }
 }
