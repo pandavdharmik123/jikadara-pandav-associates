@@ -89,10 +89,54 @@ function Overlay({ ops, aspect, dragPreview, onImagePointerDown }) {
             <span
               key={key}
               className="fbs-op fbs-op-text"
-              style={{ left: op.x, top: op.y, width: op.w, height: op.h, fontSize: op.size, lineHeight: `${op.h}px` }}
+              style={{
+                left: op.x,
+                top: op.y,
+                width: op.w,
+                height: op.h,
+                fontSize: op.size,
+                lineHeight: `${op.h}px`,
+                textAlign: op.align || 'left',
+                fontFamily: op.fontFamily,
+              }}
             >
               {op.text}
             </span>
+          );
+        }
+        if (op.type === 'block') {
+          return (
+            <div
+              key={key}
+              className="fbs-op fbs-op-block"
+              style={{
+                left: op.x,
+                top: op.y,
+                width: op.w,
+                height: op.h,
+                fontSize: op.size,
+                lineHeight: `${op.lineHeight}px`,
+                textAlign: op.align || 'center',
+                fontFamily: op.fontFamily,
+              }}
+            >
+              {(op.lines || []).join('\n')}
+            </div>
+          );
+        }
+        if (op.type === 'rect') {
+          return (
+            <div
+              key={key}
+              className="fbs-op fbs-op-rect"
+              style={{
+                left: op.x,
+                top: op.y,
+                width: op.w,
+                height: op.h,
+                background: op.fill || '#ffffff',
+              }}
+            />
           );
         }
         if (op.type === 'tick') return <Tick key={key} op={op} />;
@@ -165,8 +209,8 @@ export default function PanPdfPreview({
   const ops = useMemo(() => buildOverlays(data), [data, buildOverlays]);
   const signatureAspect = data.signatureAspect || DEFAULT_SIGNATURE_ASPECT;
   const documents = useMemo(
-    () => (data.documents || []).filter((doc) => doc && doc.src),
-    [data.documents]
+    () => (Array.isArray(data?.documents) ? data.documents : []).filter((doc) => doc && doc.src),
+    [data?.documents]
   );
   // Template pages followed by one page per attached document.
   const renderedPages = useMemo(

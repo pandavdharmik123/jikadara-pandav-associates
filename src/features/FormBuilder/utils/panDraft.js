@@ -3,6 +3,7 @@ import { createPanData } from '../constants/panData';
 export const PAN_DRAFT_KEY = 'jikadara:pan-form-93:draft:v1';
 export const CORRECTION_DRAFT_KEY = 'jikadara:pan-correction:draft:v1';
 export const MARRIAGE_DRAFT_KEY = 'jikadara:marriage-registration:draft:v1';
+export const PROPERTY_TAX_DRAFT_KEY = 'jikadara:property-tax-name-transfer:draft:v1';
 
 /** Deep-merge a stored draft over the current defaults (forward compatible). */
 function mergeDefaults(base, patch) {

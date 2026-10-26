@@ -51,11 +51,24 @@ export async function buildPdf(
     buildOverlays = buildPanOverlays,
     formPages = PAN_FORM_PAGES,
     pageSize = PAN_PAGE,
+    // Optional embedded legacy font (e.g. Nilkanth for the property-tax form).
+    fontBytes = null,
+    inkColor = INK,
   } = {}
 ) {
   const template = await loadTemplate(templateUrl);
   const pdfDoc = await PDFDocument.load(template, { ignoreEncryption: true });
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  let font;
+  if (fontBytes) {
+    const fontkitModule = await import('@pdf-lib/fontkit');
+    const fontkit = fontkitModule.default || fontkitModule;
+    pdfDoc.registerFontkit(fontkit);
+    font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  } else {
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  }
+
   const opCache = new Map();
 
   // Drop the note / guideline pages that are not part of the preview.
@@ -64,7 +77,7 @@ export async function buildPdf(
   for (let index = templatePages - 1; index >= keep; index -= 1) pdfDoc.removePage(index);
 
   // One extra page per attached document.
-  const documents = (data.documents || []).filter((doc) => doc && doc.src);
+  const documents = (Array.isArray(data?.documents) ? data.documents : []).filter((doc) => doc && doc.src);
   documents.forEach(() => pdfDoc.addPage([pageSize.width, pageSize.height]));
 
   const pages = pdfDoc.getPages();
@@ -87,17 +100,46 @@ export async function buildPdf(
         y: pageHeight - baselineTop,
         size: op.size,
         font,
-        color: INK,
+        color: inkColor,
       });
     } else if (op.type === 'text') {
       const baselineTop = op.y + op.h / 2 + op.size * 0.36;
+      const width = font.widthOfTextAtSize(op.text, op.size);
+      const x = op.align === 'center' ? op.x + (op.w - width) / 2 : op.x + 1.8;
       page.drawText(op.text, {
-        x: op.x + 1.8,
+        x,
         y: pageHeight - baselineTop,
         size: op.size,
         font,
-        color: INK,
-        maxWidth: Math.max(op.w - 3, 4),
+        color: inkColor,
+        ...(op.align === 'center' ? {} : { maxWidth: Math.max(op.w - 3, 4) }),
+      });
+    } else if (op.type === 'block') {
+      const lines = op.lines || [];
+      const lineHeight = op.lineHeight || op.size * 1.2;
+      const totalHeight = lines.length * lineHeight;
+      const startTop = op.y + Math.max(0, (op.h - totalHeight) / 2);
+
+      lines.forEach((line, index) => {
+        if (!line) return;
+        const width = font.widthOfTextAtSize(line, op.size);
+        const x = op.align === 'center' ? op.x + (op.w - width) / 2 : op.x + 1.8;
+        const baselineTop = startTop + index * lineHeight + lineHeight / 2 + op.size * 0.36;
+        page.drawText(line, {
+          x,
+          y: pageHeight - baselineTop,
+          size: op.size,
+          font,
+          color: inkColor,
+        });
+      });
+    } else if (op.type === 'rect') {
+      page.drawRectangle({
+        x: op.x,
+        y: pageHeight - (op.y + op.h),
+        width: op.w,
+        height: op.h,
+        color: rgb(1, 1, 1),
       });
     } else if (op.type === 'tick') {
       const point = (fx, fy) => ({
@@ -107,8 +149,8 @@ export async function buildPdf(
       const a = point(0.22, 0.54);
       const b = point(0.44, 0.79);
       const c = point(0.83, 0.24);
-      page.drawLine({ start: a, end: b, thickness: 1.5, color: INK, lineCap: LineCapStyle.Round });
-      page.drawLine({ start: b, end: c, thickness: 1.5, color: INK, lineCap: LineCapStyle.Round });
+      page.drawLine({ start: a, end: b, thickness: 1.5, color: inkColor, lineCap: LineCapStyle.Round });
+      page.drawLine({ start: b, end: c, thickness: 1.5, color: inkColor, lineCap: LineCapStyle.Round });
     } else if (op.type === 'image') {
       const image = await embedImage(pdfDoc, op.src, opCache);
       if (image) {

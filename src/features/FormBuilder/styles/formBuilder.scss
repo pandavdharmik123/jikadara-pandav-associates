@@ -965,6 +965,20 @@ textarea.fbs-uppercase::placeholder {
   font-weight: 400;
 }
 
+.fbs-op-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  white-space: pre-wrap;
+  overflow: hidden;
+  font-weight: 400;
+}
+
+.fbs-op-rect {
+  pointer-events: none;
+}
+
 .fbs-op-image {
   object-fit: contain;
 }

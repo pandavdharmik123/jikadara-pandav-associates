@@ -4,14 +4,20 @@ import { message } from 'antd';
 import PanCardBuilder from './PanCardBuilder';
 import CorrectionPanBuilder from './CorrectionPanBuilder';
 import MarriageBuilder from './MarriageBuilder';
+import PropertyTaxBuilder from './PropertyTaxBuilder';
 import { PAN_FORM_PAGES } from './constants/panLayout';
 import { createPanData } from './constants/panData';
 import { CORRECTION_FORM_PAGES } from './constants/correctionPanLayout';
 import { createCorrectionPanData } from './constants/correctionPanData';
 import { createMarriageData, MARRIAGE_FORM_PAGES } from './constants/marriageData';
 import {
+  PROPERTY_TAX_FORM_PAGES,
+} from './constants/propertyTaxLayout';
+import { createPropertyTaxData } from './constants/propertyTaxData';
+import {
   CORRECTION_DRAFT_KEY,
   MARRIAGE_DRAFT_KEY,
+  PROPERTY_TAX_DRAFT_KEY,
   readPanDraft,
 } from './utils/panDraft';
 import './styles/formBuilder.scss';
@@ -19,6 +25,7 @@ import './styles/formBuilder.scss';
 const PAN_TAB_KEY = 'pan-new-application';
 const CORRECTION_TAB_KEY = 'pan-correction';
 const MARRIAGE_TAB_KEY = 'marriage-registration';
+const PROPERTY_TAX_TAB_KEY = 'property-tax-name-transfer';
 
 /**
  * Registry of the forms available in the builder. Adding a new form is only a
@@ -54,6 +61,15 @@ const FORM_TABS = [
       <MarriageBuilder data={data} onChange={onChange} previewPages={previewPages} />
     ),
   },
+  {
+    key: PROPERTY_TAX_TAB_KEY,
+    label: 'Property Tax – Name Transfer',
+    badge: 'SMC 81',
+    previewPages: PROPERTY_TAX_FORM_PAGES,
+    render: ({ data, onChange, previewPages }) => (
+      <PropertyTaxBuilder data={data} onChange={onChange} previewPages={previewPages} />
+    ),
+  },
 ];
 
 export default function FormBuilderPage() {
@@ -62,6 +78,7 @@ export default function FormBuilderPage() {
       pan: readPanDraft(),
       correction: readPanDraft(CORRECTION_DRAFT_KEY, createCorrectionPanData),
       marriage: readPanDraft(MARRIAGE_DRAFT_KEY, createMarriageData),
+      propertyTax: readPanDraft(PROPERTY_TAX_DRAFT_KEY, createPropertyTaxData),
     }),
     []
   );
@@ -72,13 +89,17 @@ export default function FormBuilderPage() {
     [PAN_TAB_KEY]: restoredDrafts.pan?.data || createPanData(),
     [CORRECTION_TAB_KEY]: restoredDrafts.correction?.data || createCorrectionPanData(),
     [MARRIAGE_TAB_KEY]: restoredDrafts.marriage?.data || createMarriageData(),
+    [PROPERTY_TAX_TAB_KEY]: restoredDrafts.propertyTax?.data || createPropertyTaxData(),
   }));
 
   useEffect(() => {
     if (notified.current) return;
-    const saved = [restoredDrafts.pan, restoredDrafts.correction, restoredDrafts.marriage].filter(
-      (draft) => draft?.savedAt
-    );
+    const saved = [
+      restoredDrafts.pan,
+      restoredDrafts.correction,
+      restoredDrafts.marriage,
+      restoredDrafts.propertyTax,
+    ].filter((draft) => draft?.savedAt);
     if (saved.length === 0) return;
     notified.current = true;
     const latest = saved
