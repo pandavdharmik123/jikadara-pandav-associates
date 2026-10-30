@@ -1482,7 +1482,7 @@ export default function PageEditModal({
                     }}
                     className="studio-secondary-btn"
                   >
-                    Save & Export PDF
+                    Save & Export
                   </Button>
                 )}
 

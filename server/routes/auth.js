@@ -12,6 +12,14 @@ import {
   verifyAndConsumeBackupCode,
 } from '../lib/twoFactor.js';
 import { sendEmailOtp, maskEmail } from '../lib/emailService.js';
+import {
+  ACCESS_TOKEN_TTL,
+  RefreshTokenError,
+  createSessionTokens,
+  revokeRefreshToken,
+  rotateRefreshToken,
+  signAccessToken,
+} from '../lib/tokens.js';
 
 const router = Router();
 
@@ -74,14 +82,10 @@ export function maskMobile(phone) {
 }
 
 /**
- * Generate JWT token for a user session
+ * Issue a short-lived access token plus a rotating refresh token.
  */
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, email: user.email, name: user.name, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '3h' }
-  );
+async function startSession(user, req) {
+  return createSessionTokens(user, req.get('user-agent'));
 }
 
 /**
@@ -173,16 +177,57 @@ router.post('/login', async (req, res) => {
     }
 
     // 2FA not enabled: issue full session directly
-    const token = generateToken(user);
+    const session = await startSession(user, req);
 
     res.json({
       require2FA: false,
       user: sanitizeUser(user),
-      token,
+      ...session,
     });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+/**
+ * POST /api/auth/refresh
+ * Rotate a refresh token and issue a fresh short-lived access token.
+ * Public: the refresh token itself is the credential.
+ */
+router.post('/refresh', async (req, res) => {
+  try {
+    const rotated = await rotateRefreshToken(req.body?.refreshToken, {
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      user: sanitizeUser(rotated.user),
+      token: signAccessToken(rotated.user, rotated.familyId),
+      refreshToken: rotated.token,
+      refreshTokenExpiresAt: rotated.expiresAt.toISOString(),
+      accessTokenTtl: ACCESS_TOKEN_TTL,
+    });
+  } catch (err) {
+    if (err instanceof RefreshTokenError) {
+      return res.status(err.status).json({ error: err.message, code: 'REFRESH_FAILED' });
+    }
+    console.error('Refresh token error:', err);
+    res.status(500).json({ error: 'Failed to refresh session' });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Revoke the refresh-token family. Safe to call without a valid access token.
+ */
+router.post('/logout', async (req, res) => {
+  try {
+    await revokeRefreshToken(req.body?.refreshToken);
+    res.status(204).end();
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({ error: 'Failed to log out' });
   }
 });
 
@@ -244,13 +289,13 @@ router.post('/2fa/verify-login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid 6-digit code or backup code. Please check and try again.' });
     }
 
-    // Generate final session JWT token
-    const token = generateToken(user);
+    // Generate final session tokens
+    const session = await startSession(user, req);
 
     res.json({
       message: usedBackupCode ? 'Logged in with backup code' : 'Verification successful',
       user: sanitizeUser(user),
-      token,
+      ...session,
     });
   } catch (err) {
     console.error('Verify 2FA login error:', err);
@@ -403,12 +448,12 @@ router.post('/2fa/verify-email-otp', async (req, res) => {
       },
     });
 
-    const token = generateToken(user);
+    const session = await startSession(user, req);
 
     res.json({
       message: 'Email OTP verified successfully',
       user: sanitizeUser(user),
-      token,
+      ...session,
     });
   } catch (err) {
     console.error('Verify email OTP error:', err);

@@ -307,20 +307,99 @@
         }
       }
 
-      .replace-upload-link {
-        display: block;
-        margin-top: 4px;
-        text-align: right;
+      .uploaded-file-list {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 150px;
+        overflow-y: auto;
+        padding-right: 2px;
 
-        .replace-file-btn {
+        .uploaded-file-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #ffffff;
+          border: 1px solid #eef2f7;
+          border-radius: 6px;
+          padding: 4px 6px;
+          color: #64748b;
+
+          .uploaded-file-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 11px;
+            font-weight: 500;
+            color: #334155;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .uploaded-file-pages {
+            flex-shrink: 0;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #6366f1;
+            background: #eef2ff;
+            border-radius: 8px;
+            padding: 1px 6px;
+          }
+
+          .uploaded-file-remove {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: #94a3b8;
+
+            &:hover {
+              color: #ef4444;
+              background: #fee2e2;
+            }
+          }
+        }
+      }
+
+      .file-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+
+        .replace-upload-link {
+          display: inline-block;
+          margin-top: 0;
+
+          .replace-file-btn {
+            font-size: 11px;
+            font-weight: 500;
+            color: #6366f1;
+            padding: 0;
+            height: auto;
+
+            &:hover {
+              color: #4338ca;
+              text-decoration: underline;
+            }
+          }
+        }
+
+        .clear-all-files-btn {
           font-size: 11px;
           font-weight: 500;
-          color: #6366f1;
+          color: #94a3b8;
           padding: 0;
           height: auto;
 
           &:hover {
-            color: #4338ca;
+            color: #ef4444;
             text-decoration: underline;
           }
         }

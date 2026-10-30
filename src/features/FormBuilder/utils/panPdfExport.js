@@ -1,0 +1,278 @@
+import { PDFDocument, StandardFonts, rgb, LineCapStyle } from 'pdf-lib';
+import { PAN_FORM_PAGES, PAN_PAGE } from '../constants/panLayout';
+import { buildPanOverlays } from './panOverlay';
+
+export const PAN_TEMPLATE_URL = '/forms/pan-form-93.pdf';
+
+const INK = rgb(0.07, 0.09, 0.15);
+
+const templatePromises = new Map();
+
+/** Fetch an original blank PDF once and keep it in memory. */
+function loadTemplate(url = PAN_TEMPLATE_URL) {
+  if (!templatePromises.has(url)) {
+    const promise = fetch(url).then((response) => {
+      if (!response.ok) throw new Error(`Could not load the PDF template (${response.status}).`);
+      return response.arrayBuffer();
+    });
+    promise.catch(() => templatePromises.delete(url));
+    templatePromises.set(url, promise);
+  }
+  return templatePromises.get(url);
+}
+
+async function embedImage(pdfDoc, src, cache) {
+  if (cache.has(src)) return cache.get(src);
+  let image = null;
+  try {
+    if (src.startsWith('data:image/png')) image = await pdfDoc.embedPng(src);
+    else if (src.startsWith('data:image/jpeg') || src.startsWith('data:image/jpg')) image = await pdfDoc.embedJpg(src);
+  } catch {
+    image = null;
+  }
+  cache.set(src, image);
+  return image;
+}
+
+/**
+ * Fill the original PDF and return its bytes. The template is never rebuilt:
+ * values are drawn on top of the untouched document, so the printed content
+ * stays exactly as supplied.
+ *
+ * Only the pages visible in the preview are exported (`maxPages`, default: the
+ * two fillable form pages). Every attached document image appends one more
+ * page with the image at the size / position chosen on the preview.
+ */
+export async function buildPdf(
+  data,
+  {
+    templateUrl = PAN_TEMPLATE_URL,
+    maxPages = PAN_FORM_PAGES,
+    buildOverlays = buildPanOverlays,
+    formPages = PAN_FORM_PAGES,
+    pageSize = PAN_PAGE,
+    // Optional embedded legacy font (e.g. Nilkanth for the property-tax form).
+    fontBytes = null,
+    // Additional legacy fonts keyed by family, e.g. { ghanshyam: ArrayBuffer }.
+    // Ops may request one of these through their `fontFamily` property.
+    extraFonts = {},
+    inkColor = INK,
+  } = {}
+) {
+  const template = await loadTemplate(templateUrl);
+  const pdfDoc = await PDFDocument.load(template, { ignoreEncryption: true });
+
+  let font;
+  if (fontBytes) {
+    const fontkitModule = await import('@pdf-lib/fontkit');
+    const fontkit = fontkitModule.default || fontkitModule;
+    pdfDoc.registerFontkit(fontkit);
+    font = await pdfDoc.embedFont(fontBytes, { subset: true });
+  } else {
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  }
+
+  const extraFontCache = new Map();
+  const resolveFont = async (op) => {
+    const family = String(op.fontFamily || '').toLowerCase();
+    const key = Object.keys(extraFonts).find(
+      (name) => extraFonts[name] && family.includes(name.toLowerCase())
+    );
+    if (!key) return font;
+    if (!extraFontCache.has(key)) {
+      const fontkitModule = await import('@pdf-lib/fontkit');
+      const fontkit = fontkitModule.default || fontkitModule;
+      pdfDoc.registerFontkit(fontkit);
+      extraFontCache.set(key, await pdfDoc.embedFont(extraFonts[key], { subset: true }));
+    }
+    return extraFontCache.get(key);
+  };
+
+  const opCache = new Map();
+
+  // Drop the note / guideline pages that are not part of the preview.
+  const templatePages = pdfDoc.getPageCount();
+  const keep = Number.isFinite(maxPages) ? Math.min(Math.max(maxPages, 1), templatePages) : templatePages;
+  for (let index = templatePages - 1; index >= keep; index -= 1) pdfDoc.removePage(index);
+
+  // One extra page per attached document.
+  const documents = (Array.isArray(data?.documents) ? data.documents : []).filter((doc) => doc && doc.src);
+  documents.forEach(() => pdfDoc.addPage([pageSize.width, pageSize.height]));
+
+  const pages = pdfDoc.getPages();
+
+  const ops = buildOverlays(data);
+
+  for (const op of ops) {
+    // Attachments always follow the kept form pages, whatever `maxPages` is.
+    const pageIndex =
+      op.kind === 'document' ? keep + (op.page - formPages) - 1 : op.page - 1;
+    const page = pages[pageIndex];
+    if (!page) continue;
+    const pageHeight = page.getHeight();
+
+    if (op.type === 'char') {
+      const opFont = await resolveFont(op);
+      const width = opFont.widthOfTextAtSize(op.ch, op.size);
+      const baselineTop = op.y + op.h / 2 + op.size * 0.36;
+      page.drawText(op.ch, {
+        x: op.x + (op.w - width) / 2,
+        y: pageHeight - baselineTop,
+        size: op.size,
+        font: opFont,
+        color: inkColor,
+      });
+    } else if (op.type === 'text') {
+      const opFont = await resolveFont(op);
+      const baselineTop = op.y + op.h / 2 + op.size * 0.36;
+      const width = opFont.widthOfTextAtSize(op.text, op.size);
+      const x =
+        op.align === 'center'
+          ? op.x + (op.w - width) / 2
+          : op.align === 'right'
+            ? op.x + op.w - width
+            : op.x + 1.8;
+      page.drawText(op.text, {
+        x,
+        y: pageHeight - baselineTop,
+        size: op.size,
+        font: opFont,
+        color: inkColor,
+        ...(!op.align || op.align === 'left' ? { maxWidth: Math.max(op.w - 3, 4) } : {}),
+      });
+    } else if (op.type === 'block') {
+      const opFont = await resolveFont(op);
+      const lines = op.lines || [];
+      const lineHeight = op.lineHeight || op.size * 1.2;
+      const totalHeight = lines.length * lineHeight;
+      const startTop = op.y + Math.max(0, (op.h - totalHeight) / 2);
+
+      lines.forEach((line, index) => {
+        if (!line) return;
+        const width = opFont.widthOfTextAtSize(line, op.size);
+        const x =
+          op.align === 'center'
+            ? op.x + (op.w - width) / 2
+            : op.align === 'right'
+              ? op.x + op.w - width
+              : op.x + 1.8;
+        const baselineTop = startTop + index * lineHeight + lineHeight / 2 + op.size * 0.36;
+        page.drawText(line, {
+          x,
+          y: pageHeight - baselineTop,
+          size: op.size,
+          font: opFont,
+          color: inkColor,
+        });
+      });
+    } else if (op.type === 'rect') {
+      page.drawRectangle({
+        x: op.x,
+        y: pageHeight - (op.y + op.h),
+        width: op.w,
+        height: op.h,
+        color: rgb(1, 1, 1),
+      });
+    } else if (op.type === 'tick') {
+      const point = (fx, fy) => ({
+        x: op.x + op.w * fx,
+        y: pageHeight - (op.y + op.h * fy),
+      });
+      const a = point(0.22, 0.54);
+      const b = point(0.44, 0.79);
+      const c = point(0.83, 0.24);
+      page.drawLine({ start: a, end: b, thickness: 1.5, color: inkColor, lineCap: LineCapStyle.Round });
+      page.drawLine({ start: b, end: c, thickness: 1.5, color: inkColor, lineCap: LineCapStyle.Round });
+    } else if (op.type === 'image') {
+      const image = await embedImage(pdfDoc, op.src, opCache);
+      if (image) {
+        if (op.kind === 'document') {
+          // Documents use the exact box chosen on the preview (free width / height).
+          page.drawImage(image, {
+            x: op.x,
+            y: pageHeight - (op.y + op.h),
+            width: op.w,
+            height: op.h,
+          });
+        } else {
+          const scale = Math.min(op.w / image.width, op.h / image.height);
+          const drawWidth = image.width * scale;
+          const drawHeight = image.height * scale;
+          page.drawImage(image, {
+            x: op.x + (op.w - drawWidth) / 2,
+            y: pageHeight - (op.y + (op.h + drawHeight) / 2),
+            width: drawWidth,
+            height: drawHeight,
+          });
+        }
+      }
+    }
+  }
+
+  const bytes = await pdfDoc.save();
+  return bytes;
+}
+
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const buildPanPdf = (data, options = {}) => buildPdf(data, options);
+
+const safeName = (value) => String(value || '').replace(/[^a-z0-9]+/gi, '').slice(0, 30);
+
+export async function downloadPdf(data, options = {}) {
+  const bytes = await buildPdf(data, options);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const surname = data?.lastName || data?.nameA?.last;
+  const prefix = options.filePrefix || 'PAN-Application';
+  link.href = url;
+  link.download = `${prefix}${surname ? `-${safeName(surname)}` : ''}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return blob;
+}
+
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const downloadPanPdf = (data, options = {}) =>
+  downloadPdf(data, { ...options, filePrefix: 'PAN-Application' });
+
+/**
+ * Open the completed PDF in a new tab and ask the browser to print it. If the
+ * popup is blocked the caller can fall back to downloading the file.
+ */
+export async function printPdf(data, options = {}) {
+  const bytes = await buildPdf(data, options);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    // Pop-ups blocked – hand the completed file to the user instead.
+    URL.revokeObjectURL(url);
+    await downloadPdf(data, options);
+    return 'downloaded';
+  }
+  win.opener = null;
+
+  // The built-in PDF viewer needs a moment before it can be printed.
+  let printed = false;
+  const triggerPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      win.focus();
+      win.print();
+    } catch {
+      /* the browser PDF viewer still lets the user print manually */
+    }
+  };
+  win.addEventListener('load', () => window.setTimeout(triggerPrint, 500), { once: true });
+  window.setTimeout(triggerPrint, 2500);
+  window.setTimeout(() => URL.revokeObjectURL(url), 300000);
+  return blob;
+}
+
+/** Backwards-compatible wrapper used by the new-application tab. */
+export const printPanPdf = (data, options = {}) =>
+  printPdf(data, { ...options, filePrefix: 'PAN-Application' });
