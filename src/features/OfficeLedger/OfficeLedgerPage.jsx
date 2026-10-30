@@ -462,7 +462,7 @@ function OfficeLedgerPageContent() {
 
   const periodLabel = useMemo(() => {
     if (!fyRange) return '';
-    if (filterMode === 'MONTHLY') return selectedMonth.format('MMM-YY');
+    if (filterMode === 'MONTHLY') return selectedMonth.format('MMMM-YYYY');
     return fyLabel;
   }, [fyRange, filterMode, selectedMonth, fyLabel]);
 
@@ -978,14 +978,14 @@ function OfficeLedgerPageContent() {
           >
             {periodLabel}
           </div>
-          {periodLabel !== fyLabel && (
+          {/* {periodLabel !== fyLabel && (
             <div style={{ fontSize: 10, color: '#dbeafe', fontWeight: 600, marginTop: 1 }}>
               {fyLabel}
             </div>
           )}
           <div style={{ fontSize: 9, color: '#bfdbfe', marginTop: 1 }}>
             Balances carry forward
-          </div>
+          </div> */}
         </div>
 
         <div
