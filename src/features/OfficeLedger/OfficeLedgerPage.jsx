@@ -40,7 +40,7 @@ import {
 } from '../../hooks/useOfficeLedger';
 import Loader from '../../components/Loader';
 import { formatCurrency, formatCurrencyPrecise } from '../../utils/currency';
-import { formatISTDate, getFinancialYearRange } from '../../utils/istDate';
+import { formatISTDate, getFinancialYearRange, getISTToday } from '../../utils/istDate';
 import AddEditOfficeLedgerModal from './AddEditOfficeLedgerModal';
 import OfficeLedgerPrintLayout from './OfficeLedgerPrintLayout';
 import OfficeSplitUsersModal from './OfficeSplitUsersModal';
@@ -48,9 +48,9 @@ import OfficeSplitUsersModal from './OfficeSplitUsersModal';
 const { Title, Text } = Typography;
 
 function getDefaultMonth(fyRange) {
-  if (!fyRange) return dayjs();
+  if (!fyRange) return getISTToday();
 
-  const today = dayjs();
+  const today = getISTToday();
   const start = dayjs(fyRange.startDate);
   const end = dayjs(fyRange.endDate);
   const month = today.startOf('month');
@@ -63,6 +63,23 @@ function getDefaultMonth(fyRange) {
 function formatFyLabel(fyRange) {
   if (!fyRange) return '';
   return /^fy\b/i.test(fyRange.label.trim()) ? fyRange.label : `FY ${fyRange.label}`;
+}
+
+/**
+ * Keep a month picker value inside the active financial year. This matters for
+ * users who type a month instead of clicking it: Ant Design's disabledDate
+ * only disables calendar cells, so typed values still need to be clamped.
+ */
+function clampMonthToFy(value, fyRange) {
+  if (!value) return getDefaultMonth(fyRange);
+  if (!fyRange) return value;
+
+  const startMonth = dayjs(fyRange.startDate).startOf('month');
+  const endMonth = dayjs(fyRange.endDate).startOf('month');
+
+  if (value.isBefore(startMonth, 'month')) return startMonth;
+  if (value.isAfter(endMonth, 'month')) return endMonth;
+  return value;
 }
 
 function LedgerSection({
@@ -786,7 +803,13 @@ function OfficeLedgerPageContent() {
               picker="month"
               value={selectedMonth}
               onChange={(value) => {
-                setSelectedMonth(value || getDefaultMonth(fyRange));
+                const nextMonth = clampMonthToFy(value, fyRange);
+                if (value && nextMonth.valueOf() !== value.valueOf()) {
+                  message.warning(
+                    'That month is outside the selected financial year. Showing the nearest valid month instead.'
+                  );
+                }
+                setSelectedMonth(nextMonth);
               }}
               disabledDate={disabledMonth}
               allowClear={false}
@@ -815,7 +838,7 @@ function OfficeLedgerPageContent() {
             icon={<Download size={14} />}
             onClick={handleExportPDF}
             loading={isGeneratingPDF}
-            disabled={isLoading || isFetching}
+            disabled={isLoading || isFetching || isError}
             title="Export the current period as a branded PDF"
             style={{
               borderRadius: 7,
@@ -834,7 +857,7 @@ function OfficeLedgerPageContent() {
             size="middle"
             icon={<Users size={14} />}
             onClick={openSplitModal}
-            disabled={!queryParams}
+            disabled={!queryParams || isError}
             title="Manage split users"
             style={{
               borderRadius: 7,
@@ -1092,6 +1115,7 @@ function OfficeLedgerPageContent() {
         entryType={modalEntryType}
         onClose={closeModal}
         fyRange={fyRange}
+        selectedMonth={filterMode === 'MONTHLY' ? selectedMonth : null}
       />
 
       <OfficeSplitUsersModal

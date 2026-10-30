@@ -147,12 +147,19 @@ export function parseListFilters(query = {}) {
     const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
     const monthEndDate = `${year}-${monthText}-${String(lastDay).padStart(2, '0')}`;
 
-    if (monthStartDate < fy.startDate || monthEndDate > fy.endDate) {
+    // A financial year can start or end in the middle of a month (for example,
+    // 22 Oct 2025 → 08 Nov 2026). In that case the first/last month is still a
+    // valid selection, but only the part that overlaps the financial year
+    // should be queried.
+    if (monthEndDate < fy.startDate || monthStartDate > fy.endDate) {
       fail('Month must be within the selected financial year');
     }
 
-    rangeStart = startOfMonthIST(year, month);
-    rangeEnd = endOfMonthIST(year, month);
+    const monthStart = startOfMonthIST(year, month);
+    const monthEnd = endOfMonthIST(year, month);
+
+    rangeStart = monthStart < fy.start ? fy.start : monthStart;
+    rangeEnd = monthEnd > fy.end ? fy.end : monthEnd;
   }
 
   const entryType = parseEntryType(query.entryType);
