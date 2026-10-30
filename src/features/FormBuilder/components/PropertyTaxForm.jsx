@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Collapse, DatePicker, Input, Tag } from 'antd';
-import { FileSignature, FileText, Home, MapPin, Ruler, User } from 'lucide-react';
+import { FileSignature, FileText, Home, MapPin, Phone, Ruler, User } from 'lucide-react';
 import dayjs from 'dayjs';
 import GujaratiFontInput from './GujaratiFontInput';
 import {
   PROPERTY_TAX_LIMITS,
   PROPERTY_TAX_SECTION_KEYS,
+  normalizePropertyTaxMobile,
 } from '../constants/propertyTaxData';
 
 function Field({ label, hint, error, required, optional, children, className = '' }) {
@@ -95,6 +96,24 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
                 error={visibleError('date')}
               />
             </Field>
+            <Field
+              label="Mobile No. (મોબાઇલ નં.)"
+              optional
+              error={visibleError('mobile')}
+              hint="Prints as “મો. …” in the top-right corner of the notice."
+            >
+              <Input
+                value={data.mobile || ''}
+                onChange={(event) =>
+                  onChange({ ...data, mobile: normalizePropertyTaxMobile(event.target.value) })
+                }
+                onBlur={() => markTouched('mobile')}
+                inputMode="numeric"
+                placeholder="10-digit mobile number"
+                prefix={<Phone size={14} color="#94a3b8" />}
+                status={visibleError('mobile') ? 'error' : undefined}
+              />
+            </Field>
           </div>
           <div className="fbs-block-title">
             <Home size={12} /> Municipal property numbers
@@ -102,7 +121,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           <div className="fbs-grid-2">
             <Field label="Ward No." error={visibleError('booking.wardNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={booking.wardNo}
                 onChange={(next) => setBooking('wardNo', next)}
                 onBlur={() => markTouched('booking.wardNo')}
@@ -112,7 +131,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="Location No." error={visibleError('booking.locationNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={booking.locationNo}
                 onChange={(next) => setBooking('locationNo', next)}
                 onBlur={() => markTouched('booking.locationNo')}
@@ -122,7 +141,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="Owner No." error={visibleError('booking.ownerNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={booking.ownerNo}
                 onChange={(next) => setBooking('ownerNo', next)}
                 onBlur={() => markTouched('booking.ownerNo')}
@@ -132,7 +151,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="Occupier No." error={visibleError('booking.occupierNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={booking.occupierNo}
                 onChange={(next) => setBooking('occupierNo', next)}
                 onBlur={() => markTouched('booking.occupierNo')}
@@ -157,7 +176,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             error={visibleError('owner.name')}
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={owner.name}
               onChange={(next) => setOwner('name', next)}
               onBlur={() => markTouched('owner.name')}
@@ -171,7 +190,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             error={visibleError('owner.address')}
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               multiline
               rows={3}
               value={owner.address}
@@ -197,7 +216,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             error={visibleError('transferee.name')}
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={transferee.name}
               onChange={(next) => setTransferee('name', next)}
               onBlur={() => markTouched('transferee.name')}
@@ -211,7 +230,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             error={visibleError('transferee.address')}
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               multiline
               rows={3}
               value={transferee.address}
@@ -227,7 +246,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             hint="Defaults to the transferee name. Printed on the ‘કું ______’ line."
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={data.applicantName}
               onChange={(next) => onChange({ ...data, applicantName: next })}
               maxLength={PROPERTY_TAX_LIMITS.text}
@@ -249,7 +268,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             error={visibleError('division')}
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={data.division}
               onChange={(next) => onChange({ ...data, division: next })}
               onBlur={() => markTouched('division')}
@@ -260,7 +279,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           <div className="fbs-grid-2">
             <Field label="Ward No. (વોર્ડ નં.)" required error={visibleError('numbers.wardNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={numbers.wardNo}
                 onChange={(next) => setNumber('wardNo', next)}
                 onBlur={() => markTouched('numbers.wardNo')}
@@ -270,7 +289,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="Survey No. (નોધ નં.)" required error={visibleError('numbers.surveyNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={numbers.surveyNo}
                 onChange={(next) => setNumber('surveyNo', next)}
                 onBlur={() => markTouched('numbers.surveyNo')}
@@ -280,7 +299,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="R.S. No. (રે. સ. નં.)" required error={visibleError('numbers.rsNo')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={numbers.rsNo}
                 onChange={(next) => setNumber('rsNo', next)}
                 onBlur={() => markTouched('numbers.rsNo')}
@@ -290,7 +309,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             </Field>
             <Field label="Area (ક્ષેત્રફળ)" required error={visibleError('area')}>
               <GujaratiFontInput
-                font="nilkanth"
+                font="ghanshyam"
                 value={data.area}
                 onChange={(next) => onChange({ ...data, area: next })}
                 onBlur={() => markTouched('area')}
@@ -311,7 +330,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
         <div className="fbs-grid-2">
           <Field label="East (પૂર્વ)" required error={visibleError('boundaries.east')}>
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={boundaries.east}
               onChange={(next) => setBoundary('east', next)}
               onBlur={() => markTouched('boundaries.east')}
@@ -321,7 +340,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           </Field>
           <Field label="West (પશ્ચિમ)" required error={visibleError('boundaries.west')}>
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={boundaries.west}
               onChange={(next) => setBoundary('west', next)}
               onBlur={() => markTouched('boundaries.west')}
@@ -331,7 +350,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           </Field>
           <Field label="North (ઉત્તર)" required error={visibleError('boundaries.north')}>
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={boundaries.north}
               onChange={(next) => setBoundary('north', next)}
               onBlur={() => markTouched('boundaries.north')}
@@ -341,7 +360,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           </Field>
           <Field label="South (દક્ષિણ)" required error={visibleError('boundaries.south')}>
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               value={boundaries.south}
               onChange={(next) => setBoundary('south', next)}
               onBlur={() => markTouched('boundaries.south')}
@@ -365,7 +384,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             hint="Printed in row 7. One document per line works best."
           >
             <GujaratiFontInput
-              font="nilkanth"
+              font="ghanshyam"
               multiline
               rows={3}
               value={data.documents}

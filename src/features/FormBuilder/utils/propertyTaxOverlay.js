@@ -1,7 +1,10 @@
 import { PROPERTY_TAX_LAYOUT } from '../constants/propertyTaxLayout';
-import { fitNilkanthText, fitNilkanthBlock } from '../constants/propertyTaxFont';
+import { fitGhanshyamText, fitGhanshyamBlock } from '../constants/propertyTaxFont';
+import { normalizePropertyTaxMobile } from '../constants/propertyTaxData';
+import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy';
 
-const NILKANTH_FONT = "'Nilkanth', sans-serif";
+const GHANSHYAM_FONT = "'Ghanshyam', sans-serif";
+const MOBILE_PREFIX = convertUnicodeToGhanshyamLegacy('મો.');
 
 /** DD/MM/YYYY from the ISO value used by the date picker. */
 export function formatPropertyTaxDate(iso) {
@@ -13,7 +16,7 @@ export function formatPropertyTaxDate(iso) {
 function pushCenteredText(ops, page, box, value, options = {}) {
   const text = String(value || '').trim();
   if (!text) return;
-  const size = fitNilkanthText(
+  const size = fitGhanshyamText(
     text,
     box.w - 6,
     options.maxSize ?? 12.5,
@@ -29,14 +32,14 @@ function pushCenteredText(ops, page, box, value, options = {}) {
     h: box.h,
     size,
     align: 'center',
-    fontFamily: NILKANTH_FONT,
+    fontFamily: GHANSHYAM_FONT,
   });
 }
 
 function pushLeftText(ops, page, box, value, options = {}) {
   const text = String(value || '').trim();
   if (!text) return;
-  const size = fitNilkanthText(
+  const size = fitGhanshyamText(
     text,
     box.w - 6,
     options.maxSize ?? 12.5,
@@ -52,14 +55,37 @@ function pushLeftText(ops, page, box, value, options = {}) {
     h: box.h,
     size,
     align: 'left',
-    fontFamily: NILKANTH_FONT,
+    fontFamily: GHANSHYAM_FONT,
+  });
+}
+
+function pushRightText(ops, page, box, value, options = {}) {
+  const text = String(value || '').trim();
+  if (!text) return;
+  const size = fitGhanshyamText(
+    text,
+    box.w - 6,
+    options.maxSize ?? 12.5,
+    options.minSize ?? 6.5
+  );
+  ops.push({
+    type: 'text',
+    page,
+    text,
+    x: box.x,
+    y: box.top,
+    w: box.w,
+    h: box.h,
+    size,
+    align: 'right',
+    fontFamily: options.fontFamily || GHANSHYAM_FONT,
   });
 }
 
 function pushBlock(ops, page, box, value, options = {}) {
   const text = String(value || '').trim();
   if (!text) return;
-  const { lines, size, lineHeight } = fitNilkanthBlock(text, box.w, box.h, {
+  const { lines, size, lineHeight } = fitGhanshyamBlock(text, box.w, box.h, {
     maxSize: options.maxSize ?? 12.5,
     minSize: options.minSize ?? 7,
     lineHeightFactor: 1.18,
@@ -77,7 +103,7 @@ function pushBlock(ops, page, box, value, options = {}) {
     size,
     lineHeight,
     align: 'center',
-    fontFamily: NILKANTH_FONT,
+    fontFamily: GHANSHYAM_FONT,
   });
 }
 
@@ -99,6 +125,16 @@ export function buildPropertyTaxOverlays(data) {
   pushCenteredText(ops, 1, page.header.locationNo, booking.locationNo, { maxSize: 12 });
   pushCenteredText(ops, 1, page.header.ownerNo, booking.ownerNo, { maxSize: 12 });
   pushCenteredText(ops, 1, page.header.occupierNo, booking.occupierNo, { maxSize: 12 });
+
+  /* ---------------- Applicant mobile above the S.M.C. reference ---------------- */
+  const mobile = normalizePropertyTaxMobile(data?.mobile);
+  if (mobile) {
+    pushRightText(ops, 1, page.mobile, `${MOBILE_PREFIX} ${mobile}`, {
+      maxSize: 14,
+      minSize: 10,
+      fontFamily: GHANSHYAM_FONT,
+    });
+  }
 
   /* ---------------- “હું અમો … શ્રી / શ્રીમતી / કું” line ---------------- */
   pushCenteredText(

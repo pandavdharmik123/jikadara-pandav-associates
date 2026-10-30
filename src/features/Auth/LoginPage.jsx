@@ -77,7 +77,7 @@ const LoginPage = () => {
         setCountdown(0);
         message.info('Two-Factor Authentication required.');
       } else {
-        login(response.data.user, response.data.token);
+        login(response.data.user, response.data.token, response.data.refreshToken);
         message.success('Login successful');
         navigate('/app/dashboard');
       }
@@ -136,7 +136,7 @@ const LoginPage = () => {
         code: codeToVerify.trim(),
       });
 
-      login(response.data.user, response.data.token);
+      login(response.data.user, response.data.token, response.data.refreshToken);
       message.success(response.data.message || 'Login verified successfully!');
       navigate('/app/dashboard');
     } catch (error) {
@@ -164,7 +164,7 @@ const LoginPage = () => {
         code: codeToVerify.trim(),
       });
 
-      login(response.data.user, response.data.token);
+      login(response.data.user, response.data.token, response.data.refreshToken);
       message.success(response.data.message || 'Email OTP verified successfully!');
       navigate('/app/dashboard');
     } catch (error) {
