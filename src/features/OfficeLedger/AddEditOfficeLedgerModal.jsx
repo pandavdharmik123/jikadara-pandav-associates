@@ -15,7 +15,7 @@ import {
   useCreateOfficeLedgerEntry,
   useUpdateOfficeLedgerEntry,
 } from '../../hooks/useOfficeLedger';
-import { toISTDateString } from '../../utils/istDate';
+import { getISTToday, toISTDateString } from '../../utils/istDate';
 
 const EXPENSE_TYPE_OPTIONS = [
   { label: 'પ્રિન્ટર રિફિલિંગ', value: 'પ્રિન્ટર રિફિલિંગ' },
@@ -27,16 +27,24 @@ const EXPENSE_TYPE_OPTIONS = [
   { label: 'અન્ય', value: 'અન્ય' },
 ];
 
-function getDefaultEntryDate(fyRange) {
-  if (!fyRange) return dayjs();
+function getDefaultEntryDate(fyRange, selectedMonth) {
+  const today = getISTToday();
+  const monthBase = selectedMonth ? dayjs(selectedMonth) : today;
+  // Keep the current day-of-month when possible, but always land inside the
+  // month currently selected in the ledger filter.
+  const day = selectedMonth
+    ? Math.min(today.date(), monthBase.daysInMonth())
+    : today.date();
+  const candidate = monthBase.date(day);
 
-  const today = dayjs();
+  if (!fyRange) return candidate;
+
   const start = dayjs(fyRange.startDate);
   const end = dayjs(fyRange.endDate);
 
-  if (today.isBefore(start, 'day')) return start;
-  if (today.isAfter(end, 'day')) return end;
-  return today;
+  if (candidate.isBefore(start, 'day')) return start;
+  if (candidate.isAfter(end, 'day')) return end;
+  return candidate;
 }
 
 export default function AddEditOfficeLedgerModal({
@@ -45,6 +53,7 @@ export default function AddEditOfficeLedgerModal({
   entryType,
   onClose,
   fyRange,
+  selectedMonth,
 }) {
   const [form] = Form.useForm();
   const createMutation = useCreateOfficeLedgerEntry();
@@ -83,10 +92,10 @@ export default function AddEditOfficeLedgerModal({
       });
     } else {
       form.setFieldsValue({
-        entryDate: getDefaultEntryDate(fyRange),
+        entryDate: getDefaultEntryDate(fyRange, selectedMonth),
       });
     }
-  }, [open, record, fyRange, form]);
+  }, [open, record, fyRange, selectedMonth, form]);
 
   const disabledDate = (current) => {
     if (!current || !fyRange) return false;

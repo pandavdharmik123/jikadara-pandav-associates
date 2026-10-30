@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
+    "test": "node --test lib/*.test.js",
     "build": "prisma generate && prisma db push",
     "start": "prisma db push && node prisma/seed.js && node index.js",
     "db:migrate": "npx prisma migrate dev",

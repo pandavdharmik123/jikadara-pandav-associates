@@ -13,6 +13,13 @@ export const useOfficeLedger = (params, { enabled = true } = {}) => {
       const { data } = await api.get('/office-ledger', { params });
       return data;
     },
+    // Validation errors (4xx) will not succeed on retry. Only retry transient
+    // server/network failures so a bad month does not spam the API.
+    retry: (failureCount, error) => {
+      const status = error?.response?.status;
+      if (status >= 400 && status < 500) return false;
+      return failureCount < 3;
+    },
     enabled: enabled && Boolean(params?.fyStartDate && params?.fyEndDate),
   });
 };

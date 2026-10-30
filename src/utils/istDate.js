@@ -29,6 +29,13 @@ export function formatISTDate(value) {
   return date ? dayjs(date).format('DD/MM/YYYY') : '-';
 }
 
+/**
+ * Today's calendar date in IST, independent of the browser's timezone.
+ */
+export function getISTToday() {
+  return dayjs(toISTDateString(new Date()));
+}
+
 export function getFinancialYearRange(financialYear) {
   if (!financialYear?.startDate || !financialYear?.endDate) return null;
 
