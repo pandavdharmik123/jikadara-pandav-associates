@@ -1,11 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
-  Row,
-  Col,
   Upload,
   Button,
   Select,
-  Typography,
   Spin,
   Alert,
   Tooltip,
@@ -23,19 +20,15 @@ import {
   Download,
   Sparkles,
   Globe,
-  FileType,
   FileText,
   Trash2,
   Layers,
-  BookOpen,
-  Type,
   FileDown,
-  Info,
-  HelpCircle,
   RefreshCw,
   FileSpreadsheet,
   CheckCheck,
-  ChevronRight
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import axios from 'axios';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -51,10 +44,112 @@ import './DocumentAI.scss';
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-const { Title, Text } = Typography;
+const ACCEPTED_UPLOAD_TYPES = '.pdf,.jpg,.jpeg,.png,.webp';
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
+const MAX_IMAGE_DIMENSION = 3600;
+
+function getFileExtension(name = '') {
+  const match = /\.([a-z0-9]+)$/i.exec(name);
+  return match ? match[1].toLowerCase() : '';
+}
+
+function isPdfFile(file) {
+  return file?.type === 'application/pdf' || getFileExtension(file?.name) === 'pdf';
+}
+
+function isImageFile(file) {
+  return Boolean(file?.type?.startsWith('image/')) || IMAGE_EXTENSIONS.has(getFileExtension(file?.name));
+}
+
+function isSupportedDocumentFile(file) {
+  return isPdfFile(file) || isImageFile(file);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Unable to read the image file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Unable to decode the image file.'));
+    image.src = src;
+  });
+}
+
+/**
+ * Converts a JPG/PNG/WEBP file into the same page shape used by rendered PDF
+ * pages. Everything is normalized to JPEG so the OCR assembler and the PDF
+ * exporter can always embed it with pdf-lib.
+ */
+async function imageFileToPage(file, pageMeta) {
+  const dataUrl = await readFileAsDataUrl(file);
+  let source = null;
+  let sourceWidth = 0;
+  let sourceHeight = 0;
+
+  if (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function') {
+    try {
+      source = await window.createImageBitmap(file, { imageOrientation: 'from-image' });
+      sourceWidth = source.width;
+      sourceHeight = source.height;
+    } catch {
+      source = null;
+    }
+  }
+
+  if (!source) {
+    source = await loadImageElement(dataUrl);
+    sourceWidth = source.naturalWidth;
+    sourceHeight = source.naturalHeight;
+  }
+
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(source, 0, 0, width, height);
+
+  if (typeof source.close === 'function') {
+    source.close();
+  }
+
+  const imageUri = canvas.toDataURL('image/jpeg', 0.92);
+
+  return {
+    ...pageMeta,
+    originalImageUri: imageUri,
+    imageUri,
+    width,
+    height,
+    originalWidth: width,
+    originalHeight: height,
+    targetWidth: width,
+    targetHeight: height,
+    rotation: 0,
+    cropBox: null,
+    isCropped: false,
+    isDeleted: false
+  };
+}
 
 export default function DocumentAI() {
   const [fileList, setFileList] = useState([]);
+  // Ant Design fires onChange once per file for a multi-select batch. This ref
+  // makes sure each selected file is only rendered into pages once.
+  const scheduledFileUidsRef = useRef(new Set());
   const [preferredLang, setPreferredLang] = useState('gu');
   const [fontStyle, setFontStyle] = useState("'Inter', system-ui, sans-serif");
   const [loading, setLoading] = useState(false);
@@ -137,83 +232,191 @@ export default function DocumentAI() {
     });
   };
 
-  // Render PDF pages client-side upon file upload
+  // Render uploaded PDFs and images into editable page previews.
   const handleUploadChange = async (info) => {
-    const rawList = [...info.fileList].slice(-1);
-    setFileList(rawList);
+    const incoming = Array.isArray(info.fileList) ? info.fileList : [];
+
+    // Handle a file removed through Ant Design's own list (kept for safety).
+    if (info.file && info.file.status === 'removed') {
+      handleRemoveFileByUid(info.file.uid);
+      return;
+    }
+
+    const newItems = incoming.filter(
+      (item) => !scheduledFileUidsRef.current.has(item.uid)
+    );
+
+    if (newItems.length === 0) return;
+
+    // Reserve the whole batch before the first await so the repeated onChange
+    // calls for a multi-select batch cannot render the same files twice.
+    newItems.forEach((item) => scheduledFileUidsRef.current.add(item.uid));
+
+    const validItems = [];
+    for (const item of newItems) {
+      const file = item.originFileObj || item;
+      if (!file) continue;
+
+      if (!isSupportedDocumentFile(file)) {
+        message.error(
+          `"${file.name}" is not supported. Upload PDF, JPG, JPEG, PNG, or WEBP files.`
+        );
+        continue;
+      }
+
+      validItems.push(item);
+    }
+
+    if (validItems.length === 0) return;
+
+    setFileList((prev) => {
+      const prevUids = new Set(prev.map((item) => item.uid));
+      return [...prev, ...validItems.filter((item) => !prevUids.has(item.uid))];
+    });
     setErrorMsg(null);
     setDocumentResult(null);
-
-    if (rawList.length === 0) {
-      setPages([]);
-      return;
-    }
-
-    const file = rawList[0].originFileObj || rawList[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      message.error('Please upload a valid PDF document.');
-      return;
-    }
-
     setRenderingPdf(true);
     setRenderProgress(0);
 
+    const newPages = [];
+    const baseOriginalIndex = pages.length;
+
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdfDoc = await loadingTask.promise;
-      const numPages = pdfDoc.numPages;
+      for (let fileIndex = 0; fileIndex < validItems.length; fileIndex += 1) {
+        const item = validItems[fileIndex];
+        const file = item.originFileObj || item;
+        const fileBaseProgress = (fileIndex / validItems.length) * 100;
 
-      const renderedPages = [];
+        // The user may remove a file while a large batch is still rendering.
+        if (!scheduledFileUidsRef.current.has(item.uid)) continue;
 
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 }); // Crisp preview
+        try {
+          if (isPdfFile(file)) {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+            const numPages = pdfDoc.numPages;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
+            for (let i = 1; i <= numPages; i++) {
+              const page = await pdfDoc.getPage(i);
+              const viewport = page.getViewport({ scale: 1.5 }); // Crisp preview
 
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const imageUri = canvas.toDataURL('image/jpeg', 0.9);
+              const canvas = document.createElement('canvas');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              const ctx = canvas.getContext('2d');
 
-        renderedPages.push({
-          id: `page-${i}-${Date.now()}`,
-          originalIndex: i - 1,
-          pageNumber: i,
-          originalImageUri: imageUri,
-          imageUri: imageUri,
-          width: Math.round(viewport.width),
-          height: Math.round(viewport.height),
-          originalWidth: Math.round(viewport.width),
-          originalHeight: Math.round(viewport.height),
-          targetWidth: Math.round(viewport.width),
-          targetHeight: Math.round(viewport.height),
-          rotation: 0,
-          cropBox: null,
-          isCropped: false,
-          isDeleted: false
-        });
+              await page.render({ canvasContext: ctx, viewport }).promise;
+              const imageUri = canvas.toDataURL('image/jpeg', 0.9);
 
-        setRenderProgress(Math.round((i / numPages) * 100));
+              newPages.push({
+                id: `pdf-${item.uid}-${i}`,
+                sourceFileUid: item.uid,
+                sourceFileName: file.name,
+                sourceType: 'pdf',
+                originalIndex: baseOriginalIndex + newPages.length,
+                pageNumber: newPages.length + 1,
+                originalImageUri: imageUri,
+                imageUri: imageUri,
+                width: Math.round(viewport.width),
+                height: Math.round(viewport.height),
+                originalWidth: Math.round(viewport.width),
+                originalHeight: Math.round(viewport.height),
+                targetWidth: Math.round(viewport.width),
+                targetHeight: Math.round(viewport.height),
+                rotation: 0,
+                cropBox: null,
+                isCropped: false,
+                isDeleted: false
+              });
+
+              setRenderProgress(
+                Math.round(fileBaseProgress + ((i / numPages) / validItems.length) * 100)
+              );
+            }
+
+          } else {
+            const page = await imageFileToPage(file, {
+              id: `image-${item.uid}`,
+              sourceFileUid: item.uid,
+              sourceFileName: file.name,
+              sourceType: 'image',
+              originalIndex: baseOriginalIndex + newPages.length
+            });
+
+            newPages.push(page);
+            setRenderProgress(Math.round(((fileIndex + 1) / validItems.length) * 100));
+          }
+        } catch (fileErr) {
+          console.error(`Error rendering "${file.name}":`, fileErr);
+          message.error(`Failed to process "${file.name}": ${fileErr.message}`);
+          setErrorMsg(`Failed to render "${file.name}": ${fileErr.message}`);
+          scheduledFileUidsRef.current.delete(item.uid);
+          setFileList((prev) => prev.filter((entry) => entry.uid !== item.uid));
+        }
       }
 
-      setPages(renderedPages);
-      setActiveTab('pages');
-      message.success(`Loaded ${numPages} pages! You can crop, resize, or delete pages before running OCR.`);
+      const pagesToCommit = newPages.filter((page) =>
+        scheduledFileUidsRef.current.has(page.sourceFileUid)
+      );
+
+      if (pagesToCommit.length > 0) {
+        setPages((prev) => recomputePageNumbers([...prev, ...pagesToCommit]));
+        setActiveTab('pages');
+
+        const committedFileUids = new Set(
+          pagesToCommit.map((page) => page.sourceFileUid)
+        );
+        const committedPdfCount = validItems.filter(
+          (item) =>
+            committedFileUids.has(item.uid) &&
+            isPdfFile(item.originFileObj || item)
+        ).length;
+        const committedImageCount = committedFileUids.size - committedPdfCount;
+
+        const sourceSummary = [
+          committedPdfCount > 0
+            ? `${committedPdfCount} PDF${committedPdfCount === 1 ? '' : 's'}`
+            : null,
+          committedImageCount > 0
+            ? `${committedImageCount} image${committedImageCount === 1 ? '' : 's'}`
+            : null
+        ]
+          .filter(Boolean)
+          .join(' and ');
+
+        message.success(
+          `Loaded ${pagesToCommit.length} page${pagesToCommit.length === 1 ? '' : 's'} from ${sourceSummary}. You can crop, resize, rotate, or delete pages before running OCR.`
+        );
+      }
     } catch (err) {
-      console.error('Error rendering PDF:', err);
-      message.error(`Failed to parse PDF: ${err.message}`);
-      setErrorMsg(`Failed to render PDF: ${err.message}`);
+      console.error('Error rendering uploaded document:', err);
+      message.error(`Failed to process upload: ${err.message}`);
+      setErrorMsg(`Failed to render document: ${err.message}`);
     } finally {
       setRenderingPdf(false);
+      setRenderProgress(0);
+    }
+  };
+
+  const handleRemoveFileByUid = (uid) => {
+    scheduledFileUidsRef.current.delete(uid);
+    const remainingFiles = fileList.filter((item) => item.uid !== uid);
+    setFileList(remainingFiles);
+    setPages((prev) =>
+      recomputePageNumbers(prev.filter((page) => page.sourceFileUid !== uid))
+    );
+    setDocumentResult(null);
+    setErrorMsg(null);
+    setActiveTab('pages');
+
+    if (remainingFiles.length === 0) {
+      setPages([]);
     }
   };
 
   const handleRemoveFile = () => {
+    scheduledFileUidsRef.current.clear();
     setFileList([]);
     setPages([]);
     setDocumentResult(null);
@@ -429,7 +632,16 @@ export default function DocumentAI() {
       }
 
       const pdfBytes = await pdfDoc.save();
-      const fileName = fileList[0]?.name || 'curated_document.pdf';
+
+      if (pdfBytes.length > 50 * 1024 * 1024) {
+        throw new Error(
+          'The compiled document is larger than 50 MB. Please remove some pages and try again.'
+        );
+      }
+
+      // Always send a .pdf file to the OCR backend, even when the source was a JPG/PNG.
+      const baseFileName = (fileList[0]?.name || 'curated_document').replace(/\.[^/.]+$/, '');
+      const fileName = `${baseFileName || 'curated_document'}.pdf`;
       const compiledBlob = new Blob([pdfBytes], { type: 'application/pdf' });
       const compiledFile = new File([compiledBlob], fileName, { type: 'application/pdf' });
 
@@ -515,6 +727,18 @@ export default function DocumentAI() {
   };
 
   const selectedFile = fileList.length > 0 ? (fileList[0].originFileObj || fileList[0]) : null;
+  const totalUploadSize = useMemo(
+    () =>
+      fileList.reduce((total, item) => {
+        const file = item.originFileObj || item;
+        return total + (file?.size || 0);
+      }, 0),
+    [fileList]
+  );
+  const hasPdfUpload = useMemo(
+    () => fileList.some((item) => isPdfFile(item.originFileObj || item)),
+    [fileList]
+  );
   const activePagesCount = useMemo(() => pages.filter((p) => !p.isDeleted).length, [pages]);
 
   // Detected languages summary
@@ -565,14 +789,14 @@ export default function DocumentAI() {
           <div className="sidebar-section">
             <div className="section-label">
               <UploadCloud size={15} />
-              <span>Upload Document</span>
+              <span>Upload Documents</span>
             </div>
 
-            {!selectedFile ? (
+            {fileList.length === 0 ? (
               <div className="upload-dropzone-wrapper">
                 <Upload
-                  accept=".pdf"
-                  maxCount={1}
+                  accept={ACCEPTED_UPLOAD_TYPES}
+                  multiple
                   fileList={fileList}
                   onChange={handleUploadChange}
                   beforeUpload={() => false}
@@ -584,12 +808,14 @@ export default function DocumentAI() {
                       <UploadCloud size={24} />
                     </div>
                     <div className="dropzone-text-group">
-                      <span className="dropzone-title">Upload PDF</span>
-                      <span className="dropzone-desc">Drag & drop your document here</span>
-                      <span className="dropzone-browse">or browse files</span>
+                      <span className="dropzone-title">Upload PDF or Images</span>
+                      <span className="dropzone-desc">
+                        Drag &amp; drop PDFs, JPGs, PNGs, or WEBPs
+                      </span>
+                      <span className="dropzone-browse">or browse multiple files</span>
                     </div>
                     <div className="supported-formats-tag">
-                      PDF • JPG • PNG • WEBP
+                      PDF • JPG • JPEG • PNG • WEBP
                     </div>
                   </div>
                 </Upload>
@@ -599,17 +825,20 @@ export default function DocumentAI() {
               <div className="compact-file-card">
                 <div className="file-card-main">
                   <div className="file-type-icon">
-                    <FileText size={20} />
+                    {hasPdfUpload ? <FileText size={20} /> : <ImageIcon size={20} />}
                   </div>
                   <div className="file-details">
-                    <span className="file-name" title={selectedFile.name}>
-                      {selectedFile.name}
+                    <span className="file-name" title={selectedFile?.name}>
+                      {fileList.length === 1
+                        ? selectedFile?.name
+                        : `${fileList.length} files selected`}
                     </span>
                     <span className="file-meta">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB • {pages.length} {pages.length === 1 ? 'page' : 'pages'}
+                      {(totalUploadSize / (1024 * 1024)).toFixed(1)} MB • {pages.length}{' '}
+                      {pages.length === 1 ? 'page' : 'pages'}
                     </span>
                   </div>
-                  <Tooltip title="Remove Document">
+                  <Tooltip title="Remove All Files">
                     <Button
                       type="text"
                       danger
@@ -620,19 +849,63 @@ export default function DocumentAI() {
                   </Tooltip>
                 </div>
 
-                <Upload
-                  accept=".pdf"
-                  maxCount={1}
-                  fileList={[]}
-                  onChange={handleUploadChange}
-                  beforeUpload={() => false}
-                  showUploadList={false}
-                  className="replace-upload-link"
-                >
-                  <Button type="link" size="small" className="replace-file-btn">
-                    Replace Document
+                <div className="uploaded-file-list">
+                  {fileList.map((item) => {
+                    const file = item.originFileObj || item;
+                    const pageCount = pages.filter(
+                      (page) => page.sourceFileUid === item.uid
+                    ).length;
+
+                    return (
+                      <div className="uploaded-file-row" key={item.uid}>
+                        {isPdfFile(file) ? (
+                          <FileText size={13} />
+                        ) : (
+                          <ImageIcon size={13} />
+                        )}
+                        <span className="uploaded-file-name" title={file.name}>
+                          {file.name}
+                        </span>
+                        <span className="uploaded-file-pages">
+                          {pageCount}p
+                        </span>
+                        <Tooltip title="Remove file">
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<X size={12} />}
+                            onClick={() => handleRemoveFileByUid(item.uid)}
+                            className="uploaded-file-remove"
+                          />
+                        </Tooltip>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="file-card-footer">
+                  <Upload
+                    accept={ACCEPTED_UPLOAD_TYPES}
+                    multiple
+                    fileList={[]}
+                    onChange={handleUploadChange}
+                    beforeUpload={() => false}
+                    showUploadList={false}
+                    className="replace-upload-link"
+                  >
+                    <Button type="link" size="small" className="replace-file-btn">
+                      + Add More Files
+                    </Button>
+                  </Upload>
+                  <Button
+                    type="link"
+                    size="small"
+                    className="clear-all-files-btn"
+                    onClick={handleRemoveFile}
+                  >
+                    Clear All
                   </Button>
-                </Upload>
+                </div>
               </div>
             )}
 
@@ -640,7 +913,7 @@ export default function DocumentAI() {
             {renderingPdf && (
               <div className="rendering-progress-box">
                 <div className="progress-label-row">
-                  <span>Rendering PDF Pages...</span>
+                  <span>Rendering document pages...</span>
                   <span>{renderProgress}%</span>
                 </div>
                 <Progress percent={renderProgress} size="small" status="active" strokeColor="#6366f1" showInfo={false} />
@@ -699,7 +972,7 @@ export default function DocumentAI() {
             >
               {loading
                 ? `Processing... ${ocrProgressPages} / ${activePagesCount} pages`
-                : 'Scan PDF and Extact'}
+                : 'Scan Document & Extract Text'}
             </Button>
 
             <span className="action-status-sub">
@@ -765,7 +1038,7 @@ export default function DocumentAI() {
                 onClick={() => setExportPdfModalVisible(true)}
                 className="secondary-export-btn"
               >
-                Export Edited PDF
+                Export Edited Document
               </Button>
             </div>
           )}
@@ -1049,12 +1322,12 @@ export default function DocumentAI() {
                 </div>
                 <h3 className="empty-title">Document Workspace Ready</h3>
                 <p className="empty-desc">
-                  Upload a PDF document from the left control panel to view all pages, crop headers/footers, remove unwanted pages, and run AI OCR extraction.
+                  Upload a PDF or multiple JPG/PNG/WEBP images from the left control panel to view all pages, crop headers/footers, remove unwanted pages, and run AI OCR extraction.
                 </p>
                 <div className="empty-features-pills">
                   <span className="feature-pill">✨ Visual Page Crop & Straighten</span>
                   <span className="feature-pill">🌐 Gujarati & Multilingual OCR</span>
-                  <span className="feature-pill">📄 PDF Export</span>
+                  <span className="feature-pill">📄 PDF & JPEG Export</span>
                 </div>
               </div>
             </div>
@@ -1075,7 +1348,7 @@ export default function DocumentAI() {
         onOpenExportPdf={() => setExportPdfModalVisible(true)}
       />
 
-      {/* Export Edited PDF Modal with Comprehensive Options */}
+      {/* Export Edited Document Modal with Comprehensive Options */}
       <ExportPdfModal
         visible={exportPdfModalVisible}
         onCancel={() => setExportPdfModalVisible(false)}
@@ -1099,7 +1372,7 @@ export default function DocumentAI() {
           <p><strong>Visual Document Editor:</strong> Click any page card in the grid to open the precision editor to crop margins, adjust rotation, or resize dimensions.</p>
           <p><strong>Batch Processing:</strong> Once you crop a document page, you can apply identical framing across all pages in one click.</p>
           <p><strong>AI Multilingual OCR:</strong> Recognizes Gujarati, Hindi, and English text with deep layout understanding (headings, paragraphs, and lists).</p>
-          <p><strong>Clean PDF Export:</strong> Download high-quality PDF files with all your crop, orientation, and exclusion adjustments preserved.</p>
+          <p><strong>Clean PDF & JPEG Export:</strong> Download edited pages as a single PDF, or as JPEG images (a ZIP of separate JPEGs when exporting multiple pages), with all your crop, orientation, and exclusion adjustments preserved.</p>
         </div>
       </Modal>
     </div>

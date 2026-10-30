@@ -7,7 +7,7 @@ export const PROPERTY_TAX_LIMITS = {
 };
 
 export const PROPERTY_TAX_SECTION_KEYS = {
-  application: ['date', 'booking.wardNo', 'booking.locationNo', 'booking.ownerNo', 'booking.occupierNo'],
+  application: ['date', 'mobile', 'booking.wardNo', 'booking.locationNo', 'booking.ownerNo', 'booking.occupierNo'],
   owner: ['owner.name', 'owner.address'],
   transferee: ['transferee.name', 'transferee.address'],
   property: ['division', 'numbers.wardNo', 'numbers.surveyNo', 'numbers.rsNo', 'area'],
@@ -15,9 +15,27 @@ export const PROPERTY_TAX_SECTION_KEYS = {
   documents: ['documents'],
 };
 
+const GUJARATI_DIGIT_OFFSET = 0x0ae6;
+
+/**
+ * Accept Gujarati or ASCII digits, drop a +91 country code / leading zero, and
+ * keep at most 10 digits. The form and the PDF overlay share this helper so the
+ * printed number can never disagree with the input.
+ */
+export function normalizePropertyTaxMobile(value) {
+  const digits = String(value || '')
+    .replace(/[૦-૯]/g, (digit) => String(digit.charCodeAt(0) - GUJARATI_DIGIT_OFFSET))
+    .replace(/\D/g, '');
+
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2, 12);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1, 11);
+  return digits.slice(0, 10);
+}
+
 export function createPropertyTaxData() {
   return {
     date: '',
+    mobile: '',
     booking: {
       wardNo: '',
       locationNo: '',
@@ -60,6 +78,12 @@ export function validatePropertyTax(data) {
   };
 
   required('date', data?.date, 'Select the application date.');
+
+  const mobile = normalizePropertyTaxMobile(data?.mobile);
+  if (mobile && !/^\d{10}$/.test(mobile)) {
+    errors.mobile = 'Enter a valid 10-digit mobile number.';
+  }
+
   required('owner.name', data?.owner?.name, 'Enter the current owner name.');
   required('owner.address', data?.owner?.address, 'Enter the current owner address.');
   required('transferee.name', data?.transferee?.name, 'Enter the transferee full name.');

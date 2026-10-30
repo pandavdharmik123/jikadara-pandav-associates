@@ -66,6 +66,30 @@ model User {
   pedhinamus      Pedhinamu[]
   jantriCalculations JantriCalculation[]
   nondhStatuses   NondhStatus[]
+  refreshTokens   RefreshToken[]
+}
+
+// ─── Refresh Tokens (sliding sessions) ───────────────────
+// Only a SHA-256 hash of each opaque refresh token is stored. Tokens are
+// rotated on every use; `familyId` links all rotations of one login so that
+// replay of an already-used token can revoke the whole session.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  familyId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
 }
 
 // ─── Client ──────────────────────────────────────────────

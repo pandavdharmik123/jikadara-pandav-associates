@@ -1,36 +1,36 @@
 /**
- * Nilkanth advance widths (units / 1000 em) for printable ASCII.
+ * Ghanshyam advance widths (units / 1000 em) for printable ASCII.
  *
  * The property-tax template uses the legacy Gujarati encoding, so every
  * printable value is still ASCII on the wire. Keeping the widths here (instead
  * of asking the browser for them) means the live preview and the pdf-lib
  * export wrap the exact same way.
  */
-const NILKANTH_WIDTHS = [
-  280, 307, 316, 309, 445, 726, 10, 316, 219, 219, 10, 457, 307, 317, 250, 298,
-  457, 457, 457, 457, 457, 457, 457, 457, 457, 457, 260, 307, 10, 457, 6, 452,
-  592, 380, 676, 589, 466, 497, 552, 558, 674, 229, 689, 619, 635, 656, 648, 249,
-  465, 461, 304, 608, 438, 704, 699, 464, 618, 552, 10, 10, 10, 10, 10, 367,
-  10, 742, 638, 567, 435, 497, 535, 602, 510, 219, 588, 525, 549, 506, 574, 601,
-  465, 489, 473, 577, 535, 516, 504, 552, 640, 552, 570, 380, 10, 380, 651,
+const GHANSHYAM_WIDTHS = [
+  260, 307, 299, 309, 445, 726, 10, 275, 219, 219, 10, 457, 253, 317, 259, 298,
+  457, 445, 450, 445, 457, 457, 455, 457, 457, 457, 260, 307, 10, 457, 10, 452,
+  592, 400, 675, 589, 466, 497, 580, 590, 684, 229, 689, 619, 635, 656, 645, 249,
+  485, 461, 315, 608, 438, 704, 699, 485, 610, 552, 10, 10, 10, 10, 10, 405,
+  10, 742, 638, 567, 435, 486, 544, 602, 510, 220, 630, 544, 549, 506, 574, 605,
+  460, 489, 405, 582, 534, 516, 483, 552, 645, 552, 570, 380, 10, 380, 651,
 ];
 
 const DEFAULT_WIDTH = 500;
 
 /** Width of a legacy-encoded string at `size` points. */
-export function measureNilkanthText(text, size) {
+export function measureGhanshyamText(text, size) {
   let total = 0;
   for (const ch of String(text || '')) {
     const code = ch.charCodeAt(0);
-    total += code >= 32 && code <= 126 ? NILKANTH_WIDTHS[code - 32] : DEFAULT_WIDTH;
+    total += code >= 32 && code <= 126 ? GHANSHYAM_WIDTHS[code - 32] : DEFAULT_WIDTH;
   }
   return (total / 1000) * size;
 }
 
 /** Largest size between `minSize` and `maxSize` that keeps a single line fitting. */
-export function fitNilkanthText(text, maxWidth, maxSize = 12.5, minSize = 6.5) {
+export function fitGhanshyamText(text, maxWidth, maxSize = 12.5, minSize = 6.5) {
   let size = maxSize;
-  while (size > minSize && measureNilkanthText(text, size) > maxWidth) size -= 0.1;
+  while (size > minSize && measureGhanshyamText(text, size) > maxWidth) size -= 0.1;
   return Math.max(minSize, Math.round(size * 10) / 10);
 }
 
@@ -38,7 +38,7 @@ export function fitNilkanthText(text, maxWidth, maxSize = 12.5, minSize = 6.5) {
  * Greedy word wrap with a character fallback for long unbroken words.
  * Explicit newlines are preserved as empty lines.
  */
-export function wrapNilkanthText(text, maxWidth, size) {
+export function wrapGhanshyamText(text, maxWidth, size) {
   const paragraphs = String(text || '').replace(/\r\n/g, '\n').split('\n');
   const lines = [];
 
@@ -52,24 +52,23 @@ export function wrapNilkanthText(text, maxWidth, size) {
     let line = '';
     for (const word of trimmed.split(/\s+/)) {
       const candidate = line ? `${line} ${word}` : word;
-      if (measureNilkanthText(candidate, size) <= maxWidth) {
+      if (measureGhanshyamText(candidate, size) <= maxWidth) {
         line = candidate;
         continue;
       }
 
       if (line) {
         lines.push(line);
-        line = '';
       }
 
-      if (measureNilkanthText(word, size) <= maxWidth) {
+      if (measureGhanshyamText(word, size) <= maxWidth) {
         line = word;
         continue;
       }
 
       let piece = '';
       for (const ch of word) {
-        if (piece && measureNilkanthText(piece + ch, size) > maxWidth) {
+        if (piece && measureGhanshyamText(piece + ch, size) > maxWidth) {
           lines.push(piece);
           piece = '';
         }
@@ -89,7 +88,7 @@ export function wrapNilkanthText(text, maxWidth, size) {
  * The returned `lineHeight` is also used by the preview, so the visual block is
  * identical on screen and in the exported PDF.
  */
-export function fitNilkanthBlock(
+export function fitGhanshyamBlock(
   text,
   boxWidth,
   boxHeight,
@@ -103,7 +102,7 @@ export function fitNilkanthBlock(
   let lineHeight = size * lineHeightFactor;
 
   while (size >= minSize) {
-    lines = wrapNilkanthText(text, width, size);
+    lines = wrapGhanshyamText(text, width, size);
     lineHeight = size * lineHeightFactor;
     if (lines.length * lineHeight <= height) break;
     size -= 0.25;

@@ -15,6 +15,9 @@ export const PROPERTY_TAX_LAYOUT = {
       ownerNo: { x: 315.55, top: 168.26, w: 98.9, h: 20.76 },
       occupierNo: { x: 414.94, top: 168.26, w: 113.54, h: 20.76 },
     },
+    // Optional applicant mobile number, printed above the S.M.C. reference on
+    // the top-right edge of page 1. The S.M.C. line occupies top 51.86–61.80.
+    mobile: { x: 430, top: 34, w: 122.12, h: 16 },
     applicantName: { x: 358.87, top: 343, w: 181.25, h: 15.5 },
     table: {
       row1: { x: 323.59, top: 487.97, w: 227.93, h: 49.34 },

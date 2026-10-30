@@ -53,6 +53,9 @@ export async function buildPdf(
     pageSize = PAN_PAGE,
     // Optional embedded legacy font (e.g. Nilkanth for the property-tax form).
     fontBytes = null,
+    // Additional legacy fonts keyed by family, e.g. { ghanshyam: ArrayBuffer }.
+    // Ops may request one of these through their `fontFamily` property.
+    extraFonts = {},
     inkColor = INK,
   } = {}
 ) {
@@ -68,6 +71,22 @@ export async function buildPdf(
   } else {
     font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   }
+
+  const extraFontCache = new Map();
+  const resolveFont = async (op) => {
+    const family = String(op.fontFamily || '').toLowerCase();
+    const key = Object.keys(extraFonts).find(
+      (name) => extraFonts[name] && family.includes(name.toLowerCase())
+    );
+    if (!key) return font;
+    if (!extraFontCache.has(key)) {
+      const fontkitModule = await import('@pdf-lib/fontkit');
+      const fontkit = fontkitModule.default || fontkitModule;
+      pdfDoc.registerFontkit(fontkit);
+      extraFontCache.set(key, await pdfDoc.embedFont(extraFonts[key], { subset: true }));
+    }
+    return extraFontCache.get(key);
+  };
 
   const opCache = new Map();
 
@@ -93,28 +112,36 @@ export async function buildPdf(
     const pageHeight = page.getHeight();
 
     if (op.type === 'char') {
-      const width = font.widthOfTextAtSize(op.ch, op.size);
+      const opFont = await resolveFont(op);
+      const width = opFont.widthOfTextAtSize(op.ch, op.size);
       const baselineTop = op.y + op.h / 2 + op.size * 0.36;
       page.drawText(op.ch, {
         x: op.x + (op.w - width) / 2,
         y: pageHeight - baselineTop,
         size: op.size,
-        font,
+        font: opFont,
         color: inkColor,
       });
     } else if (op.type === 'text') {
+      const opFont = await resolveFont(op);
       const baselineTop = op.y + op.h / 2 + op.size * 0.36;
-      const width = font.widthOfTextAtSize(op.text, op.size);
-      const x = op.align === 'center' ? op.x + (op.w - width) / 2 : op.x + 1.8;
+      const width = opFont.widthOfTextAtSize(op.text, op.size);
+      const x =
+        op.align === 'center'
+          ? op.x + (op.w - width) / 2
+          : op.align === 'right'
+            ? op.x + op.w - width
+            : op.x + 1.8;
       page.drawText(op.text, {
         x,
         y: pageHeight - baselineTop,
         size: op.size,
-        font,
+        font: opFont,
         color: inkColor,
-        ...(op.align === 'center' ? {} : { maxWidth: Math.max(op.w - 3, 4) }),
+        ...(!op.align || op.align === 'left' ? { maxWidth: Math.max(op.w - 3, 4) } : {}),
       });
     } else if (op.type === 'block') {
+      const opFont = await resolveFont(op);
       const lines = op.lines || [];
       const lineHeight = op.lineHeight || op.size * 1.2;
       const totalHeight = lines.length * lineHeight;
@@ -122,14 +149,19 @@ export async function buildPdf(
 
       lines.forEach((line, index) => {
         if (!line) return;
-        const width = font.widthOfTextAtSize(line, op.size);
-        const x = op.align === 'center' ? op.x + (op.w - width) / 2 : op.x + 1.8;
+        const width = opFont.widthOfTextAtSize(line, op.size);
+        const x =
+          op.align === 'center'
+            ? op.x + (op.w - width) / 2
+            : op.align === 'right'
+              ? op.x + op.w - width
+              : op.x + 1.8;
         const baselineTop = startTop + index * lineHeight + lineHeight / 2 + op.size * 0.36;
         page.drawText(line, {
           x,
           y: pageHeight - baselineTop,
           size: op.size,
-          font,
+          font: opFont,
           color: inkColor,
         });
       });
