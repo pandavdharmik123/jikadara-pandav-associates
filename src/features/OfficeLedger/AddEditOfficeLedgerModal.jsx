@@ -82,17 +82,18 @@ export default function AddEditOfficeLedgerModal({
     form.resetFields();
     if (record) {
       const recordExpenseType =
-        record.entryType === 'EXPENSE' ? record.expenseType || '' : '';
+        record.entryType === 'EXPENSE' ? record.expenseType || 'અન્ય' : '';
 
       form.setFieldsValue({
         entryDate: dayjs(toISTDateString(record.entryDate)),
         details: record.details || '',
         amount: Number(record.amount) || undefined,
-        expenseType: recordExpenseType || undefined,
+        expenseType: recordExpenseType || 'અન્ય',
       });
     } else {
       form.setFieldsValue({
         entryDate: getDefaultEntryDate(fyRange, selectedMonth),
+        expenseType: 'અન્ય',
       });
     }
   }, [open, record, fyRange, selectedMonth, form]);
@@ -177,7 +178,13 @@ export default function AddEditOfficeLedgerModal({
       width={520}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" name="officeLedgerForm" style={{ marginTop: 14 }}>
+      <Form
+        form={form}
+        layout="vertical"
+        name="officeLedgerForm"
+        initialValues={{ expenseType: 'અન્ય' }}
+        style={{ marginTop: 14 }}
+      >
         <Row gutter={12}>
           <Col xs={24} sm={12}>
             <Form.Item
