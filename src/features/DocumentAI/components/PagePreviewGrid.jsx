@@ -195,7 +195,7 @@ export default function PagePreviewGrid({
                 onClick={onOpenExportPdf}
                 className="export-pdf-top-btn"
               >
-                Export Edited PDF
+                Export Edited Document
               </Button>
             )}
 
