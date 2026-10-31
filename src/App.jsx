@@ -173,11 +173,15 @@ export default function App() {
                   <Route element={<ProtectedRoute pageKey="/app/nondh-status" />}>
                     <Route path="nondh-status" element={<ExcelSheetsPage />} />
                   </Route>
+                  <Route element={<ProtectedRoute pageKey="/app/verabill" />}>
+                    <Route path="verabill" element={<ExcelSheetsPage />} />
+                  </Route>
                 </Route>
 
                 {/* Keep old bookmarks and permission routes working. */}
                 <Route path="nondh-status" element={<Navigate to="/app/excel-sheets/nondh-status" replace />} />
                 <Route path="office-expenses" element={<Navigate to="/app/excel-sheets/office-reports" replace />} />
+                <Route path="verabill" element={<Navigate to="/app/excel-sheets/verabill" replace />} />
 
                 <Route element={<ProtectedRoute pageKey="/app/reports" />}>
                   <Route path="reports" element={<ExpenseReport />} />

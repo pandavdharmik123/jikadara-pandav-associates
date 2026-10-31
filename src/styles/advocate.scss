@@ -125,6 +125,21 @@
     background-color: #f9fafb !important;
   }
 
+  tr.ant-table-measure-row {
+    height: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    visibility: hidden !important;
+    border: none !important;
+
+    td {
+      padding: 0 !important;
+      border: none !important;
+      height: 0 !important;
+      font-size: 0 !important;
+      line-height: 0 !important;
+    }
+  }
 }
 
 /* Custom Sidebar Menu Styling */
@@ -396,4 +411,104 @@
     overflow-y: scroll;
     overflow-x: hidden;
   }
+}
+
+/* ─── Verabill & Light Bill Module Styles ─── */
+.verabill-module {
+  .verabill-stat-card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08) !important;
+    }
+  }
+
+  .verabill-filter-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+    margin-bottom: 16px;
+  }
+
+  .verabill-table-card {
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .verabill-table {
+    .ant-table-thead > tr > th {
+      background-color: #f8fafc !important;
+      color: #475569 !important;
+      font-weight: 700 !important;
+      font-size: 11.5px !important;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #e2e8f0 !important;
+      padding: 14px 16px !important;
+    }
+
+    .ant-table-tbody > tr:not(.ant-table-measure-row) > td {
+      padding: 13px 16px !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      font-size: 13.5px;
+      color: #1e293b;
+    }
+
+    .ant-table-tbody > tr:not(.ant-table-measure-row):hover > td {
+      background-color: #f8fafc !important;
+    }
+
+    tr.ant-table-measure-row {
+      height: 0 !important;
+      font-size: 0 !important;
+      line-height: 0 !important;
+      visibility: hidden !important;
+      border: 0 !important;
+
+      td {
+        padding: 0 !important;
+        border: 0 !important;
+        height: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+      }
+    }
+  }
+}
+
+.verabill-form-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+
+  &.section-fees {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  &.section-expenses {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+}
+
+.verabill-live-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 12px;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  margin-top: 18px;
+  flex-wrap: wrap;
 }

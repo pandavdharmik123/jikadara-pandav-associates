@@ -69,11 +69,11 @@ export default function AddEditOfficeLedgerModal({
   const existingExpenseType = !isIncome ? record?.expenseType || '' : '';
   const expenseTypeOptions =
     existingExpenseType &&
-    !EXPENSE_TYPE_OPTIONS.some((option) => option.value === existingExpenseType)
+      !EXPENSE_TYPE_OPTIONS.some((option) => option.value === existingExpenseType)
       ? [
-          ...EXPENSE_TYPE_OPTIONS,
-          { label: existingExpenseType, value: existingExpenseType },
-        ]
+        ...EXPENSE_TYPE_OPTIONS,
+        { label: existingExpenseType, value: existingExpenseType },
+      ]
       : EXPENSE_TYPE_OPTIONS;
 
   useEffect(() => {
@@ -249,7 +249,6 @@ export default function AddEditOfficeLedgerModal({
         <Form.Item
           name="details"
           label={<span style={{ fontWeight: 600 }}>{isIncome ? 'Income Details' : 'Expense Details'}</span>}
-          extra="Type in English; choose a Gujarati suggestion as you type."
           rules={[
             { required: true, whitespace: true, message: 'Please enter the details' },
             { max: 500, message: 'Details cannot be longer than 500 characters' },

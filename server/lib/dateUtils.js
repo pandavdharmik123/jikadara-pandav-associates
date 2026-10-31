@@ -65,6 +65,13 @@ export function toISTDateParts(date) {
   };
 }
 
+export function toISTDateString(date) {
+  if (!date) return null;
+  const { year, month, day } = toISTDateParts(date);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+
 // ─── Internal helper ─────────────────────────────────────────────────────────
 
 /**
