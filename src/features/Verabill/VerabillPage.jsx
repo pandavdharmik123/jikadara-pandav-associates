@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Avatar,
   Button,
@@ -26,6 +26,7 @@ import {
   Calendar,
   Check,
   DollarSign,
+  Download,
   Edit,
   Eye,
   FileSpreadsheet,
@@ -43,6 +44,8 @@ import {
   X,
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import html2pdf from 'html2pdf.js';
+import api from '../../services/api';
 import { formatCurrency } from '../../utils/currency';
 import { formatISTDate, toISTDateString } from '../../utils/istDate';
 import TransliterateInput from '../../components/TransliterateInput';
@@ -56,6 +59,8 @@ import {
   useImportVerabill,
 } from '../../hooks/useVerabill';
 import { VERABILL_SHEET1_RECORDS } from './verabillSheet1Data';
+import VerabillPrintLayout from './VerabillPrintLayout';
+import VerabillSingleEntryPrintLayout from './VerabillSingleEntryPrintLayout';
 
 const { Title, Text } = Typography;
 
@@ -101,6 +106,211 @@ export default function VerabillPage() {
 
   const entries = data?.entries || [];
   const total = data?.total || 0;
+
+  const printRef = useRef(null);
+  const singlePrintRef = useRef(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingSinglePDF, setIsGeneratingSinglePDF] = useState(false);
+  const [exportEntries, setExportEntries] = useState(null);
+
+  const handleExportPDF = async () => {
+    setIsGeneratingPDF(true);
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    let container = null;
+
+    try {
+      let recordsToPrint = entries;
+      if (total > entries.length) {
+        const { data: fullData } = await api.get('/verabill', {
+          params: {
+            ...params,
+            page: 1,
+            pageSize: Math.min(total, 1000),
+          },
+        });
+        if (fullData?.entries?.length) {
+          recordsToPrint = fullData.entries;
+        }
+      }
+
+      setExportEntries(recordsToPrint);
+
+      // Allow react to render off-screen layout
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      const element = printRef.current;
+      if (!element) throw new Error('Print layout element not found');
+
+      const clone = element.cloneNode(true);
+      clone.classList.add('pdf-mode');
+
+      container = document.createElement('div');
+      container.className = 'pdf-export-container';
+      Object.assign(container.style, {
+        position: 'fixed',
+        left: '-10000px',
+        top: '0',
+        width: '794px',
+        overflow: 'visible',
+        pointerEvents: 'none',
+        zIndex: '-1',
+      });
+
+      Object.assign(clone.style, {
+        overflow: 'visible',
+        height: 'auto',
+        maxHeight: 'none',
+      });
+
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      document.body.style.overflow = 'visible';
+      document.documentElement.style.overflow = 'visible';
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const captureWidth = 794;
+      const captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight, 1120);
+      const filename = `Verabill_Report_${dayjs().format('YYYY-MM-DD')}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
+        },
+        jsPDF: {
+          unit: 'in',
+          format: 'a4',
+          orientation: 'portrait',
+          compress: true,
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      };
+
+      await html2pdf().set(opt).from(clone).save();
+      message.success('Verabill report PDF exported successfully!');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      message.error('Failed to generate PDF');
+    } finally {
+      if (container?.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      setIsGeneratingPDF(false);
+      setExportEntries(null);
+    }
+  };
+
+  const handleExportSinglePDF = async (entryToPrint = viewing) => {
+    if (!entryToPrint) return;
+    setIsGeneratingSinglePDF(true);
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    let container = null;
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const element = singlePrintRef.current;
+      if (!element) throw new Error('Print layout element not found');
+
+      const clone = element.cloneNode(true);
+      clone.classList.add('pdf-mode');
+
+      container = document.createElement('div');
+      container.className = 'pdf-export-container';
+      Object.assign(container.style, {
+        position: 'fixed',
+        left: '-10000px',
+        top: '0',
+        width: '794px',
+        overflow: 'visible',
+        pointerEvents: 'none',
+        zIndex: '-1',
+      });
+
+      Object.assign(clone.style, {
+        overflow: 'visible',
+        height: 'auto',
+        maxHeight: 'none',
+      });
+
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      document.body.style.overflow = 'visible';
+      document.documentElement.style.overflow = 'visible';
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const captureWidth = 794;
+      const captureHeight = Math.max(clone.scrollHeight, clone.offsetHeight, 1120);
+      const safeClient = String(entryToPrint.clientName || 'Entry')
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+      const filename = `Verabill_${safeClient || 'Entry'}_${dayjs().format('YYYYMMDD')}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
+        },
+        jsPDF: {
+          unit: 'in',
+          format: 'a4',
+          orientation: 'portrait',
+          compress: true,
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      };
+
+      await html2pdf().set(opt).from(clone).save();
+      message.success('Entry PDF statement exported successfully!');
+    } catch (err) {
+      console.error('Single entry PDF export error:', err);
+      message.error('Failed to generate PDF');
+    } finally {
+      if (container?.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      setIsGeneratingSinglePDF(false);
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -547,6 +757,20 @@ export default function VerabillPage() {
         </div>
 
         <Space wrap size={10}>
+          <Button
+            icon={<Download size={15} />}
+            onClick={handleExportPDF}
+            loading={isGeneratingPDF}
+            style={{
+              borderRadius: 8,
+              height: 40,
+              fontWeight: 600,
+              borderColor: '#cbd5e1',
+              color: '#334155',
+            }}
+          >
+            Export PDF
+          </Button>
           <Button
             type="primary"
             icon={<Plus size={16} />}
@@ -1122,6 +1346,14 @@ export default function VerabillPage() {
                 Close
               </Button>
               <Button
+                icon={<Download size={14} />}
+                onClick={() => handleExportSinglePDF(viewing)}
+                loading={isGeneratingSinglePDF}
+                style={{ borderRadius: 6, fontWeight: 600, color: '#334155' }}
+              >
+                Export PDF
+              </Button>
+              <Button
                 type="primary"
                 icon={<Edit size={14} />}
                 onClick={() => {
@@ -1388,6 +1620,37 @@ export default function VerabillPage() {
           </div>
         )}
       </Modal>
+
+      {/* ── Hidden Off-Screen Layouts for PDF Generation ── */}
+      <div
+        style={{
+          position: 'fixed',
+          left: '-10000px',
+          top: 0,
+          pointerEvents: 'none',
+          zIndex: -100,
+        }}
+      >
+        <div ref={printRef}>
+          <VerabillPrintLayout
+            entries={exportEntries || entries}
+            summary={summary}
+            filterLabel={
+              params.search
+                ? `Search: "${params.search}"`
+                : params.clientName
+                  ? `Client: ${params.clientName}`
+                  : params.workType
+                    ? `Work: ${params.workType}`
+                    : 'All Records'
+            }
+          />
+        </div>
+
+        <div ref={singlePrintRef}>
+          {viewing && <VerabillSingleEntryPrintLayout entry={viewing} />}
+        </div>
+      </div>
     </div>
   );
 }
