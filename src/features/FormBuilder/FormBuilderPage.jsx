@@ -279,6 +279,7 @@ export default function FormBuilderPage() {
       formKey: FORM_KEY_BY_TAB[key],
       title,
       clientName: title,
+      status: 'COMPLETED',
       data: persisted,
     };
 
