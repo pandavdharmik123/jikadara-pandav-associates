@@ -1301,11 +1301,17 @@ textarea.fbs-uppercase::placeholder {
 }
 
 .fb-saved-drawer-header {
+  position: relative;
   padding: 18px 20px;
   border-bottom: 1px solid #eef2f7;
   background: #ffffff;
 
   .ant-drawer-header-title {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     flex: 1 1 auto;
     min-width: 0;
   }
@@ -1323,7 +1329,7 @@ textarea.fbs-uppercase::placeholder {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1371,7 +1377,8 @@ textarea.fbs-uppercase::placeholder {
 }
 
 .fb-saved-new-btn.ant-btn:hover {
-  background: #4338ca;
+  // background: #// background: #4f46e5;;
+  background: #4f46e5 !important;
 }
 
 .fb-saved-drawer-body {

@@ -349,7 +349,7 @@ export default function FormBuilderPage() {
     } catch (error) {
       message.error(
         error?.response?.data?.error ||
-          'Could not save the form. Please try again.'
+        'Could not save the form. Please try again.'
       );
     } finally {
       setSaving(false);
@@ -401,13 +401,13 @@ export default function FormBuilderPage() {
       const next =
         local?.recordId === record.id
           ? {
-              ...merged,
-              photo: local.data.photo ?? null,
-              signature: local.data.signature ?? null,
-              signatureAspect: local.data.signatureAspect ?? null,
-              signaturePlacements: local.data.signaturePlacements ?? null,
-              documents: local.data.documents ?? [],
-            }
+            ...merged,
+            photo: local.data.photo ?? null,
+            signature: local.data.signature ?? null,
+            signatureAspect: local.data.signatureAspect ?? null,
+            signaturePlacements: local.data.signaturePlacements ?? null,
+            documents: local.data.documents ?? [],
+          }
           : merged;
 
       setFormState((previous) => ({ ...previous, [key]: next }));
