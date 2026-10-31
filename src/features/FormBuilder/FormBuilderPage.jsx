@@ -7,7 +7,6 @@ import {
   FileText,
   Files,
   FolderOpen,
-  Info,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
@@ -534,7 +533,7 @@ export default function FormBuilderPage() {
           </Tooltip>
         }
       >
-        <div className="fb-saved-note">
+        {/* <div className="fb-saved-note">
           <span className="fb-saved-note-icon">
             <Info size={15} />
           </span>
@@ -542,7 +541,7 @@ export default function FormBuilderPage() {
             <strong>Only typed fields are saved</strong>
             <p>Photographs, signatures and documents stay on this device.</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="fb-saved-toolbar">
           <div className="fb-saved-count">
@@ -585,32 +584,31 @@ export default function FormBuilderPage() {
           ) : (
             <div className="fb-saved-list">
               {savedRecords.map((item) => (
-                <article className="fb-saved-card" key={item.id}>
-                  <div className="fb-saved-card-main">
-                    <span className="fb-saved-card-avatar">
-                      <FileText size={17} />
-                    </span>
-                    <div className="fb-saved-card-copy">
+                <article className="fb-saved-row" key={item.id}>
+                  <span className="fb-saved-row-icon">
+                    <FileText size={16} />
+                  </span>
+
+                  <div className="fb-saved-row-copy">
+                    <div className="fb-saved-row-heading">
                       <h4 title={item.title || 'Untitled form'}>
                         {item.title || 'Untitled form'}
                       </h4>
-                      <div className="fb-saved-card-meta">
-                        <Clock size={12} />
-                        <span>Updated {formatSavedAt(item.updatedAt)}</span>
-                      </div>
-                    </div>
-                    <span
-                      className={`fb-saved-card-status is-${(
+                      <span className={`fb-saved-row-status is-${(
                         item.status || 'DRAFT'
-                      ).toLowerCase()}`}
-                    >
-                      {SAVED_FORM_STATUS_LABELS[item.status] || 'Draft'}
-                    </span>
+                      ).toLowerCase()}`}>
+                        {SAVED_FORM_STATUS_LABELS[item.status] || 'Draft'}
+                      </span>
+                    </div>
+                    <div className="fb-saved-row-meta">
+                      <Clock size={12} />
+                      <span>Updated {formatSavedAt(item.updatedAt)}</span>
+                    </div>
                   </div>
 
-                  <div className="fb-saved-card-actions">
+                  <div className="fb-saved-row-actions">
                     <Button
-                      type="primary"
+                      type="link"
                       size="small"
                       className="fb-saved-open-btn"
                       icon={<FolderOpen size={14} />}
@@ -627,7 +625,7 @@ export default function FormBuilderPage() {
                       onConfirm={() => deleteSavedRecord(item.id)}
                     >
                       <Button
-                        type="text"
+                        type="link"
                         size="small"
                         danger
                         className="fb-saved-delete-btn"
