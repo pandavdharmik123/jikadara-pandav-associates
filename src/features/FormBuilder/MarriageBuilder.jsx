@@ -3,7 +3,6 @@ import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
   CheckCircle2,
-  Cloud,
   Download,
   Maximize2,
   MoreVertical,
@@ -19,8 +18,9 @@ import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import MarriageForm from './components/MarriageForm';
 import MarriagePrintDocument from './components/MarriagePrintDocument';
+import FormBuilderSaveControls from './components/FormBuilderSaveControls';
 import { createMarriageData, validateMarriage } from './constants/marriageData';
-import { clearPanDraft, savePanDraft, MARRIAGE_DRAFT_KEY } from './utils/panDraft';
+import { clearPanDraft, MARRIAGE_DRAFT_KEY } from './utils/panDraft';
 import './styles/marriageBuilder.scss';
 
 const PAGE_WIDTH = 794;
@@ -52,7 +52,15 @@ const PNG_OPTIONS = {
   },
 };
 
-export default function MarriageBuilder({ data, onChange }) {
+export default function MarriageBuilder({
+  data,
+  onChange,
+  onSave,
+  saving = false,
+  onOpenSavedForms,
+  onReset,
+  dirty = false,
+}) {
   const [showAllErrors, setShowAllErrors] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -87,12 +95,6 @@ export default function MarriageBuilder({ data, onChange }) {
       observer?.disconnect();
     };
   }, []);
-
-  const handleSaveDraft = () => {
-    const savedAt = savePanDraft(data, MARRIAGE_DRAFT_KEY);
-    if (savedAt) message.success('Draft saved on this device.');
-    else message.error('Could not save the draft – browser storage may be full or unavailable.');
-  };
 
   const handleDownload = async () => {
     setShowAllErrors(true);
@@ -165,27 +167,25 @@ export default function MarriageBuilder({ data, onChange }) {
 
   const handleReset = () => {
     Modal.confirm({
-      title: 'Reset to the blank template?',
-      content: 'Every value will be removed, and the saved draft on this device will be deleted.',
-      okText: 'Reset',
+      title: 'Start a new blank form?',
+      content:
+        'The editor will be cleared and a new record will be created on the next save. The current saved record is not deleted.',
+      okText: 'Start blank',
       okButtonProps: { danger: true },
       onOk: () => {
-        clearPanDraft(MARRIAGE_DRAFT_KEY);
-        onChange(createMarriageData());
+        if (onReset) {
+          onReset();
+        } else {
+          clearPanDraft(MARRIAGE_DRAFT_KEY);
+          onChange(createMarriageData());
+        }
         setShowAllErrors(false);
-        message.success('Reset to the blank marriage-registration form.');
+        message.success('Started a blank marriage-registration form.');
       },
     });
   };
 
   const moreItems = [
-    {
-      key: 'draft',
-      icon: <Cloud size={14} />,
-      label: 'Save draft on this device',
-      onClick: handleSaveDraft,
-    },
-    { type: 'divider' },
     {
       key: 'clear',
       icon: <Trash2 size={14} />,
@@ -195,7 +195,7 @@ export default function MarriageBuilder({ data, onChange }) {
     {
       key: 'reset',
       icon: <RotateCcw size={14} />,
-      label: 'Reset to blank template',
+      label: 'Start new blank form',
       danger: true,
       onClick: handleReset,
     },
@@ -234,11 +234,12 @@ export default function MarriageBuilder({ data, onChange }) {
         </div>
 
         <Space size={8} className="fbs-toolbar-actions">
-          <Tooltip title="Save the current values on this device">
-            <Button icon={<Cloud size={14} />} onClick={handleSaveDraft}>
-              Save draft
-            </Button>
-          </Tooltip>
+          <FormBuilderSaveControls
+            onSave={onSave}
+            saving={saving}
+            onOpenSavedForms={onOpenSavedForms}
+            dirty={dirty}
+          />
           <Button
             icon={<Printer size={14} />}
             loading={busy === 'print'}

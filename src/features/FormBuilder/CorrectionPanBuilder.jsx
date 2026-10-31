@@ -3,7 +3,6 @@ import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
   CheckCircle2,
-  Cloud,
   Download,
   MoreVertical,
   PanelLeft,
@@ -14,13 +13,14 @@ import {
 } from 'lucide-react';
 import CorrectionPanForm from './components/CorrectionPanForm';
 import PanPdfPreview from './components/PanPdfPreview';
+import FormBuilderSaveControls from './components/FormBuilderSaveControls';
 import {
   CORRECTION_FORM_PAGES,
   CORRECTION_PAGE,
   CORRECTION_SIGNATURE_BOXES,
 } from './constants/correctionPanLayout';
 import { createCorrectionPanData, validateCorrectionPan } from './constants/correctionPanData';
-import { clearPanDraft, savePanDraft, CORRECTION_DRAFT_KEY } from './utils/panDraft';
+import { clearPanDraft, CORRECTION_DRAFT_KEY } from './utils/panDraft';
 import { DEFAULT_SIGNATURE_ASPECT, createSignaturePlacements } from './utils/panImages';
 import {
   CORRECTION_TEMPLATE_URL,
@@ -29,7 +29,16 @@ import {
 } from './utils/correctionPanPdfExport';
 import { buildCorrectionPanOverlays } from './utils/correctionPanOverlay';
 
-export default function CorrectionPanBuilder({ data, onChange, previewPages }) {
+export default function CorrectionPanBuilder({
+  data,
+  onChange,
+  previewPages,
+  onSave,
+  saving = false,
+  onOpenSavedForms,
+  onReset,
+  dirty = false,
+}) {
   const [showAllErrors, setShowAllErrors] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -66,12 +75,6 @@ export default function CorrectionPanBuilder({ data, onChange, previewPages }) {
   };
 
   const issues = useMemo(() => Object.keys(errors).length, [errors]);
-
-  const handleSaveDraft = () => {
-    const savedAt = savePanDraft(data, CORRECTION_DRAFT_KEY);
-    if (savedAt) message.success('Draft saved on this device.');
-    else message.error('Could not save the draft – browser storage may be full or unavailable.');
-  };
 
   const handleDownload = async () => {
     setShowAllErrors(true);
@@ -120,27 +123,25 @@ export default function CorrectionPanBuilder({ data, onChange, previewPages }) {
 
   const handleReset = () => {
     Modal.confirm({
-      title: 'Reset to the blank template?',
-      content: 'Every value and uploaded image will be removed, and the saved draft on this device will be deleted.',
-      okText: 'Reset',
+      title: 'Start a new blank form?',
+      content:
+        'The editor will be cleared and a new record will be created on the next save. The current saved record is not deleted.',
+      okText: 'Start blank',
       okButtonProps: { danger: true },
       onOk: () => {
-        clearPanDraft(CORRECTION_DRAFT_KEY);
-        onChange(createCorrectionPanData());
+        if (onReset) {
+          onReset();
+        } else {
+          clearPanDraft(CORRECTION_DRAFT_KEY);
+          onChange(createCorrectionPanData());
+        }
         setShowAllErrors(false);
-        message.success('Reset to the blank correction template.');
+        message.success('Started a blank correction form.');
       },
     });
   };
 
   const moreItems = [
-    {
-      key: 'draft',
-      icon: <Cloud size={14} />,
-      label: 'Save draft on this device',
-      onClick: handleSaveDraft,
-    },
-    { type: 'divider' },
     {
       key: 'clear',
       icon: <Trash2 size={14} />,
@@ -150,7 +151,7 @@ export default function CorrectionPanBuilder({ data, onChange, previewPages }) {
     {
       key: 'reset',
       icon: <RotateCcw size={14} />,
-      label: 'Reset to blank template',
+      label: 'Start new blank form',
       danger: true,
       onClick: handleReset,
     },
@@ -185,11 +186,12 @@ export default function CorrectionPanBuilder({ data, onChange, previewPages }) {
         </div>
 
         <Space size={8} className="fbs-toolbar-actions">
-          <Tooltip title="Save the current values on this device">
-            <Button icon={<Cloud size={14} />} onClick={handleSaveDraft}>
-              Save draft
-            </Button>
-          </Tooltip>
+          <FormBuilderSaveControls
+            onSave={onSave}
+            saving={saving}
+            onOpenSavedForms={onOpenSavedForms}
+            dirty={dirty}
+          />
           <Button
             icon={<Printer size={14} />}
             loading={busy === 'print'}

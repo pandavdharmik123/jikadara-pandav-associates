@@ -32,6 +32,19 @@ enum OfficeEntryType {
   EXPENSE
 }
 
+enum FormBuilderFormKey {
+  PAN_NEW_APPLICATION
+  PAN_CORRECTION
+  MARRIAGE_REGISTRATION
+  PROPERTY_TAX_NAME_TRANSFER
+}
+
+enum FormBuilderStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+}
+
 // ─── User ────────────────────────────────────────────────
 
 model User {
@@ -66,6 +79,7 @@ model User {
   pedhinamus      Pedhinamu[]
   jantriCalculations JantriCalculation[]
   nondhStatuses   NondhStatus[]
+  formBuilderRecords FormBuilderRecord[]
   refreshTokens   RefreshToken[]
 }
 
@@ -393,6 +407,31 @@ model NondhStatus {
   @@index([isDeleted])
   @@index([deletedAt])
   @@index([number])
+}
+
+// ─── FormBuilderRecord (saved Form Builder applications) ─
+// Only the typed form fields are stored here. Uploaded photographs,
+// signatures and document scans deliberately stay on the user's device.
+
+model FormBuilderRecord {
+  id            String            @id @default(uuid())
+  userId        String
+  formKey       FormBuilderFormKey
+  title         String            @default("")
+  clientName    String            @default("")
+  status        FormBuilderStatus @default(DRAFT)
+  data          Json
+  schemaVersion Int               @default(1)
+  revision      Int               @default(1)
+  isDeleted     Boolean           @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, formKey, isDeleted, updatedAt])
+  @@index([userId, updatedAt])
 }
 
 // ─── BackupRun (Google Drive database backups) ───────────

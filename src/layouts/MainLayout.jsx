@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { Layout, Menu, Button, Drawer, Grid, Input, Dropdown, Avatar, Badge, Select } from 'antd';
+import { Layout, Menu, Button, Drawer, Grid, Dropdown, Avatar, Badge, Select } from 'antd';
 import {
   Menu as MenuIcon,
   LogOut,
@@ -16,9 +16,7 @@ import {
   FileSignature,
   FileText,
   Hash,
-  ChevronDown,
   User,
-  Search,
   Bell,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +26,7 @@ import {
   Trash2,
   GitFork,
   FileCheck,
+  FileSpreadsheet,
   Receipt,
   CloudUpload
 } from 'lucide-react';
@@ -145,11 +144,52 @@ export default function MainLayout() {
       label: 'Pedhinamu Builder',
     },
     {
-      key: '/app/tools/form-builder',
+      key: 'form-builder-group',
       icon: <FileSignature size={20} />,
       label: 'Form Builder',
+      children: [
+        {
+          key: '/app/tools/form-builder/pan-new-application',
+          permissionKey: '/app/tools/form-builder',
+          label: 'PAN Card – New Application',
+        },
+        {
+          key: '/app/tools/form-builder/pan-correction',
+          permissionKey: '/app/tools/form-builder',
+          label: 'PAN Card – Correction',
+        },
+        {
+          key: '/app/tools/form-builder/marriage-registration',
+          permissionKey: '/app/tools/form-builder',
+          label: 'Marriage Registration',
+        },
+        {
+          key: '/app/tools/form-builder/property-tax-name-transfer',
+          permissionKey: '/app/tools/form-builder',
+          label: 'Property Tax – Name Transfer',
+        },
+      ],
     },
   ];
+
+  const prepareMenuItems = (items, canAccess) =>
+    items
+      .map((item) => {
+        if (!item.children) return item;
+
+        const children = item.children
+          .filter((child) => canAccess(child.permissionKey || child.key))
+          .map((child) => {
+            const menuChild = { ...child };
+            delete menuChild.permissionKey;
+            return menuChild;
+          });
+
+        return { ...item, children };
+      })
+      .filter((item) =>
+        item.children ? item.children.length > 0 : canAccess(item.key)
+      );
 
   if (user?.role === 'ADMIN') {
     menuItems = [
@@ -187,7 +227,7 @@ export default function MainLayout() {
         key: 'tools-group',
         type: 'group',
         label: 'Tools & Utilities',
-        children: rawToolItems,
+        children: prepareMenuItems(rawToolItems, () => true),
       },
     ];
   } else {
@@ -208,19 +248,28 @@ export default function MainLayout() {
         label: 'Tasks',
       },
       {
-        key: '/app/nondh-status',
-        icon: <FileCheck size={20} />,
-        label: 'Nondh Status',
-      },
-      {
         key: '/app/reports',
         icon: <BarChart2 size={20} />,
         label: 'Reports',
       },
       {
-        key: '/app/office-expenses',
-        icon: <Receipt size={20} />,
-        label: 'Office Reports',
+        key: 'excel-sheets-group',
+        icon: <FileSpreadsheet size={20} />,
+        label: 'Excel Sheets',
+        children: [
+          {
+            key: '/app/excel-sheets/office-reports',
+            permissionKey: '/app/office-expenses',
+            icon: <Receipt size={20} />,
+            label: 'Office Reports',
+          },
+          {
+            key: '/app/excel-sheets/nondh-status',
+            permissionKey: '/app/nondh-status',
+            icon: <FileCheck size={20} />,
+            label: 'Nondh Status',
+          },
+        ],
       },
       {
         key: '/app/upad',
@@ -240,8 +289,12 @@ export default function MainLayout() {
     ];
 
 
-    const allowedAdvocate = rawAdvocateItems.filter((item) => hasPageAccess(user, item.key));
-    const allowedTools = rawToolItems.filter((item) => hasPageAccess(user, item.key));
+    const allowedAdvocate = prepareMenuItems(rawAdvocateItems, (key) =>
+      hasPageAccess(user, key)
+    );
+    const allowedTools = prepareMenuItems(rawToolItems, (key) =>
+      hasPageAccess(user, key)
+    );
 
     if (allowedAdvocate.length > 0) {
       menuItems.push({
@@ -311,6 +364,16 @@ export default function MainLayout() {
           theme="light"
           mode="inline"
           selectedKeys={[selectedKey]}
+          defaultOpenKeys={[
+            ...(window.location.pathname.startsWith('/app/excel-sheets') ||
+            window.location.pathname === '/app/office-expenses' ||
+            window.location.pathname === '/app/nondh-status'
+              ? ['excel-sheets-group']
+              : []),
+            ...(window.location.pathname.startsWith('/app/tools/form-builder')
+              ? ['form-builder-group']
+              : []),
+          ]}
           onClick={handleMenuClick}
           items={menuItems}
           style={{ padding: '0 12px', borderRight: 0 }}

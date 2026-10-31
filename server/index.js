@@ -20,6 +20,7 @@ import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
+import formBuilderRoutes from './routes/formBuilder.js';
 import backupRoutes from './routes/backup.js';
 import { startBackupScheduler } from './services/backup/scheduler.js';
 
@@ -34,6 +35,12 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+// Form Builder only stores typed fields (no uploads), but a 100 KB default is
+// too small for large address blocks / long lists. This parser is registered
+// before the global parser so the larger limit applies only to this module.
+app.use('/api/form-builder', express.json({ limit: '1mb' }), formBuilderRoutes);
+
 app.use(express.json());
 
 // Routes
@@ -67,8 +74,16 @@ app.get('/api/health', async (req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+
   console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  return res.status(500).json({ error: 'Internal server error' });
 });
 
 await runStartupTasks();

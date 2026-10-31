@@ -3,7 +3,6 @@ import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
   CheckCircle2,
-  Cloud,
   Download,
   MoreVertical,
   PanelLeft,
@@ -14,13 +13,23 @@ import {
 } from 'lucide-react';
 import PanCardForm from './components/PanCardForm';
 import PanPdfPreview from './components/PanPdfPreview';
+import FormBuilderSaveControls from './components/FormBuilderSaveControls';
 import { PAN_FORM_PAGES } from './constants/panLayout';
 import { createPanData, isRepresentativeMandatory, validatePan } from './constants/panData';
-import { clearPanDraft, savePanDraft } from './utils/panDraft';
+import { clearPanDraft } from './utils/panDraft';
 import { DEFAULT_SIGNATURE_ASPECT, createSignaturePlacements } from './utils/panImages';
 import { downloadPanPdf, printPanPdf } from './utils/panPdfExport';
 
-export default function PanCardBuilder({ data, onChange, previewPages }) {
+export default function PanCardBuilder({
+  data,
+  onChange,
+  previewPages,
+  onSave,
+  saving = false,
+  onOpenSavedForms,
+  onReset,
+  dirty = false,
+}) {
   const [showAllErrors, setShowAllErrors] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -56,12 +65,6 @@ export default function PanCardBuilder({ data, onChange, previewPages }) {
 
   const issues = useMemo(() => Object.keys(errors).length, [errors]);
   const raMandatory = useMemo(() => isRepresentativeMandatory(data), [data]);
-
-  const handleSaveDraft = () => {
-    const savedAt = savePanDraft(data);
-    if (savedAt) message.success('Draft saved on this device.');
-    else message.error('Could not save the draft – browser storage may be full or unavailable.');
-  };
 
   const handleDownload = async () => {
     setShowAllErrors(true);
@@ -110,27 +113,25 @@ export default function PanCardBuilder({ data, onChange, previewPages }) {
 
   const handleReset = () => {
     Modal.confirm({
-      title: 'Reset to the blank template?',
-      content: 'Every value and uploaded image will be removed, and the saved draft on this device will be deleted.',
-      okText: 'Reset',
+      title: 'Start a new blank form?',
+      content:
+        'The editor will be cleared and a new record will be created on the next save. The current saved record is not deleted.',
+      okText: 'Start blank',
       okButtonProps: { danger: true },
       onOk: () => {
-        clearPanDraft();
-        onChange(createPanData());
+        if (onReset) {
+          onReset();
+        } else {
+          clearPanDraft();
+          onChange(createPanData());
+        }
         setShowAllErrors(false);
-        message.success('Reset to the blank PAN template.');
+        message.success('Started a blank PAN form.');
       },
     });
   };
 
   const moreItems = [
-    {
-      key: 'draft',
-      icon: <Cloud size={14} />,
-      label: 'Save draft on this device',
-      onClick: handleSaveDraft,
-    },
-    { type: 'divider' },
     {
       key: 'clear',
       icon: <Trash2 size={14} />,
@@ -140,7 +141,7 @@ export default function PanCardBuilder({ data, onChange, previewPages }) {
     {
       key: 'reset',
       icon: <RotateCcw size={14} />,
-      label: 'Reset to blank template',
+      label: 'Start new blank form',
       danger: true,
       onClick: handleReset,
     },
@@ -175,11 +176,12 @@ export default function PanCardBuilder({ data, onChange, previewPages }) {
         </div>
 
         <Space size={8} className="fbs-toolbar-actions">
-          <Tooltip title="Save the current values on this device">
-            <Button icon={<Cloud size={14} />} onClick={handleSaveDraft}>
-              Save draft
-            </Button>
-          </Tooltip>
+          <FormBuilderSaveControls
+            onSave={onSave}
+            saving={saving}
+            onOpenSavedForms={onOpenSavedForms}
+            dirty={dirty}
+          />
           <Button
             icon={<Printer size={14} />}
             loading={busy === 'print'}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider, theme } from 'antd';
@@ -15,9 +15,8 @@ import Dashboard from './features/Dashboard/Dashboard';
 import ClientRoutes from './features/Clients';
 import TaskRoutes from './features/Tasks';
 import ExpenseReport from './features/Reports/ExpenseReport';
-import OfficeLedgerPage from './features/OfficeLedger/OfficeLedgerPage';
 import UpadList from './features/Upad/UpadList';
-import NondhStatusList from './features/NondhStatus/NondhStatusList';
+import ExcelSheetsPage, { ExcelSheetsRedirect } from './features/ExcelSheets/ExcelSheetsPage';
 import AdminUsers from './features/Admin/AdminUsers';
 import DocumentTypesAdmin from './features/Admin/DocumentTypesAdmin';
 import BackupManager from './features/Admin/BackupManager';
@@ -44,7 +43,7 @@ import { getInitialUserRoute } from './utils/pagePermissions';
 
 // Intercept fetch calls for AI4Bharat API (same as before)
 const originalFetch = window.fetch;
-window.fetch = async function (input, init) {
+window.fetch = async function (input) {
   const url = typeof input === 'string' ? input : (input && input.url) ? input.url : '';
 
   if (url && (url.includes('xlit-api.ai4bharat.org') || url.includes('/tl/'))) {
@@ -166,16 +165,22 @@ export default function App() {
                   <Route path="tasks/*" element={<TaskRoutes />} />
                 </Route>
 
-                <Route element={<ProtectedRoute pageKey="/app/nondh-status" />}>
-                  <Route path="nondh-status" element={<NondhStatusList />} />
+                <Route path="excel-sheets">
+                  <Route index element={<ExcelSheetsRedirect />} />
+                  <Route element={<ProtectedRoute pageKey="/app/office-expenses" />}>
+                    <Route path="office-reports" element={<ExcelSheetsPage />} />
+                  </Route>
+                  <Route element={<ProtectedRoute pageKey="/app/nondh-status" />}>
+                    <Route path="nondh-status" element={<ExcelSheetsPage />} />
+                  </Route>
                 </Route>
+
+                {/* Keep old bookmarks and permission routes working. */}
+                <Route path="nondh-status" element={<Navigate to="/app/excel-sheets/nondh-status" replace />} />
+                <Route path="office-expenses" element={<Navigate to="/app/excel-sheets/office-reports" replace />} />
 
                 <Route element={<ProtectedRoute pageKey="/app/reports" />}>
                   <Route path="reports" element={<ExpenseReport />} />
-                </Route>
-
-                <Route element={<ProtectedRoute pageKey="/app/office-expenses" />}>
-                  <Route path="office-expenses" element={<OfficeLedgerPage />} />
                 </Route>
 
                 <Route element={<ProtectedRoute pageKey="/app/upad" />}>
@@ -248,7 +253,11 @@ export default function App() {
                   </Route>
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/form-builder" />}>
-                    <Route path="form-builder" element={<FormBuilderPage />} />
+                    <Route
+                      path="form-builder"
+                      element={<Navigate to="/app/tools/form-builder/pan-new-application" replace />}
+                    />
+                    <Route path="form-builder/:formKey" element={<FormBuilderPage />} />
                   </Route>
                 </Route>
               </Route>

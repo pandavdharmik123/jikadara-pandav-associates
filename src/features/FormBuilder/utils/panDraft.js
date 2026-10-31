@@ -17,13 +17,22 @@ function mergeDefaults(base, patch) {
 }
 
 /**
- * Drafts are kept on this device only (localStorage) – no Aadhaar/PAN data is
- * sent to or stored on the server by this module.
+ * The local draft keeps the complete form, including uploaded images, so a
+ * device can restore its own attachments. Only the typed values are sent to
+ * the server. `recordId` links this local cache to the saved database record.
  */
-export function savePanDraft(data, key = PAN_DRAFT_KEY) {
+export function savePanDraft(data, key = PAN_DRAFT_KEY, meta = {}) {
   const savedAt = new Date().toISOString();
   try {
-    localStorage.setItem(key, JSON.stringify({ savedAt, data }));
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        savedAt,
+        recordId: meta.recordId || null,
+        revision: meta.revision || null,
+        data,
+      })
+    );
   } catch {
     return null;
   }
@@ -36,10 +45,20 @@ export function readPanDraft(key = PAN_DRAFT_KEY, createData = createPanData) {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || !parsed.data) return null;
-    return { savedAt: parsed.savedAt || null, data: mergeDefaults(createData(), parsed.data) };
+    return {
+      savedAt: parsed.savedAt || null,
+      recordId: parsed.recordId || null,
+      revision: parsed.revision || null,
+      data: mergeDefaults(createData(), parsed.data),
+    };
   } catch {
     return null;
   }
+}
+
+/** Merge a server payload over the current defaults (forward compatible). */
+export function mergeFormDefaults(createData, patch) {
+  return mergeDefaults(createData(), patch);
 }
 
 export function clearPanDraft(key = PAN_DRAFT_KEY) {

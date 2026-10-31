@@ -191,6 +191,26 @@
     }
 
   }
+
+  /* Long submenu labels (for example Form Builder templates) should wrap
+     instead of being cut off with an ellipsis. */
+  .ant-menu-submenu {
+    .ant-menu-item {
+      height: auto !important;
+      min-height: 38px !important;
+      line-height: 1.35 !important;
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
+      display: flex;
+      align-items: center;
+
+      .ant-menu-title-content {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+      }
+    }
+  }
 }
 
 

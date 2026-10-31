@@ -3,7 +3,6 @@ import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
   CheckCircle2,
-  Cloud,
   Download,
   MoreVertical,
   PanelLeft,
@@ -14,17 +13,27 @@ import {
 } from 'lucide-react';
 import PropertyTaxForm from './components/PropertyTaxForm';
 import PanPdfPreview from './components/PanPdfPreview';
+import FormBuilderSaveControls from './components/FormBuilderSaveControls';
 import {
   PROPERTY_TAX_FORM_PAGES,
   PROPERTY_TAX_PAGE,
   PROPERTY_TAX_TEMPLATE_URL,
 } from './constants/propertyTaxLayout';
 import { createPropertyTaxData, validatePropertyTax } from './constants/propertyTaxData';
-import { clearPanDraft, savePanDraft, PROPERTY_TAX_DRAFT_KEY } from './utils/panDraft';
+import { clearPanDraft, PROPERTY_TAX_DRAFT_KEY } from './utils/panDraft';
 import { downloadPropertyTaxPdf, printPropertyTaxPdf } from './utils/propertyTaxPdfExport';
 import { buildPropertyTaxOverlays } from './utils/propertyTaxOverlay';
 
-export default function PropertyTaxBuilder({ data, onChange, previewPages }) {
+export default function PropertyTaxBuilder({
+  data,
+  onChange,
+  previewPages,
+  onSave,
+  saving = false,
+  onOpenSavedForms,
+  onReset,
+  dirty = false,
+}) {
   const [showAllErrors, setShowAllErrors] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -32,12 +41,6 @@ export default function PropertyTaxBuilder({ data, onChange, previewPages }) {
   const errors = useMemo(() => validatePropertyTax(data), [data]);
   const pageLimit = previewPages || PROPERTY_TAX_FORM_PAGES;
   const issues = useMemo(() => Object.keys(errors).length, [errors]);
-
-  const handleSaveDraft = () => {
-    const savedAt = savePanDraft(data, PROPERTY_TAX_DRAFT_KEY);
-    if (savedAt) message.success('Draft saved on this device.');
-    else message.error('Could not save the draft – browser storage may be full or unavailable.');
-  };
 
   const handleDownload = async () => {
     setShowAllErrors(true);
@@ -85,27 +88,25 @@ export default function PropertyTaxBuilder({ data, onChange, previewPages }) {
 
   const handleReset = () => {
     Modal.confirm({
-      title: 'Reset to the blank template?',
-      content: 'Every entered value will be removed, and the saved draft on this device will be deleted.',
-      okText: 'Reset',
+      title: 'Start a new blank form?',
+      content:
+        'The editor will be cleared and a new record will be created on the next save. The current saved record is not deleted.',
+      okText: 'Start blank',
       okButtonProps: { danger: true },
       onOk: () => {
-        clearPanDraft(PROPERTY_TAX_DRAFT_KEY);
-        onChange(createPropertyTaxData());
+        if (onReset) {
+          onReset();
+        } else {
+          clearPanDraft(PROPERTY_TAX_DRAFT_KEY);
+          onChange(createPropertyTaxData());
+        }
         setShowAllErrors(false);
-        message.success('Reset to the blank property tax template.');
+        message.success('Started a blank property tax form.');
       },
     });
   };
 
   const moreItems = [
-    {
-      key: 'draft',
-      icon: <Cloud size={14} />,
-      label: 'Save draft on this device',
-      onClick: handleSaveDraft,
-    },
-    { type: 'divider' },
     {
       key: 'clear',
       icon: <Trash2 size={14} />,
@@ -115,7 +116,7 @@ export default function PropertyTaxBuilder({ data, onChange, previewPages }) {
     {
       key: 'reset',
       icon: <RotateCcw size={14} />,
-      label: 'Reset to blank template',
+      label: 'Start new blank form',
       danger: true,
       onClick: handleReset,
     },
@@ -150,11 +151,12 @@ export default function PropertyTaxBuilder({ data, onChange, previewPages }) {
         </div>
 
         <Space size={8} className="fbs-toolbar-actions">
-          <Tooltip title="Save the current values on this device">
-            <Button icon={<Cloud size={14} />} onClick={handleSaveDraft}>
-              Save draft
-            </Button>
-          </Tooltip>
+          <FormBuilderSaveControls
+            onSave={onSave}
+            saving={saving}
+            onOpenSavedForms={onOpenSavedForms}
+            dirty={dirty}
+          />
           <Button
             icon={<Printer size={14} />}
             loading={busy === 'print'}

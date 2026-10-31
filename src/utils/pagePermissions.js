@@ -10,12 +10,18 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/dashboard', label: 'Dashboard', description: 'Overview, analytics & metrics' },
       { key: '/app/clients', label: 'Clients', description: 'Client profiles & records' },
       { key: '/app/tasks', label: 'Tasks', description: 'Task, case & financial ledger tracking' },
-      { key: '/app/nondh-status', label: 'Nondh Status', description: 'Revenue mutation & nondh status tracking' },
       { key: '/app/reports', label: 'Reports', description: 'Monthly & yearly financial reports' },
-      { key: '/app/office-expenses', label: 'Income & Expenses', description: 'Isolated office income and expense ledger' },
       { key: '/app/upad', label: 'Upad List', description: 'User profit withdrawal ledger' },
       { key: '/app/recycle-bin', label: 'Recycle Bin', description: 'Restoration & permanent removal of deleted items' },
       { key: '/app/admin/document-types', label: 'Document Types', description: 'Document type configurations' },
+    ],
+  },
+  {
+    title: 'Excel Sheets',
+    description: 'Office reports and Nondh status in one place',
+    pages: [
+      { key: '/app/office-expenses', label: 'Office Reports', description: 'Office income and expense ledger' },
+      { key: '/app/nondh-status', label: 'Nondh Status', description: 'Revenue mutation & nondh status tracking' },
     ],
   },
   {
@@ -30,7 +36,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/number_to_words', label: 'Numbers to Words', description: 'Cheque/legal word formatting' },
       { key: '/app/tools/document-ai', label: 'Document AI & OCR', description: 'Gujarati OCR & text extraction' },
       { key: '/app/tools/pedhinamu', label: 'Pedhinamu Builder', description: 'Dynamic 2-Page Legal Landscape Family Tree' },
-      { key: '/app/tools/form-builder', label: 'Form Builder', description: 'Fill original government PDF forms (PAN Card – new application)' },
+      { key: '/app/tools/form-builder', label: 'Form Builder', description: 'PAN Card, Marriage Registration & Property Tax forms' },
     ],
   },
 ];
