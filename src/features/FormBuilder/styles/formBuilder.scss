@@ -533,6 +533,33 @@
   font-weight: 500;
 }
 
+/* Property Tax – Name Transfer: larger, easier-to-read field text. */
+.fbs-builder.property-tax-builder {
+  .fbs-field {
+    gap: 6px;
+  }
+
+  .fbs-field-label {
+    font-size: 18px;
+  }
+
+  .fbs-hint {
+    font-size: 12px;
+  }
+
+  .fbs-error {
+    font-size: 12px;
+  }
+
+  .fbs-uppercase .ant-input,
+  .fbs-uppercase textarea.fbs-uppercase,
+  .ant-input,
+  textarea,
+  .font-ghanshyam {
+    font-size: 18px !important;
+  }
+}
+
 .fbs-grid-2,
 .fbs-grid-3,
 .fbs-grid-4 {

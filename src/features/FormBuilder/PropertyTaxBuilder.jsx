@@ -123,7 +123,7 @@ export default function PropertyTaxBuilder({
   ];
 
   return (
-    <div className="fbs-builder">
+    <div className="fbs-builder property-tax-builder">
       <div className="fbs-toolbar">
         <div className="fbs-toolbar-left">
           <Tooltip title={sidebarCollapsed ? 'Show input panel' : 'Hide input panel'}>
