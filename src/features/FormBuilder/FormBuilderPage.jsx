@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { Button, Drawer, Empty, List, Modal, Popconfirm, Spin, message } from 'antd';
-import { FilePlus2 } from 'lucide-react';
+import { Button, Drawer, Modal, Popconfirm, Spin, Tooltip, message } from 'antd';
+import {
+  Clock,
+  FilePlus2,
+  FileText,
+  Files,
+  FolderOpen,
+  Info,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import PanCardBuilder from './PanCardBuilder';
 import CorrectionPanBuilder from './CorrectionPanBuilder';
 import MarriageBuilder from './MarriageBuilder';
@@ -42,6 +51,25 @@ const CORRECTION_TAB_KEY = 'pan-correction';
 const MARRIAGE_TAB_KEY = 'marriage-registration';
 const PROPERTY_TAX_TAB_KEY = 'property-tax-name-transfer';
 const DEFAULT_FORM_KEY = PAN_TAB_KEY;
+
+const SAVED_FORM_STATUS_LABELS = {
+  DRAFT: 'Draft',
+  COMPLETED: 'Completed',
+  ARCHIVED: 'Archived',
+};
+
+const formatSavedAt = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 /**
  * Registry of the forms available in the builder. Adding a new form is only a
@@ -464,49 +492,133 @@ export default function FormBuilderPage() {
       </div>
 
       <Drawer
-        title={`Saved forms · ${activeTab.label}`}
         open={drawerOpen && drawerFormKey === activeTab.key}
         onClose={() => setDrawerOpen(false)}
-        width={440}
+        size={460}
+        placement="right"
+        classNames={{
+          root: 'fb-saved-drawer',
+          section: 'fb-saved-drawer-panel',
+          header: 'fb-saved-drawer-header',
+          body: 'fb-saved-drawer-body',
+        }}
+        title={
+          <div className="fb-saved-drawer-heading">
+            <span className="fb-saved-drawer-heading-icon">
+              <FolderOpen size={17} />
+            </span>
+            <span className="fb-saved-drawer-heading-text">
+              <span className="fb-saved-drawer-heading-title">Saved forms</span>
+              <span className="fb-saved-drawer-heading-sub">{activeTab.label}</span>
+            </span>
+          </div>
+        }
         extra={
-          <Button
-            icon={<FilePlus2 size={14} />}
-            onClick={async () => {
-              if (currentRecord?.dirty) {
-                const discard = await confirmDiscardChanges();
-                if (!discard) return;
-              }
-              resetActiveForm();
-              setDrawerOpen(false);
-            }}
-          >
-            New form
-          </Button>
+          <Tooltip title="New form">
+            <Button
+              type="primary"
+              className="fb-saved-new-btn"
+              aria-label="New form"
+              icon={<FilePlus2 size={15} />}
+              onClick={async () => {
+                if (currentRecord?.dirty) {
+                  const discard = await confirmDiscardChanges();
+                  if (!discard) return;
+                }
+                resetActiveForm();
+                setDrawerOpen(false);
+              }}
+            >
+              New form
+            </Button>
+          </Tooltip>
         }
       >
-        <p className="form-builder-saved-note">
-          Only the fields typed in the editor are saved to your account. Uploaded
-          photographs, signatures and documents stay on this device.
-        </p>
+        <div className="fb-saved-note">
+          <span className="fb-saved-note-icon">
+            <Info size={15} />
+          </span>
+          <div className="fb-saved-note-copy">
+            <strong>Only typed fields are saved</strong>
+            <p>Photographs, signatures and documents stay on this device.</p>
+          </div>
+        </div>
+
+        <div className="fb-saved-toolbar">
+          <div className="fb-saved-count">
+            <Files size={14} />
+            <span>
+              {savedRecords.length} saved form{savedRecords.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <Tooltip title="Refresh saved forms">
+            <Button
+              type="text"
+              size="small"
+              className="fb-saved-refresh"
+              icon={<RefreshCw size={14} />}
+              loading={drawerLoading}
+              onClick={loadSavedRecords}
+            />
+          </Tooltip>
+        </div>
 
         <Spin spinning={drawerLoading}>
           {savedRecords.length === 0 ? (
-            <Empty description="No saved forms yet" />
+            <div className="fb-saved-empty">
+              <span className="fb-saved-empty-icon">
+                <Files size={22} />
+              </span>
+              <h4>No saved forms yet</h4>
+              <p>Fill the editor on the left and press Save to keep a copy in your account.</p>
+              <Button
+                type="primary"
+                icon={<FilePlus2 size={14} />}
+                onClick={() => {
+                  resetActiveForm();
+                  setDrawerOpen(false);
+                }}
+              >
+                Start a new form
+              </Button>
+            </div>
           ) : (
-            <List
-              dataSource={savedRecords}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
+            <div className="fb-saved-list">
+              {savedRecords.map((item) => (
+                <article className="fb-saved-card" key={item.id}>
+                  <div className="fb-saved-card-main">
+                    <span className="fb-saved-card-avatar">
+                      <FileText size={17} />
+                    </span>
+                    <div className="fb-saved-card-copy">
+                      <h4 title={item.title || 'Untitled form'}>
+                        {item.title || 'Untitled form'}
+                      </h4>
+                      <div className="fb-saved-card-meta">
+                        <Clock size={12} />
+                        <span>Updated {formatSavedAt(item.updatedAt)}</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`fb-saved-card-status is-${(
+                        item.status || 'DRAFT'
+                      ).toLowerCase()}`}
+                    >
+                      {SAVED_FORM_STATUS_LABELS[item.status] || 'Draft'}
+                    </span>
+                  </div>
+
+                  <div className="fb-saved-card-actions">
                     <Button
-                      key="open"
-                      type="link"
+                      type="primary"
+                      size="small"
+                      className="fb-saved-open-btn"
+                      icon={<FolderOpen size={14} />}
                       onClick={() => openSavedRecord(item.id)}
                     >
                       Open
-                    </Button>,
+                    </Button>
                     <Popconfirm
-                      key="delete"
                       title="Delete this saved form?"
                       description="It will be hidden from your saved forms."
                       okText="Delete"
@@ -514,19 +626,20 @@ export default function FormBuilderPage() {
                       okButtonProps={{ danger: true }}
                       onConfirm={() => deleteSavedRecord(item.id)}
                     >
-                      <Button type="link" danger>
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        className="fb-saved-delete-btn"
+                        icon={<Trash2 size={14} />}
+                      >
                         Delete
                       </Button>
-                    </Popconfirm>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={item.title || 'Untitled form'}
-                    description={`Updated ${new Date(item.updatedAt).toLocaleString()}`}
-                  />
-                </List.Item>
-              )}
-            />
+                    </Popconfirm>
+                  </div>
+                </article>
+              ))}
+            </div>
           )}
         </Spin>
       </Drawer>
