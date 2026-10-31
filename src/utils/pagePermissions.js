@@ -22,6 +22,7 @@ export const AVAILABLE_PAGE_GROUPS = [
     pages: [
       { key: '/app/office-expenses', label: 'Office Reports', description: 'Office income and expense ledger' },
       { key: '/app/nondh-status', label: 'Nondh Status', description: 'Revenue mutation & nondh status tracking' },
+      { key: '/app/verabill', label: 'Verabill / Light Bill', description: 'Verabill and light bill client management' },
     ],
   },
   {
@@ -64,7 +65,7 @@ export function hasPageAccess(user, pageKey) {
 
   // ADMIN role access: user management, document types, recycle bin, and tools
   if (user.role === 'ADMIN') {
-    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/admin/backup' || pageKey === '/app/recycle-bin' || pageKey.startsWith('/app/tools/');
+    return pageKey === '/app/admin/users' || pageKey === '/app/admin/document-types' || pageKey === '/app/admin/backup' || pageKey === '/app/recycle-bin' || pageKey.startsWith('/app/tools/') || pageKey === '/app/office-expenses' || pageKey === '/app/nondh-status' || pageKey === '/app/verabill';
   }
 
   // Non-admin cannot access admin panel users

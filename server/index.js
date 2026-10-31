@@ -19,6 +19,7 @@ import upadRoutes from './routes/upad.js';
 import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
+import verabillRoutes from './routes/verabill.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
 import formBuilderRoutes from './routes/formBuilder.js';
 import backupRoutes from './routes/backup.js';
@@ -59,7 +60,7 @@ app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
-app.use('/api/nondh-status', nondhStatusRoutes);
+app.use('/api/verabill', verabillRoutes);
 app.use('/api/backup', backupRoutes);
 
 // Health check (includes database connectivity)

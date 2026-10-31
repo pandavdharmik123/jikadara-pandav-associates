@@ -80,6 +80,7 @@ model User {
   jantriCalculations JantriCalculation[]
   nondhStatuses   NondhStatus[]
   formBuilderRecords FormBuilderRecord[]
+  verabillEntries VerabillEntry[]
   refreshTokens   RefreshToken[]
 }
 
@@ -432,6 +433,65 @@ model FormBuilderRecord {
 
   @@index([userId, formKey, isDeleted, updatedAt])
   @@index([userId, updatedAt])
+}
+
+// ─── VerabillEntry (Verabill / Light Bill management) ─────
+
+model VerabillEntry {
+  id                String    @id @default(uuid())
+  userId            String
+  clientName        String
+  property          String    @default("")
+  workDescription   String    @default("")
+  remarks           String    @default("")
+  startDate         DateTime?
+  additionalIncome  Decimal?  @db.Decimal(12, 2)
+  incomeDescription String    @default("")
+  originalExcelData Json?
+  isDeleted         Boolean   @default(false)
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fees     VerabillFee[]
+  expenses VerabillExpense[]
+
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([deletedAt])
+  @@index([clientName])
+  @@index([startDate])
+}
+
+model VerabillFee {
+  id              String    @id @default(uuid())
+  entryId         String
+  amount          Decimal   @db.Decimal(12, 2)
+  receivedBy      String    @default("")
+  transactionDate DateTime?
+  description     String    @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  entry           VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+}
+
+model VerabillExpense {
+  id            String    @id @default(uuid())
+  entryId       String
+  amount        Decimal   @db.Decimal(12, 2)
+  expensePerson  String    @default("")
+  expenseDate   DateTime?
+  description   String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  entry         VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
 }
 
 // ─── BackupRun (Google Drive database backups) ───────────

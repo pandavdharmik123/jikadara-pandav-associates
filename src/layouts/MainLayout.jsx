@@ -269,6 +269,12 @@ export default function MainLayout() {
             icon: <FileCheck size={20} />,
             label: 'Nondh Status',
           },
+          {
+            key: '/app/excel-sheets/verabill',
+            permissionKey: '/app/verabill',
+            icon: <Receipt size={20} />,
+            label: 'Verabill / Light Bill',
+          },
         ],
       },
       {
@@ -367,7 +373,8 @@ export default function MainLayout() {
           defaultOpenKeys={[
             ...(window.location.pathname.startsWith('/app/excel-sheets') ||
             window.location.pathname === '/app/office-expenses' ||
-            window.location.pathname === '/app/nondh-status'
+            window.location.pathname === '/app/nondh-status' ||
+            window.location.pathname === '/app/verabill'
               ? ['excel-sheets-group']
               : []),
             ...(window.location.pathname.startsWith('/app/tools/form-builder')
