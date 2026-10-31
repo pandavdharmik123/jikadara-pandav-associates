@@ -12,21 +12,13 @@ export default function FormBuilderSaveControls({
   dirty = false,
 }) {
   return (
-    <>
-      <Tooltip
-        title={
-          dirty
-            ? 'Save the typed form fields to your account. Uploaded images stay on this device.'
-            : 'All typed form fields are saved to your account.'
-        }
-      >
-        <Button icon={<Cloud size={14} />} loading={saving} onClick={onSave}>
-          Save
-        </Button>
-      </Tooltip>
+    <div className='save-document-controls'>
+      <Button icon={<Cloud size={14} />} loading={saving} onClick={onSave}>
+        Save
+      </Button>
       <Button icon={<FolderOpen size={14} />} onClick={onOpenSavedForms}>
         Saved forms
       </Button>
-    </>
+    </div>
   );
 }

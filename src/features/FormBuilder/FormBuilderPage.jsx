@@ -513,26 +513,6 @@ export default function FormBuilderPage() {
             </span>
           </div>
         }
-        extra={
-          <Tooltip title="New form">
-            <Button
-              type="primary"
-              className="fb-saved-new-btn"
-              aria-label="New form"
-              icon={<FilePlus2 size={15} />}
-              onClick={async () => {
-                if (currentRecord?.dirty) {
-                  const discard = await confirmDiscardChanges();
-                  if (!discard) return;
-                }
-                resetActiveForm();
-                setDrawerOpen(false);
-              }}
-            >
-              New form
-            </Button>
-          </Tooltip>
-        }
       >
         {/* <div className="fb-saved-note">
           <span className="fb-saved-note-icon">
@@ -551,7 +531,24 @@ export default function FormBuilderPage() {
               {savedRecords.length} saved form{savedRecords.length === 1 ? '' : 's'}
             </span>
           </div>
-          <Tooltip title="Refresh saved forms">
+
+          <div>
+            <Button
+              type="primary"
+              className="fb-saved-new-btn"
+              aria-label="New form"
+              icon={<FilePlus2 size={15} />}
+              onClick={async () => {
+                if (currentRecord?.dirty) {
+                  const discard = await confirmDiscardChanges();
+                  if (!discard) return;
+                }
+                resetActiveForm();
+                setDrawerOpen(false);
+              }}
+            >
+              New form
+            </Button>
             <Button
               type="text"
               size="small"
@@ -560,7 +557,8 @@ export default function FormBuilderPage() {
               loading={drawerLoading}
               onClick={loadSavedRecords}
             />
-          </Tooltip>
+          </div>
+
         </div>
 
         <Spin spinning={drawerLoading}>
