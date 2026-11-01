@@ -98,6 +98,11 @@ export function parseEntryPayload(body = {}, { partial = false } = {}) {
       ? parseText(body.tenementNo, 'Tenement number', 50)
       : (partial ? undefined : '');
   }
+  if (!partial || has('serviceNo')) {
+    data.serviceNo = has('serviceNo') && body.serviceNo !== null
+      ? parseText(body.serviceNo, 'Service number', 50)
+      : (partial ? undefined : '');
+  }
   if (!partial || has('workType')) {
     const raw = has('workType') ? String(body.workType).trim() : '';
     if (['Vera Bill', 'Light Bill', 'Both'].includes(raw)) {

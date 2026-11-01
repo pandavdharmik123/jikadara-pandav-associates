@@ -46,6 +46,7 @@ import {
   X,
   Zap,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import html2pdf from 'html2pdf.js';
@@ -102,6 +103,7 @@ export default function VerabillPage() {
   // Watch modal form fields for live net calculation
   const watchedFees = Form.useWatch('fees', form) || [];
   const watchedExpenses = Form.useWatch('expenses', form) || [];
+  const watchedWorkType = Form.useWatch('workType', form) || 'Both';
 
   const modalTotalFees = useMemo(() => {
     return (watchedFees || []).reduce((acc, curr) => acc + (Number(curr?.amount) || 0), 0);
@@ -331,9 +333,10 @@ export default function VerabillPage() {
       property: '',
       zone: '',
       tenementNo: '',
+      serviceNo: '',
       workType: 'Both',
       workDescription: '',
-      fees: [{ amount: undefined, receivedBy: '', transactionDate: null, description: '' }],
+      fees: [],
       expenses: [],
     });
     setModalOpen(true);
@@ -349,6 +352,7 @@ export default function VerabillPage() {
       property: entry.property,
       zone: entry.zone || '',
       tenementNo: entry.tenementNo || '',
+      serviceNo: entry.serviceNo || '',
       workType: entry.workType || 'Both',
       workDescription: entry.workDescription,
       fees: (entry.fees || []).map((f) => ({
@@ -380,10 +384,11 @@ export default function VerabillPage() {
         property: values.property?.trim(),
         zone: values.zone?.trim() || '',
         tenementNo: values.tenementNo?.trim() || '',
+        serviceNo: values.serviceNo?.trim() || '',
         workType: values.workType || 'Both',
         workDescription: values.workDescription?.trim(),
         fees: (values.fees || [])
-          .filter((f) => f && f.amount !== null && f.amount !== undefined && f.amount !== '')
+          .filter((f) => f && f.amount !== null && f.amount !== undefined && f.amount !== '' && Number(f.amount) > 0)
           .map((f) => ({
             amount: Number(f.amount),
             receivedBy: f.receivedBy?.trim() || '',
@@ -395,7 +400,7 @@ export default function VerabillPage() {
             description: f.description?.trim() || '',
           })),
         expenses: (values.expenses || [])
-          .filter((e) => e && e.amount !== null && e.amount !== undefined && e.amount !== '')
+          .filter((e) => e && e.amount !== null && e.amount !== undefined && e.amount !== '' && Number(e.amount) > 0)
           .map((e) => ({
             amount: Number(e.amount),
             expensePerson: e.expensePerson?.trim() || '',
@@ -588,22 +593,57 @@ export default function VerabillPage() {
       },
     },
     {
-      title: 'Tenement No.',
-      dataIndex: 'tenementNo',
-      key: 'tenementNo',
-      width: 200,
-      render: (text) =>
-        text ? (
-          <SmcTenementBadge
-            tenementNo={text}
-            onClick={() => {
-              setSelectedTenement(text);
-              setSmcModalOpen(true);
-            }}
-          />
-        ) : (
-          <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>
-        ),
+      title: 'Tenement / Service No.',
+      key: 'identifier',
+      width: 220,
+      render: (_, record) => {
+        const hasTenement = Boolean(record.tenementNo);
+        const hasService = Boolean(record.serviceNo);
+
+        if (!hasTenement && !hasService) {
+          return <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>;
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {hasTenement && (
+              <SmcTenementBadge
+                tenementNo={record.tenementNo}
+                onClick={() => {
+                  setSelectedTenement(record.tenementNo);
+                  setSmcModalOpen(true);
+                }}
+              />
+            )}
+            {hasService && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  width: 'fit-content',
+                  cursor: 'pointer',
+                }}
+                title={`Light Bill Service No: ${record.serviceNo} (Click to check Light Bill)`}
+                onClick={() => {
+                  setSelectedLightBillEntry(record);
+                  setLightBillModalOpen(true);
+                }}
+              >
+                <Zap size={11} color="#d97706" />
+                <span>{record.serviceNo}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Work Description',
@@ -1215,21 +1255,78 @@ export default function VerabillPage() {
             </Col>
           </Row>
 
-          <Row gutter={12}>
-            <Col xs={24}>
-              <Form.Item
-                name="tenementNo"
-                label={
-                  <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Building2 size={15} color="#2563eb" />
-                    Tenement No. (SMC Surat Municipal Corporation)
-                  </span>
-                }
-              >
-                <SmcTenementInput />
-              </Form.Item>
-            </Col>
-          </Row>
+          {/* Conditional Tenement No. / Service No. fields based on Type of Work */}
+          {(() => {
+            const showTenement = watchedWorkType === 'Vera Bill' || watchedWorkType === 'Both';
+            const showService = watchedWorkType === 'Light Bill' || watchedWorkType === 'Both';
+
+            if (!showTenement && !showService) return null;
+
+            return (
+              <Row gutter={12}>
+                {showTenement && (
+                  <Col xs={24} md={showService ? 12 : 24}>
+                    <Form.Item
+                      name="tenementNo"
+                      label={
+                        <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Building2 size={14} color="#2563eb" />
+                          Tenement No. (SMC)
+                        </span>
+                      }
+                      style={{ marginBottom: 16 }}
+                    >
+                      <SmcTenementInput />
+                    </Form.Item>
+                  </Col>
+                )}
+                {showService && (
+                  <Col xs={24} md={showTenement ? 12 : 24}>
+                    <Form.Item
+                      name="serviceNo"
+                      label={
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+                          <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                            <Zap size={14} color="#d97706" />
+                            Service Number
+                          </span>
+                          <Space size={6} style={{ marginLeft: 8 }}>
+                            <a
+                              href="https://portal.guvnl.in/login.php"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: '#2563eb', fontWeight: 600 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              DGVCL ↗
+                            </a>
+                            <span style={{ color: '#cbd5e1' }}>|</span>
+                            <a
+                              href="https://connect.torrentpower.com/tplcp/blockedmodule"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: '#d97706', fontWeight: 600 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Torrent ↗
+                            </a>
+                          </Space>
+                        </div>
+                      }
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Input
+                        placeholder="Enter Service No."
+                        style={{ height: 32, borderRadius: 6, fontSize: 13 }}
+                        prefix={<Zap size={13} color="#d97706" style={{ marginRight: 4 }} />}
+                        allowClear
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
+              </Row>
+            );
+          })()}
 
           {/* ── Fees & Expenses Tabbed Section ── */}
           <div style={{ marginTop: 6, marginBottom: 8 }}>
@@ -1388,7 +1485,6 @@ export default function VerabillPage() {
                                   <Col xs={24} sm={5}>
                                     <Form.Item
                                       name={[field.name, 'amount']}
-                                      rules={[{ required: true, message: 'Required' }]}
                                       style={{ marginBottom: 0 }}
                                     >
                                       <InputNumber
@@ -1513,7 +1609,6 @@ export default function VerabillPage() {
                                   <Col xs={24} sm={5}>
                                     <Form.Item
                                       name={[field.name, 'amount']}
-                                      rules={[{ required: true, message: 'Required' }]}
                                       style={{ marginBottom: 0 }}
                                     >
                                       <InputNumber
@@ -1758,7 +1853,7 @@ export default function VerabillPage() {
                   </div>
                 </Col>
                 {viewing.tenementNo && (
-                  <Col span={24}>
+                  <Col span={viewing.serviceNo ? 12 : 24}>
                     <div
                       style={{
                         background: '#eff6ff',
@@ -1771,6 +1866,7 @@ export default function VerabillPage() {
                         flexWrap: 'wrap',
                         gap: 10,
                         marginTop: 4,
+                        height: '100%',
                       }}
                     >
                       <div>
@@ -1799,6 +1895,50 @@ export default function VerabillPage() {
                         }}
                       >
                         Check SMC Bill
+                      </Button>
+                    </div>
+                  </Col>
+                )}
+                {viewing.serviceNo && (
+                  <Col span={viewing.tenementNo ? 12 : 24}>
+                    <div
+                      style={{
+                        background: '#fefce8',
+                        border: '1px solid #fde68a',
+                        borderRadius: 8,
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        marginTop: 4,
+                        height: '100%',
+                      }}
+                    >
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: '#92400e' }}>
+                          LIGHT BILL SERVICE / CONSUMER NO.
+                        </Text>
+                        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#78350f', fontFamily: 'monospace' }}>
+                          {viewing.serviceNo}
+                        </div>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<Zap size={14} />}
+                        onClick={() => {
+                          setSelectedLightBillEntry(viewing);
+                          setLightBillModalOpen(true);
+                        }}
+                        style={{
+                          background: '#d97706',
+                          borderColor: '#d97706',
+                          borderRadius: 6,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Check Light Bill
                       </Button>
                     </div>
                   </Col>
@@ -2008,6 +2148,43 @@ export default function VerabillPage() {
         centered
       >
         <div style={{ padding: '12px 0 6px' }}>
+          {selectedLightBillEntry?.serviceNo && (
+            <div
+              style={{
+                marginBottom: 14,
+                padding: '10px 14px',
+                background: '#fefce8',
+                border: '1px solid #fde68a',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Zap size={16} color="#d97706" />
+                <div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>
+                    Service / Consumer Number
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#78350f', fontFamily: 'monospace' }}>
+                    {selectedLightBillEntry.serviceNo}
+                  </div>
+                </div>
+              </div>
+              <Button
+                size="small"
+                icon={<Copy size={12} />}
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedLightBillEntry.serviceNo);
+                  message.success('Service number copied to clipboard');
+                }}
+                style={{ borderRadius: 6, fontWeight: 600 }}
+              >
+                Copy
+              </Button>
+            </div>
+          )}
           <p style={{ color: '#475569', fontSize: 13, marginBottom: 16 }}>
             Select the electricity provider in Surat to view and verify the light bill:
           </p>

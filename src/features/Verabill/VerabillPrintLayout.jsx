@@ -304,7 +304,13 @@ export default function VerabillPrintLayout({
                         wordBreak: 'break-word',
                       }}
                     >
-                      {entry.workDescription || '—'}
+                      <div>{entry.workDescription || '—'}</div>
+                      {(entry.tenementNo || entry.serviceNo) && (
+                        <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
+                          {entry.tenementNo && <span>T: {entry.tenementNo} </span>}
+                          {entry.serviceNo && <span>S: {entry.serviceNo}</span>}
+                        </div>
+                      )}
                     </td>
                     <td
                       style={{
