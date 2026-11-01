@@ -29,8 +29,8 @@ import {
   FileSpreadsheet,
   Receipt,
   CloudUpload,
-  Globe,
-  Landmark
+  // Globe,           // AnyRoR portal (temporarily disabled)
+  // Landmark        // AnyRoR portal (temporarily disabled)
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -175,9 +175,7 @@ export default function MainLayout() {
   ];
 
   /*
-   * Government Portal menu items — intentionally outside the page-permission
-   * filtering so every logged-in user can reach them.
-   */
+   * Government Portal menu items (temporarily disabled)
   const rawPortalItems = [
     {
       key: '/app/anyror',
@@ -192,6 +190,7 @@ export default function MainLayout() {
     label: 'Government Portals',
     children: rawPortalItems,
   };
+  */
 
   const prepareMenuItems = (items, canAccess) =>
     items
@@ -348,9 +347,9 @@ export default function MainLayout() {
     }
   }
 
-  // Government Portals — shown to every user, no permission filtering
-  menuItems.push({ type: 'divider' });
-  menuItems.push(portalGroup);
+  // Government Portals menu group (temporarily disabled)
+  // menuItems.push({ type: 'divider' });
+  // menuItems.push(portalGroup);
 
   let selectedKey = location.pathname;
 
@@ -534,9 +533,11 @@ export default function MainLayout() {
         <Content
           style={{
             flex: 1,
-            padding: location.pathname.includes('/form-builder') || location.pathname.startsWith('/app/anyror') ? 0 : '16px',
-            overflowY: location.pathname.includes('/form-builder') || location.pathname.startsWith('/app/anyror') ? 'hidden' : 'auto',
-            ...(location.pathname.includes('/form-builder') || location.pathname.startsWith('/app/anyror')
+            // AnyRoR portal (temporarily disabled): the zero-padding / no-scroll
+            // /app/anyror branch was removed with the feature.
+            padding: location.pathname.includes('/form-builder') ? 0 : '16px',
+            overflowY: location.pathname.includes('/form-builder') ? 'hidden' : 'auto',
+            ...(location.pathname.includes('/form-builder')
               ? { display: 'flex', flexDirection: 'column' }
               : {}),
           }}
