@@ -93,25 +93,38 @@ export function parseEntryPayload(body = {}, { partial = false } = {}) {
   if (!partial || has('property')) {
     data.property = parseText(body.property, 'Property', MAX_SHORT, true);
   }
+  if (!partial || has('tenementNo')) {
+    data.tenementNo = has('tenementNo') && body.tenementNo !== null
+      ? parseText(body.tenementNo, 'Tenement number', 50)
+      : (partial ? undefined : '');
+  }
+  if (!partial || has('workType')) {
+    const raw = has('workType') ? String(body.workType).trim() : '';
+    if (['Vera Bill', 'Light Bill', 'Both'].includes(raw)) {
+      data.workType = raw;
+    } else if (!raw && !partial) {
+      data.workType = 'Both';
+    } else if (raw) {
+      const lower = raw.toLowerCase();
+      if (lower.includes('vera') && lower.includes('light')) {
+        data.workType = 'Both';
+      } else if (lower.includes('vera')) {
+        data.workType = 'Vera Bill';
+      } else if (lower.includes('light')) {
+        data.workType = 'Light Bill';
+      } else {
+        data.workType = raw.slice(0, 50);
+      }
+    }
+  }
+  if (!partial || has('zone')) {
+    data.zone = parseText(body.zone, 'Zone', MAX_SHORT);
+  }
   if (!partial || has('workDescription')) {
     data.workDescription = parseText(body.workDescription, 'Work description', MAX_TEXT, true);
   }
-  if (!partial || has('remarks')) {
-    data.remarks = parseText(body.remarks, 'Remarks', MAX_TEXT);
-  }
   if (!partial || body.startDate !== undefined || body.workDate !== undefined) {
     data.startDate = parseOptionalDate(body.startDate ?? body.workDate, 'Start date');
-  }
-  if (!partial || has('incomeDescription')) {
-    data.incomeDescription = parseText(body.incomeDescription, 'Income description', MAX_TEXT);
-  }
-  if (!partial || has('additionalIncome')) {
-    if (body.additionalIncome === undefined || body.additionalIncome === null || body.additionalIncome === '') {
-      data.additionalIncome = null;
-    } else {
-      const v = parseAmount(body.additionalIncome, 'Additional income', false);
-      data.additionalIncome = v === null ? null : v;
-    }
   }
 
   if (!partial || has('fees')) {
@@ -149,16 +162,17 @@ export function parseListFilters(query = {}) {
   const search = parseText(query.search, 'Search', MAX_SHORT);
   const clientName = parseText(query.clientName, 'Client name', MAX_SHORT);
   const property = parseText(query.property, 'Property', MAX_SHORT);
+  const zone = parseText(query.zone, 'Zone', MAX_SHORT);
   const workType = parseText(query.workType, 'Work type', MAX_SHORT);
 
   const page = Math.max(1, parseInt(query.page || '1', 10) || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize || '20', 10) || 20));
 
-  const sortBy = ['clientName', 'property', 'createdAt', 'updatedAt'].includes(query.sortBy)
+  const sortBy = ['clientName', 'property', 'zone', 'createdAt', 'updatedAt'].includes(query.sortBy)
     ? query.sortBy : 'createdAt';
   const sortDir = query.sortDir === 'asc' ? 'asc' : 'desc';
 
-  return { search, clientName, property, workType, page, pageSize, sortBy, sortDir };
+  return { search, clientName, property, zone, workType, page, pageSize, sortBy, sortDir };
 }
 
 export function parseImportPayload(body = {}) {

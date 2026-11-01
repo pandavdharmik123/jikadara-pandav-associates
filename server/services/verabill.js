@@ -35,10 +35,8 @@ function totalsOf(entry) {
   const expenses = entry.expenses || [];
   const totalFees = roundCurrency(fees.reduce((s, f) => s + Number(f.amount), 0));
   const totalExpenses = roundCurrency(expenses.reduce((s, e) => s + Number(e.amount), 0));
-  const additionalIncome = entry.additionalIncome == null
-    ? 0 : roundCurrency(entry.additionalIncome);
-  const netBalance = roundCurrency(totalFees - totalExpenses + additionalIncome);
-  return { totalFees, totalExpenses, additionalIncome, netBalance };
+  const netBalance = roundCurrency(totalFees - totalExpenses);
+  return { totalFees, totalExpenses, netBalance };
 }
 
 function serializeEntry(entry) {
@@ -47,11 +45,12 @@ function serializeEntry(entry) {
     id: entry.id,
     clientName: entry.clientName,
     property: entry.property,
+    zone: entry.zone || '',
+    tenementNo: entry.tenementNo || '',
+    workType: entry.workType || 'Both',
     workDescription: entry.workDescription,
-    remarks: entry.remarks,
     startDate: entry.startDate ? toISTDateString(entry.startDate) : null,
     workDate: entry.startDate ? toISTDateString(entry.startDate) : null,
-    incomeDescription: entry.incomeDescription,
     originalExcelData: entry.originalExcelData,
     isDeleted: entry.isDeleted,
     createdAt: entry.createdAt,
@@ -59,7 +58,6 @@ function serializeEntry(entry) {
     fees: (entry.fees || []).map(serializeFee),
     expenses: (entry.expenses || []).map(serializeExpense),
     ...t,
-    additionalIncome: entry.additionalIncome == null ? null : roundCurrency(entry.additionalIncome),
   };
 }
 
@@ -73,40 +71,53 @@ export async function getSummary({ userId }) {
     where: { userId, isDeleted: false },
     include: entryInclude,
   });
-  let totalFees = 0, totalExpenses = 0, totalAdditionalIncome = 0;
+  let totalFees = 0, totalExpenses = 0;
   for (const e of entries) {
     const t = totalsOf(e);
     totalFees += t.totalFees;
     totalExpenses += t.totalExpenses;
-    totalAdditionalIncome += t.additionalIncome;
   }
   totalFees = roundCurrency(totalFees);
   totalExpenses = roundCurrency(totalExpenses);
-  totalAdditionalIncome = roundCurrency(totalAdditionalIncome);
   return {
     totalClients: entries.length,
     totalFeesReceived: totalFees,
     totalExpenses,
-    totalAdditionalIncome,
-    netBalance: roundCurrency(totalFees - totalExpenses + totalAdditionalIncome),
+    netBalance: roundCurrency(totalFees - totalExpenses),
   };
 }
 
-export async function listEntries({ userId, search, clientName, property, workType, page, pageSize, sortBy, sortDir }) {
+export async function listEntries({ userId, search, clientName, property, zone, workType, page, pageSize, sortBy, sortDir }) {
   const where = { userId, isDeleted: false };
   if (search) {
     where.OR = [
       { clientName: { contains: search, mode: 'insensitive' } },
       { property: { contains: search, mode: 'insensitive' } },
+      { zone: { contains: search, mode: 'insensitive' } },
+      { tenementNo: { contains: search, mode: 'insensitive' } },
       { workDescription: { contains: search, mode: 'insensitive' } },
       { fees: { some: { receivedBy: { contains: search, mode: 'insensitive' } } } },
     ];
   }
   if (clientName) where.clientName = { contains: clientName, mode: 'insensitive' };
   if (property) where.property = { contains: property, mode: 'insensitive' };
-  if (workType) where.workDescription = { contains: workType, mode: 'insensitive' };
+  if (zone) where.zone = { contains: zone, mode: 'insensitive' };
+  if (workType) {
+    if (where.OR) {
+      where.AND = [
+        { OR: where.OR },
+        { OR: [{ workType }, { workDescription: { contains: workType, mode: 'insensitive' } }] },
+      ];
+      delete where.OR;
+    } else {
+      where.OR = [
+        { workType },
+        { workDescription: { contains: workType, mode: 'insensitive' } },
+      ];
+    }
+  }
 
-  const validSortFields = ['createdAt', 'clientName', 'property', 'startDate', 'updatedAt'];
+  const validSortFields = ['createdAt', 'clientName', 'property', 'zone', 'startDate', 'updatedAt'];
   const actualSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
   const orderBy = { [actualSortBy]: sortDir };
 
@@ -145,11 +156,11 @@ export async function createEntry({ userId, data }) {
         userId,
         clientName: data.clientName,
         property: data.property,
+        zone: data.zone || '',
+        tenementNo: data.tenementNo || '',
+        workType: data.workType || 'Both',
         workDescription: data.workDescription,
-        remarks: data.remarks || '',
         startDate: data.startDate !== undefined ? data.startDate : null,
-        additionalIncome: data.additionalIncome,
-        incomeDescription: data.incomeDescription || '',
         originalExcelData: data.originalExcelData || undefined,
       },
     });
@@ -190,11 +201,11 @@ export async function updateEntry({ userId, id, data }) {
       data: {
         ...(data.clientName !== undefined ? { clientName: data.clientName } : {}),
         ...(data.property !== undefined ? { property: data.property } : {}),
+        ...(data.zone !== undefined ? { zone: data.zone } : {}),
+        ...(data.tenementNo !== undefined ? { tenementNo: data.tenementNo } : {}),
+        ...(data.workType !== undefined ? { workType: data.workType } : {}),
         ...(data.workDescription !== undefined ? { workDescription: data.workDescription } : {}),
-        ...(data.remarks !== undefined ? { remarks: data.remarks } : {}),
         ...(data.startDate !== undefined ? { startDate: data.startDate } : {}),
-        ...(data.incomeDescription !== undefined ? { incomeDescription: data.incomeDescription } : {}),
-        ...(data.additionalIncome !== undefined ? { additionalIncome: data.additionalIncome } : {}),
         ...(data.originalExcelData !== undefined ? { originalExcelData: data.originalExcelData } : {}),
       },
     });
@@ -276,9 +287,7 @@ export async function importEntries({ userId, records }) {
           clientName: r.clientName,
           property: r.property || '',
           workDescription: r.workDescription || '',
-          remarks: r.remarks || '',
-          additionalIncome: r.additionalIncome ?? null,
-          incomeDescription: r.incomeDescription || '',
+          zone: r.zone || '',
           originalExcelData: r.originalExcelData || null,
           fees: { create: fees },
           expenses: { create: expenses },

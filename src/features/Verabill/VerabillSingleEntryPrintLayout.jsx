@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
 import { formatISTDate } from '../../utils/istDate';
+import { formatTenementDisplay } from './SmcTenementInput';
 
 export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
   if (!entry || !entry.id) return null;
@@ -9,7 +10,6 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
   const expenses = entry.expenses || [];
   const totalFees = Number(entry.totalFees) || 0;
   const totalExpenses = Number(entry.totalExpenses) || 0;
-  const additionalIncome = Number(entry.additionalIncome) || 0;
   const netBalance = Number(entry.netBalance) || 0;
 
   return (
@@ -109,6 +109,24 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
 
           <div>
             <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              Zone (SMC)
+            </div>
+            <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
+              {entry.zone || '—'}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              Type of Work
+            </div>
+            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
+              {entry.workType || 'Both'}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
               Property / Address
             </div>
             <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>
@@ -125,24 +143,13 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
             </div>
           </div>
 
-          {entry.remarks && (
+          {entry.tenementNo && (
             <div style={{ gridColumn: 'span 2' }}>
               <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                Remarks
+                Tenement No. (SMC)
               </div>
-              <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                {entry.remarks}
-              </div>
-            </div>
-          )}
-
-          {entry.incomeDescription && (
-            <div style={{ gridColumn: 'span 2' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: '#0284c7', textTransform: 'uppercase' }}>
-                Additional Income Note
-              </div>
-              <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '2px', fontWeight: 500 }}>
-                {entry.incomeDescription}
+              <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#2563eb', marginTop: '2px', fontFamily: 'monospace' }}>
+                {formatTenementDisplay(entry.tenementNo)}
               </div>
             </div>
           )}
@@ -153,7 +160,7 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '10px',
           marginBottom: '22px',
         }}
@@ -189,23 +196,6 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
           </div>
           <div style={{ fontSize: '16px', fontWeight: 800, color: '#991b1b', marginTop: '2px' }}>
             {formatCurrency(totalExpenses)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: '10px 12px',
-            backgroundColor: '#ecfeff',
-            border: '1px solid #a5f3fc',
-            borderRadius: 7,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: '9.5px', fontWeight: 700, color: '#0e7490', textTransform: 'uppercase' }}>
-            Add. Income
-          </div>
-          <div style={{ fontSize: '16px', fontWeight: 800, color: '#155e75', marginTop: '2px' }}>
-            {additionalIncome > 0 ? formatCurrency(additionalIncome) : '—'}
           </div>
         </div>
 
