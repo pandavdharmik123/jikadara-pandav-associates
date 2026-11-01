@@ -144,12 +144,23 @@ export default function VerabillSingleEntryPrintLayout({ entry = {} }) {
           </div>
 
           {entry.tenementNo && (
-            <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ gridColumn: entry.serviceNo ? 'span 1' : 'span 2' }}>
               <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
                 Tenement No. (SMC)
               </div>
               <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#2563eb', marginTop: '2px', fontFamily: 'monospace' }}>
                 {formatTenementDisplay(entry.tenementNo)}
+              </div>
+            </div>
+          )}
+
+          {entry.serviceNo && (
+            <div style={{ gridColumn: entry.tenementNo ? 'span 1' : 'span 2' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                Service Number (Light Bill)
+              </div>
+              <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#d97706', marginTop: '2px', fontFamily: 'monospace' }}>
+                {entry.serviceNo}
               </div>
             </div>
           )}
