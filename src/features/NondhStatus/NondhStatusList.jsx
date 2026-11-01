@@ -33,8 +33,8 @@ import {
   Filter,
   X,
   Check,
-  Globe,
-  RotateCw,
+  // Globe,               // AnyRoR portal (temporarily disabled)
+  // RotateCw,            // AnyRoR portal (temporarily disabled)
 } from 'lucide-react';
 import { IndicTransliterate } from '@ai4bharat/indic-transliterate';
 import dayjs from 'dayjs';
@@ -133,14 +133,17 @@ const STATUS_OPTIONS = ['પ્રમાણિત', 'કાચી નોંધ',
 
 const DONE_OPTIONS = ['Done', 'Pending', '-'];
 
-// AnyRoR – Land Record (Rural) portal. It sends `X-Frame-Options: deny`, so it
-// is displayed through the backend proxy (/api/anyror/*) inside the drawer.
+/*
+ * AnyRoR – Land Record (Rural) portal integration (temporarily disabled).
+ * It sends `X-Frame-Options: deny`, so it is displayed through the backend
+ * proxy (/api/anyror/*) inside the drawer.
 const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
   /\/api\/?$/,
   ''
 );
 const ANYROR_IFRAME_URL = `${API_ORIGIN}/api/anyror/LandRecordRural.aspx`;
 const ANYROR_ORIGINAL_URL = 'https://anyror.gujarat.gov.in/LandRecordRural.aspx';
+*/
 
 // Light row tint per status type
 const STATUS_ROW_CLASSES = {
@@ -190,10 +193,10 @@ export default function NondhStatusList() {
   const [editValues, setEditValues] = useState({});
   const [form] = Form.useForm();
 
-  // AnyRoR – Land Record (Rural) right-side drawer
-  const [isAnyRorDrawerOpen, setIsAnyRorDrawerOpen] = useState(false);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [iframeKey, setIframeKey] = useState(0);
+  // AnyRoR – Land Record (Rural) right-side drawer (temporarily disabled)
+  // const [isAnyRorDrawerOpen, setIsAnyRorDrawerOpen] = useState(false);
+  // const [iframeLoaded, setIframeLoaded] = useState(false);
+  // const [iframeKey, setIframeKey] = useState(0);
 
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
@@ -224,6 +227,8 @@ export default function NondhStatusList() {
     return Array.from(set).sort();
   }, [data]);
 
+  // AnyRoR drawer handlers (temporarily disabled)
+  /*
   const handleOpenAnyRorDrawer = () => {
     setIframeLoaded(false);
     setIframeKey((k) => k + 1); // force a fresh load on every open
@@ -238,6 +243,7 @@ export default function NondhStatusList() {
   const handleCloseAnyRorDrawer = () => {
     setIsAnyRorDrawerOpen(false);
   };
+  */
 
   const handleOpenModal = (record = null) => {
     setEditingRecord(record);
@@ -802,6 +808,7 @@ export default function NondhStatusList() {
         </div>
 
         <Space wrap style={{ width: isMobile ? '100%' : 'auto' }}>
+          {/* AnyRoR Land Record drawer button (temporarily disabled)
           <Button
             icon={<Globe size={15} />}
             onClick={handleOpenAnyRorDrawer}
@@ -809,6 +816,7 @@ export default function NondhStatusList() {
           >
             Land Record (AnyRoR)
           </Button>
+          */}
           <Button
             href="https://anyror.gujarat.gov.in"
             target="_blank"
@@ -1093,7 +1101,7 @@ export default function NondhStatusList() {
         </Form>
       </Modal>
 
-      {/* AnyRoR – Land Record (Rural) drawer (opens from the right) */}
+      {/* AnyRoR – Land Record (Rural) drawer (opens from the right) — TEMPORARILY DISABLED
       <Drawer
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
@@ -1194,6 +1202,8 @@ export default function NondhStatusList() {
           />
         </div>
       </Drawer>
+      End of temporarily-disabled AnyRoR drawer
+      */}
     </div>
   );
 }

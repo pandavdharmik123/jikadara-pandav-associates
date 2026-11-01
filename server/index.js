@@ -21,7 +21,8 @@ import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
 import verabillRoutes from './routes/verabill.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
-import anyrorRoutes from './routes/anyror.js';
+// AnyRoR portal integration (temporarily disabled)
+// import anyrorRoutes from './routes/anyror.js';
 import formBuilderRoutes from './routes/formBuilder.js';
 import backupRoutes from './routes/backup.js';
 import { startBackupScheduler } from './services/backup/scheduler.js';
@@ -62,7 +63,8 @@ app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
 app.use('/api/verabill', verabillRoutes);
-app.use('/api/anyror', anyrorRoutes);
+// AnyRoR portal integration (temporarily disabled)
+// app.use('/api/anyror', anyrorRoutes);
 app.use('/api/backup', backupRoutes);
 
 // Health check (includes database connectivity)
