@@ -34,6 +34,7 @@ import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWo
 import DocumentAI from './features/DocumentAI/DocumentAI';
 import PedhinamuBuilder from './features/PedhinamuBuilder/PedhinamuBuilder';
 import FormBuilderPage from './features/FormBuilder/FormBuilderPage';
+import AnyRoRPortal from './features/AnyRoRPortal/AnyRoRPortal';
 
 // Styles
 import './styles/main.scss';
@@ -208,6 +209,9 @@ export default function App() {
                 <Route element={<ProtectedRoute pageKey="/app/recycle-bin" />}>
                   <Route path="recycle-bin" element={<RecycleBin />} />
                 </Route>
+
+                {/* AnyRoR Government Portal – visible to every logged-in user (no page permission) */}
+                <Route path="anyror" element={<AnyRoRPortal />} />
 
                 {/* Tools with Individual Page Checks */}
                 <Route path="tools">

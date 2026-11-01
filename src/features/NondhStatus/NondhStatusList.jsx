@@ -18,6 +18,7 @@ import {
   Popconfirm,
   Tooltip,
   Badge,
+  Drawer,
 } from 'antd';
 import {
   Plus,
@@ -32,6 +33,8 @@ import {
   Filter,
   X,
   Check,
+  Globe,
+  RotateCw,
 } from 'lucide-react';
 import { IndicTransliterate } from '@ai4bharat/indic-transliterate';
 import dayjs from 'dayjs';
@@ -130,6 +133,15 @@ const STATUS_OPTIONS = ['પ્રમાણિત', 'કાચી નોંધ',
 
 const DONE_OPTIONS = ['Done', 'Pending', '-'];
 
+// AnyRoR – Land Record (Rural) portal. It sends `X-Frame-Options: deny`, so it
+// is displayed through the backend proxy (/api/anyror/*) inside the drawer.
+const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
+  /\/api\/?$/,
+  ''
+);
+const ANYROR_IFRAME_URL = `${API_ORIGIN}/api/anyror/LandRecordRural.aspx`;
+const ANYROR_ORIGINAL_URL = 'https://anyror.gujarat.gov.in/LandRecordRural.aspx';
+
 // Light row tint per status type
 const STATUS_ROW_CLASSES = {
   'પ્રમાણિત': 'nondh-row-certified',
@@ -178,6 +190,11 @@ export default function NondhStatusList() {
   const [editValues, setEditValues] = useState({});
   const [form] = Form.useForm();
 
+  // AnyRoR – Land Record (Rural) right-side drawer
+  const [isAnyRorDrawerOpen, setIsAnyRorDrawerOpen] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
 
@@ -206,6 +223,21 @@ export default function NondhStatusList() {
     });
     return Array.from(set).sort();
   }, [data]);
+
+  const handleOpenAnyRorDrawer = () => {
+    setIframeLoaded(false);
+    setIframeKey((k) => k + 1); // force a fresh load on every open
+    setIsAnyRorDrawerOpen(true);
+  };
+
+  const handleReloadAnyRor = () => {
+    setIframeLoaded(false);
+    setIframeKey((k) => k + 1);
+  };
+
+  const handleCloseAnyRorDrawer = () => {
+    setIsAnyRorDrawerOpen(false);
+  };
 
   const handleOpenModal = (record = null) => {
     setEditingRecord(record);
@@ -771,6 +803,13 @@ export default function NondhStatusList() {
 
         <Space wrap style={{ width: isMobile ? '100%' : 'auto' }}>
           <Button
+            icon={<Globe size={15} />}
+            onClick={handleOpenAnyRorDrawer}
+            style={{ borderRadius: '8px', height: 40 }}
+          >
+            Land Record (AnyRoR)
+          </Button>
+          <Button
             href="https://anyror.gujarat.gov.in"
             target="_blank"
             rel="noopener noreferrer"
@@ -1053,6 +1092,108 @@ export default function NondhStatusList() {
           </Row>
         </Form>
       </Modal>
+
+      {/* AnyRoR – Land Record (Rural) drawer (opens from the right) */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+            <Globe size={18} color="#2563eb" />
+            Land Record (Rural) – AnyRoR
+          </div>
+        }
+        placement="right"
+        open={isAnyRorDrawerOpen}
+        onClose={handleCloseAnyRorDrawer}
+        width={isMobile ? '100%' : 'min(1150px, 92vw)'}
+        destroyOnHidden
+        styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
+        extra={
+          <Space size="small">
+            <Button
+              size="small"
+              icon={<RotateCw size={14} />}
+              onClick={handleReloadAnyRor}
+              style={{ borderRadius: 8 }}
+            >
+              Reload
+            </Button>
+            <Button
+              size="small"
+              href={ANYROR_ORIGINAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              icon={<ExternalLink size={14} />}
+              style={{ borderRadius: 8 }}
+            >
+              Open in new tab
+            </Button>
+          </Space>
+        }
+      >
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            fontSize: 12,
+            color: '#64748b',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 8,
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>
+            Official portal: ખેત મહેસૂલ નોંધ / VF-6, VF-7, VF-12 જુઓ — served inline via secure proxy.
+          </span>
+          <Button
+            type="link"
+            size="small"
+            icon={<X size={14} />}
+            onClick={handleCloseAnyRorDrawer}
+            style={{ flexShrink: 0 }}
+          >
+            Hide
+          </Button>
+        </div>
+
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', backgroundColor: '#ffffff' }}>
+          {!iframeLoaded && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 12,
+                zIndex: 1,
+                pointerEvents: 'none',
+              }}
+            >
+              <Globe size={32} color="#94a3b8" />
+              <span style={{ color: '#94a3b8', fontWeight: 600 }}>Loading AnyRoR portal…</span>
+            </div>
+          )}
+          <iframe
+            key={iframeKey}
+            src={ANYROR_IFRAME_URL}
+            title="AnyRoR – Land Record (Rural)"
+            onLoad={() => setIframeLoaded(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+              backgroundColor: '#ffffff',
+            }}
+            referrerPolicy="no-referrer"
+            allow="clipboard-write"
+          />
+        </div>
+      </Drawer>
     </div>
   );
 }
