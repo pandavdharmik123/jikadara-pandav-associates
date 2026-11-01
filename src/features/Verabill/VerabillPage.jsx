@@ -336,7 +336,7 @@ export default function VerabillPage() {
       serviceNo: '',
       workType: 'Both',
       workDescription: '',
-      fees: [{ amount: undefined, receivedBy: '', transactionDate: null, description: '' }],
+      fees: [],
       expenses: [],
     });
     setModalOpen(true);
@@ -388,7 +388,7 @@ export default function VerabillPage() {
         workType: values.workType || 'Both',
         workDescription: values.workDescription?.trim(),
         fees: (values.fees || [])
-          .filter((f) => f && f.amount !== null && f.amount !== undefined && f.amount !== '')
+          .filter((f) => f && f.amount !== null && f.amount !== undefined && f.amount !== '' && Number(f.amount) > 0)
           .map((f) => ({
             amount: Number(f.amount),
             receivedBy: f.receivedBy?.trim() || '',
@@ -400,7 +400,7 @@ export default function VerabillPage() {
             description: f.description?.trim() || '',
           })),
         expenses: (values.expenses || [])
-          .filter((e) => e && e.amount !== null && e.amount !== undefined && e.amount !== '')
+          .filter((e) => e && e.amount !== null && e.amount !== undefined && e.amount !== '' && Number(e.amount) > 0)
           .map((e) => ({
             amount: Number(e.amount),
             expensePerson: e.expensePerson?.trim() || '',
@@ -1270,10 +1270,11 @@ export default function VerabillPage() {
                       name="tenementNo"
                       label={
                         <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Building2 size={15} color="#2563eb" />
-                          Tenement No. (SMC Surat Municipal Corp.)
+                          <Building2 size={14} color="#2563eb" />
+                          Tenement No. (SMC)
                         </span>
                       }
+                      style={{ marginBottom: 16 }}
                     >
                       <SmcTenementInput />
                     </Form.Item>
@@ -1284,12 +1285,12 @@ export default function VerabillPage() {
                     <Form.Item
                       name="serviceNo"
                       label={
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Zap size={15} color="#d97706" />
-                            Service Number (Light Bill)
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+                          <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                            <Zap size={14} color="#d97706" />
+                            Service Number
                           </span>
-                          <Space size={6}>
+                          <Space size={6} style={{ marginLeft: 8 }}>
                             <a
                               href="https://portal.guvnl.in/login.php"
                               target="_blank"
@@ -1312,11 +1313,12 @@ export default function VerabillPage() {
                           </Space>
                         </div>
                       }
+                      style={{ marginBottom: 16 }}
                     >
                       <Input
-                        placeholder="Enter Service No. / Consumer No."
-                        style={{ height: 38, borderRadius: 6 }}
-                        prefix={<Zap size={14} color="#d97706" style={{ marginRight: 4 }} />}
+                        placeholder="Enter Service No."
+                        style={{ height: 32, borderRadius: 6, fontSize: 13 }}
+                        prefix={<Zap size={13} color="#d97706" style={{ marginRight: 4 }} />}
                         allowClear
                       />
                     </Form.Item>
@@ -1483,7 +1485,6 @@ export default function VerabillPage() {
                                   <Col xs={24} sm={5}>
                                     <Form.Item
                                       name={[field.name, 'amount']}
-                                      rules={[{ required: true, message: 'Required' }]}
                                       style={{ marginBottom: 0 }}
                                     >
                                       <InputNumber
@@ -1608,7 +1609,6 @@ export default function VerabillPage() {
                                   <Col xs={24} sm={5}>
                                     <Form.Item
                                       name={[field.name, 'amount']}
-                                      rules={[{ required: true, message: 'Required' }]}
                                       style={{ marginBottom: 0 }}
                                     >
                                       <InputNumber
