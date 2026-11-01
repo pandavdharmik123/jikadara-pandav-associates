@@ -245,3 +245,26 @@ body {
     padding: 0 !important;
   }
 }
+
+/* Global right-side drawers rounded left corners (top-left & bottom-left) */
+.ant-drawer-right .ant-drawer-content-wrapper,
+.ant-drawer-right .ant-drawer-content-wrapper > div,
+.ant-drawer-right .ant-drawer-section,
+.ant-drawer-right .ant-drawer-content,
+.ant-drawer-right .ant-drawer-wrapper-body {
+  border-top-left-radius: 20px !important;
+  border-bottom-left-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+.ant-drawer-right .ant-drawer-content-wrapper {
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.16) !important;
+}
+
+.ant-drawer-right .ant-drawer-header {
+  border-top-left-radius: 20px !important;
+}
+
+.ant-drawer-right .ant-drawer-footer {
+  border-bottom-left-radius: 20px !important;
+}

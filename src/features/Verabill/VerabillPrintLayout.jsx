@@ -10,8 +10,7 @@ export default function VerabillPrintLayout({
   const totalEntries = entries.length;
   const totalFees = entries.reduce((acc, e) => acc + (Number(e.totalFees) || 0), 0);
   const totalExpenses = entries.reduce((acc, e) => acc + (Number(e.totalExpenses) || 0), 0);
-  const totalAddIncome = entries.reduce((acc, e) => acc + (Number(e.additionalIncome) || 0), 0);
-  const totalNetProfit = totalFees - totalExpenses + totalAddIncome;
+  const totalNetProfit = totalFees - totalExpenses;
 
   const kpis = [
     {
@@ -34,13 +33,6 @@ export default function VerabillPrintLayout({
       color: '#dc2626',
       background: '#fef2f2',
       border: '#fecaca',
-    },
-    {
-      label: 'Add. Income',
-      value: formatCurrency(totalAddIncome),
-      color: '#0891b2',
-      background: '#ecfeff',
-      border: '#a5f3fc',
     },
     {
       label: 'Net Profit',
@@ -127,7 +119,7 @@ export default function VerabillPrintLayout({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '8px',
           marginBottom: '16px',
         }}
@@ -200,10 +192,13 @@ export default function VerabillPrintLayout({
               <th style={{ width: 62, padding: '6px 5px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
                 Date
               </th>
-              <th style={{ width: 140, padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
+              <th style={{ width: 130, padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
                 Client Name
               </th>
-              <th style={{ width: 130, padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
+              <th style={{ width: 80, padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
+                Zone
+              </th>
+              <th style={{ width: 120, padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
                 Property
               </th>
               <th style={{ padding: '6px 6px', textAlign: 'left', color: '#475569', fontWeight: 700 }}>
@@ -224,7 +219,7 @@ export default function VerabillPrintLayout({
             {entries.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', fontSize: 11 }}
                 >
                   No Verabill records found.
@@ -282,6 +277,16 @@ export default function VerabillPrintLayout({
                       }}
                     >
                       {entry.clientName}
+                    </td>
+                    <td
+                      style={{
+                        padding: '6px 6px',
+                        color: '#2563eb',
+                        fontWeight: 600,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {entry.zone || '—'}
                     </td>
                     <td
                       style={{

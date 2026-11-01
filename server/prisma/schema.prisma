@@ -442,11 +442,11 @@ model VerabillEntry {
   userId            String
   clientName        String
   property          String    @default("")
+  zone              String    @default("")
+  tenementNo        String?
+  workType          String    @default("Both")
   workDescription   String    @default("")
-  remarks           String    @default("")
   startDate         DateTime?
-  additionalIncome  Decimal?  @db.Decimal(12, 2)
-  incomeDescription String    @default("")
   originalExcelData Json?
   isDeleted         Boolean   @default(false)
   deletedAt         DateTime?
@@ -462,6 +462,9 @@ model VerabillEntry {
   @@index([deletedAt])
   @@index([clientName])
   @@index([startDate])
+  @@index([tenementNo])
+  @@index([workType])
+  @@index([zone])
 }
 
 model VerabillFee {

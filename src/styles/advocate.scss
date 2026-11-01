@@ -417,6 +417,7 @@
 .verabill-module {
   .verabill-stat-card {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.08) !important;
@@ -441,7 +442,19 @@
   }
 
   .verabill-table {
-    .ant-table-thead > tr > th {
+    .ant-table-body {
+      min-height: calc(100vh - 390px);
+    }
+
+    .ant-table-placeholder {
+      min-height: calc(100vh - 390px);
+
+      .ant-table-cell {
+        min-height: calc(100vh - 390px);
+      }
+    }
+
+    .ant-table-thead>tr>th {
       background-color: #f8fafc !important;
       color: #475569 !important;
       font-weight: 700 !important;
@@ -452,14 +465,14 @@
       padding: 14px 16px !important;
     }
 
-    .ant-table-tbody > tr:not(.ant-table-measure-row) > td {
+    .ant-table-tbody>tr:not(.ant-table-measure-row)>td {
       padding: 13px 16px !important;
       border-bottom: 1px solid #f1f5f9 !important;
       font-size: 13.5px;
       color: #1e293b;
     }
 
-    .ant-table-tbody > tr:not(.ant-table-measure-row):hover > td {
+    .ant-table-tbody>tr:not(.ant-table-measure-row):hover>td {
       background-color: #f8fafc !important;
     }
 
@@ -479,7 +492,13 @@
       }
     }
   }
+
+
+  .verabill-pagination {
+    padding: 0 20px;
+  }
 }
+
 
 .verabill-form-section {
   background: #f8fafc;
@@ -511,4 +530,27 @@
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
   margin-top: 18px;
   flex-wrap: wrap;
+}
+
+/* Right-side drawers rounded left corners (top-left & bottom-left) */
+.ant-drawer-right .ant-drawer-content-wrapper,
+.ant-drawer-right .ant-drawer-content-wrapper>div,
+.ant-drawer-right .ant-drawer-section,
+.ant-drawer-right .ant-drawer-content,
+.ant-drawer-right .ant-drawer-wrapper-body {
+  border-top-left-radius: 20px !important;
+  border-bottom-left-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+.ant-drawer-right .ant-drawer-content-wrapper {
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.16) !important;
+}
+
+.ant-drawer-right .ant-drawer-header {
+  border-top-left-radius: 20px !important;
+}
+
+.ant-drawer-right .ant-drawer-footer {
+  border-bottom-left-radius: 20px !important;
 }

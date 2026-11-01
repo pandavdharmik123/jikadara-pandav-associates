@@ -5,6 +5,7 @@ import {
   Card,
   Col,
   DatePicker,
+  Drawer,
   Form,
   Input,
   InputNumber,
@@ -14,6 +15,7 @@ import {
   Select,
   Space,
   Table,
+  Tabs,
   Tag,
   Tooltip,
   Typography,
@@ -42,6 +44,8 @@ import {
   Users,
   Wallet,
   X,
+  Zap,
+  ExternalLink,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import html2pdf from 'html2pdf.js';
@@ -61,6 +65,8 @@ import {
 import { VERABILL_SHEET1_RECORDS } from './verabillSheet1Data';
 import VerabillPrintLayout from './VerabillPrintLayout';
 import VerabillSingleEntryPrintLayout from './VerabillSingleEntryPrintLayout';
+import SmcViewBillModal from './SmcViewBillModal';
+import SmcTenementInput, { SmcTenementBadge, formatTenementDisplay } from './SmcTenementInput';
 
 const { Title, Text } = Typography;
 
@@ -86,12 +92,16 @@ export default function VerabillPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
+  const [smcModalOpen, setSmcModalOpen] = useState(false);
+  const [selectedTenement, setSelectedTenement] = useState('');
+  const [lightBillModalOpen, setLightBillModalOpen] = useState(false);
+  const [selectedLightBillEntry, setSelectedLightBillEntry] = useState(null);
+  const [formTabKey, setFormTabKey] = useState('fees');
   const [form] = Form.useForm();
 
   // Watch modal form fields for live net calculation
   const watchedFees = Form.useWatch('fees', form) || [];
   const watchedExpenses = Form.useWatch('expenses', form) || [];
-  const watchedAdditionalIncome = Form.useWatch('additionalIncome', form);
 
   const modalTotalFees = useMemo(() => {
     return (watchedFees || []).reduce((acc, curr) => acc + (Number(curr?.amount) || 0), 0);
@@ -101,8 +111,7 @@ export default function VerabillPage() {
     return (watchedExpenses || []).reduce((acc, curr) => acc + (Number(curr?.amount) || 0), 0);
   }, [watchedExpenses]);
 
-  const modalAdditionalIncome = Number(watchedAdditionalIncome) || 0;
-  const modalNetBalance = modalTotalFees - modalTotalExpenses + modalAdditionalIncome;
+  const modalNetBalance = modalTotalFees - modalTotalExpenses;
 
   const entries = data?.entries || [];
   const total = data?.total || 0;
@@ -314,15 +323,16 @@ export default function VerabillPage() {
 
   const openCreate = () => {
     setEditing(null);
+    setFormTabKey('fees');
     form.resetFields();
     form.setFieldsValue({
       startDate: dayjs(),
       clientName: '',
       property: '',
+      zone: '',
+      tenementNo: '',
+      workType: 'Both',
       workDescription: '',
-      remarks: '',
-      additionalIncome: undefined,
-      incomeDescription: '',
       fees: [{ amount: undefined, receivedBy: '', transactionDate: null, description: '' }],
       expenses: [],
     });
@@ -331,15 +341,16 @@ export default function VerabillPage() {
 
   const openEdit = (entry) => {
     setEditing(entry);
+    setFormTabKey('fees');
     form.resetFields();
     form.setFieldsValue({
       startDate: entry.startDate ? dayjs(toISTDateString(entry.startDate)) : null,
       clientName: entry.clientName,
       property: entry.property,
+      zone: entry.zone || '',
+      tenementNo: entry.tenementNo || '',
+      workType: entry.workType || 'Both',
       workDescription: entry.workDescription,
-      remarks: entry.remarks || '',
-      additionalIncome: entry.additionalIncome != null ? Number(entry.additionalIncome) : undefined,
-      incomeDescription: entry.incomeDescription || '',
       fees: (entry.fees || []).map((f) => ({
         amount: f.amount != null ? Number(f.amount) : undefined,
         receivedBy: f.receivedBy || '',
@@ -367,13 +378,10 @@ export default function VerabillPage() {
           : null,
         clientName: values.clientName?.trim(),
         property: values.property?.trim(),
+        zone: values.zone?.trim() || '',
+        tenementNo: values.tenementNo?.trim() || '',
+        workType: values.workType || 'Both',
         workDescription: values.workDescription?.trim(),
-        remarks: values.remarks?.trim() || '',
-        additionalIncome:
-          values.additionalIncome !== undefined && values.additionalIncome !== null && values.additionalIncome !== ''
-            ? Number(values.additionalIncome)
-            : null,
-        incomeDescription: values.incomeDescription?.trim() || '',
         fees: (values.fees || [])
           .filter((f) => f && f.amount !== null && f.amount !== undefined && f.amount !== '')
           .map((f) => ({
@@ -507,6 +515,97 @@ export default function VerabillPage() {
       ),
     },
     {
+      title: 'Zone',
+      dataIndex: 'zone',
+      key: 'zone',
+      width: 130,
+      render: (text) => (
+        <span style={{ color: text ? '#0f172a' : '#94a3b8', fontSize: 13, fontWeight: 500 }} title={text}>
+          {text || '—'}
+        </span>
+      ),
+    },
+    {
+      title: 'Work Type',
+      dataIndex: 'workType',
+      key: 'workType',
+      width: 125,
+      render: (wt) => {
+        const type = wt || 'Both';
+        if (type === 'Vera Bill') {
+          return (
+            <Tag
+              color="blue"
+              style={{
+                borderRadius: 6,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '2px 8px',
+              }}
+            >
+              <Building2 size={12} />
+              Vera Bill
+            </Tag>
+          );
+        }
+        if (type === 'Light Bill') {
+          return (
+            <Tag
+              color="gold"
+              style={{
+                borderRadius: 6,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '2px 8px',
+              }}
+            >
+              <Zap size={12} />
+              Light Bill
+            </Tag>
+          );
+        }
+        return (
+          <Tag
+            color="purple"
+            style={{
+              borderRadius: 6,
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+            }}
+          >
+            <Building2 size={11} />
+            <Zap size={11} />
+            Both
+          </Tag>
+        );
+      },
+    },
+    {
+      title: 'Tenement No.',
+      dataIndex: 'tenementNo',
+      key: 'tenementNo',
+      width: 200,
+      render: (text) =>
+        text ? (
+          <SmcTenementBadge
+            tenementNo={text}
+            onClick={() => {
+              setSelectedTenement(text);
+              setSmcModalOpen(true);
+            }}
+          />
+        ) : (
+          <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>
+        ),
+    },
+    {
       title: 'Work Description',
       dataIndex: 'workDescription',
       key: 'workDescription',
@@ -560,24 +659,6 @@ export default function VerabillPage() {
       ),
     },
     {
-      title: 'Add. Income',
-      dataIndex: 'additionalIncome',
-      key: 'additionalIncome',
-      width: 115,
-      align: 'right',
-      render: (v) => (
-        <span
-          style={{
-            fontWeight: 600,
-            color: v && v > 0 ? '#0d9488' : '#94a3b8',
-            fontSize: 13,
-          }}
-        >
-          {v == null || v === 0 ? '—' : formatCurrency(v)}
-        </span>
-      ),
-    },
-    {
       title: 'Net Profit',
       dataIndex: 'netBalance',
       key: 'netBalance',
@@ -616,49 +697,90 @@ export default function VerabillPage() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 115,
+      width: 165,
       fixed: 'right',
       align: 'center',
-      render: (_, record) => (
-        <Space size={2}>
-          <Tooltip title="View details">
-            <Button
-              type="text"
-              size="small"
-              icon={<Eye size={15} color="#475569" />}
-              onClick={() => setViewing(record)}
-              style={{ borderRadius: 6 }}
-            />
-          </Tooltip>
-          <Tooltip title="Edit entry">
-            <Button
-              type="text"
-              size="small"
-              icon={<Edit size={15} color="#2563eb" />}
-              onClick={() => openEdit(record)}
-              style={{ borderRadius: 6 }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete entry">
-            <Popconfirm
-              title={`Delete record for ${record.clientName}?`}
-              description="This will permanently delete this client's bill and fee transactions."
-              onConfirm={() => handleDelete(record)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
+      render: (_, record) => {
+        const wt = record.workType || 'Both';
+        const showVera = wt === 'Vera Bill' || wt === 'Both';
+        const showLight = wt === 'Light Bill' || wt === 'Both';
+
+        return (
+          <Space size={2}>
+            {showVera && (
+              <Tooltip title={record.tenementNo ? `Check Vera Bill (${record.tenementNo})` : 'Check Vera Bill (SMC)'}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Building2 size={15} color={record.tenementNo ? '#2563eb' : '#64748b'} />}
+                  onClick={() => {
+                    setSelectedTenement(record.tenementNo || '');
+                    setSmcModalOpen(true);
+                  }}
+                  style={{
+                    borderRadius: 6,
+                    backgroundColor: record.tenementNo ? '#eff6ff' : 'transparent',
+                  }}
+                />
+              </Tooltip>
+            )}
+
+            {showLight && (
+              <Tooltip title="Check Light Bill (DGVCL / Torrent Power)">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Zap size={15} color="#d97706" />}
+                  onClick={() => {
+                    setSelectedLightBillEntry(record);
+                    setLightBillModalOpen(true);
+                  }}
+                  style={{
+                    borderRadius: 6,
+                    backgroundColor: '#fefce8',
+                  }}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="View details">
               <Button
                 type="text"
                 size="small"
-                danger
-                icon={<Trash2 size={15} color="#dc2626" />}
+                icon={<Eye size={15} color="#475569" />}
+                onClick={() => setViewing(record)}
                 style={{ borderRadius: 6 }}
               />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+            </Tooltip>
+            <Tooltip title="Edit entry">
+              <Button
+                type="text"
+                size="small"
+                icon={<Edit size={15} color="#2563eb" />}
+                onClick={() => openEdit(record)}
+                style={{ borderRadius: 6 }}
+              />
+            </Tooltip>
+            <Tooltip title="Delete entry">
+              <Popconfirm
+                title={`Delete record for ${record.clientName}?`}
+                description="This will permanently delete this client's bill and fee transactions."
+                onConfirm={() => handleDelete(record)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<Trash2 size={15} color="#dc2626" />}
+                  style={{ borderRadius: 6 }}
+                />
+              </Popconfirm>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -706,15 +828,6 @@ export default function VerabillPage() {
       border: '#fecaca',
     },
     {
-      title: 'Additional Income',
-      value: formatCurrency(summary?.totalAdditionalIncome ?? 0),
-      subtitle: 'Extra service receipts',
-      icon: <TrendingUp size={18} />,
-      color: '#0891b2',
-      background: '#ecfeff',
-      border: '#a5f3fc',
-    },
-    {
       title: 'Net Profit',
       value: formatCurrency(summary?.netBalance ?? 0),
       subtitle: 'Total earnings after expenses',
@@ -758,6 +871,23 @@ export default function VerabillPage() {
 
         <Space wrap size={10}>
           <Button
+            icon={<Building2 size={15} color="#2563eb" />}
+            onClick={() => {
+              setSelectedTenement('');
+              setSmcModalOpen(true);
+            }}
+            style={{
+              borderRadius: 8,
+              height: 40,
+              fontWeight: 600,
+              borderColor: '#bfdbfe',
+              background: '#eff6ff',
+              color: '#1d4ed8',
+            }}
+          >
+            SMC View Bill
+          </Button>
+          <Button
             icon={<Download size={15} />}
             onClick={handleExportPDF}
             loading={isGeneratingPDF}
@@ -790,8 +920,8 @@ export default function VerabillPage() {
 
       {/* ── Summary Stat Cards ── */}
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        {statCards.map((card, idx) => (
-          <Col xs={24} sm={12} md={12} lg={idx === 0 ? 4 : 5} key={card.title}>
+        {statCards.map((card) => (
+          <Col xs={24} sm={12} md={12} lg={6} key={card.title}>
             <Card
               className="verabill-stat-card"
               bordered={false}
@@ -873,6 +1003,7 @@ export default function VerabillPage() {
           dataSource={entries}
           loading={isLoading}
           pagination={{
+            rootClassName: 'verabill-pagination',
             current: params.page,
             pageSize: params.pageSize,
             total,
@@ -882,6 +1013,7 @@ export default function VerabillPage() {
           }}
           onChange={handleTableChange}
           scroll={{ x: 1100, y: 'calc(100vh - 380px)' }}
+          styles={{ body: { minHeight: 'calc(100vh - 380px)' } }}
           size="middle"
           locale={{
             emptyText: (
@@ -899,8 +1031,8 @@ export default function VerabillPage() {
         />
       </Card>
 
-      {/* ── Add / Edit Modal ── */}
-      <Modal
+      {/* ── Add / Edit Drawer ── */}
+      <Drawer
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
@@ -929,16 +1061,51 @@ export default function VerabillPage() {
             </div>
           </div>
         }
+        placement="right"
+        width={Math.min(840, typeof window !== 'undefined' ? window.innerWidth : 840)}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
-        onOk={handleSubmit}
-        okText={editing ? 'Save Changes' : 'Save Entry'}
-        confirmLoading={createMut.isPending || updateMut.isPending}
-        okButtonProps={{ style: { background: '#2563eb', borderColor: '#2563eb' } }}
-        width={880}
-        destroyOnHidden
+        onClose={() => setModalOpen(false)}
+        destroyOnClose
+        styles={{
+          wrapper: {
+            borderTopLeftRadius: 20,
+            borderBottomLeftRadius: 20,
+            overflow: 'hidden',
+          },
+          section: {
+            borderTopLeftRadius: 20,
+            borderBottomLeftRadius: 20,
+            overflow: 'hidden',
+          },
+          content: {
+            borderTopLeftRadius: 20,
+            borderBottomLeftRadius: 20,
+            overflow: 'hidden',
+          },
+          header: {
+            borderTopLeftRadius: 20,
+          },
+          footer: {
+            borderBottomLeftRadius: 20,
+          },
+        }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '4px 0' }}>
+            <Button onClick={() => setModalOpen(false)} style={{ borderRadius: 6 }}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              loading={createMut.isPending || updateMut.isPending}
+              style={{ background: '#2563eb', borderColor: '#2563eb', borderRadius: 6, fontWeight: 600 }}
+            >
+              {editing ? 'Save Changes' : 'Save Entry'}
+            </Button>
+          </div>
+        }
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        <Form form={form} layout="vertical">
           {/* Client & Work Info */}
           <Row gutter={12}>
             <Col xs={24} sm={8}>
@@ -980,7 +1147,61 @@ export default function VerabillPage() {
           </Row>
 
           <Row gutter={12}>
-            <Col xs={24} sm={14}>
+            <Col xs={24} sm={8}>
+              <Form.Item
+                name="zone"
+                label={<span style={{ fontWeight: 600 }}>Zone (SMC)</span>}
+              >
+                <TransliterateInput
+                  placeholder="દા.ત. વરાછા / East Zone"
+                  style={{ height: 38 }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Form.Item
+                name="workType"
+                label={<span style={{ fontWeight: 600 }}>Type of Work</span>}
+                initialValue="Both"
+              >
+                <Select
+                  style={{ height: 38 }}
+                  options={[
+                    {
+                      value: 'Vera Bill',
+                      label: (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                          <Building2 size={14} color="#2563eb" />
+                          <span>Vera Bill (વેરા બિલ)</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: 'Light Bill',
+                      label: (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                          <Zap size={14} color="#d97706" />
+                          <span>Light Bill (લાઈટ બિલ)</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: 'Both',
+                      label: (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            <Building2 size={13} color="#2563eb" />
+                            <Zap size={13} color="#d97706" />
+                          </div>
+                          <span>Both (બંને - Vera + Light)</span>
+                        </div>
+                      ),
+                    },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={8}>
               <Form.Item
                 name="workDescription"
                 label={<span style={{ fontWeight: 600 }}>Work Description</span>}
@@ -992,319 +1213,362 @@ export default function VerabillPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={10}>
-              <Form.Item
-                name="remarks"
-                label={<span style={{ fontWeight: 600 }}>Remarks (Optional)</span>}
-              >
-                <TransliterateInput
-                  placeholder="દા.ત. ૧૦ દિવસમાં કામ પૂર્ણ થશે"
-                  style={{ height: 38 }}
-                />
-              </Form.Item>
-            </Col>
           </Row>
 
-          {/* Fees Section */}
-          <div className="verabill-form-section section-fees">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ArrowDownLeft size={17} color="#059669" />
-                <span style={{ fontWeight: 700, color: '#065f46', fontSize: 14 }}>
-                  Fees Received
-                </span>
-                <Tag color="success" style={{ borderRadius: 10, fontWeight: 600 }}>
-                  {watchedFees.length} entries
-                </Tag>
-              </div>
-              <Form.Item noStyle>
-                <Form.List name="fees">
-                  {(fields, { add }) => (
-                    <Button
-                      type="dashed"
-                      size="small"
-                      onClick={() =>
-                        add({ amount: undefined, receivedBy: '', transactionDate: null, description: '' })
-                      }
-                      icon={<Plus size={13} />}
-                      style={{
-                        borderColor: '#059669',
-                        color: '#059669',
-                        fontWeight: 600,
-                        borderRadius: 6,
-                      }}
-                    >
-                      Add Fee
-                    </Button>
-                  )}
-                </Form.List>
-              </Form.Item>
-            </div>
-
-            <Form.List name="fees">
-              {(fields, { remove }) => (
-                <>
-                  {fields.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#6b7280', padding: '12px 0', fontSize: 13 }}>
-                      No fees added yet. Click &quot;Add Fee&quot; above to record a payment.
-                    </div>
-                  ) : (
-                    fields.map((field) => (
-                      <Row
-                        gutter={8}
-                        key={field.key}
-                        align="middle"
-                        style={{
-                          marginBottom: 8,
-                          background: '#ffffff',
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          border: '1px solid #d1fae5',
-                        }}
-                      >
-                        <Col xs={24} sm={5}>
-                          <Form.Item
-                            name={[field.name, 'amount']}
-                            rules={[{ required: true, message: 'Required' }]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <InputNumber
-                              min={0.01}
-                              step={100}
-                              precision={2}
-                              prefix="₹"
-                              placeholder="Amount"
-                              style={{ width: '100%', borderRadius: 6 }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={12} sm={5}>
-                          <Form.Item name={[field.name, 'receivedBy']} style={{ marginBottom: 0 }}>
-                            <Input placeholder="Received By" style={{ borderRadius: 6 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={12} sm={5}>
-                          <Form.Item name={[field.name, 'transactionDate']} style={{ marginBottom: 0 }}>
-                            <DatePicker
-                              format="DD/MM/YYYY"
-                              placeholder="Date"
-                              style={{ width: '100%', borderRadius: 6 }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={20} sm={8}>
-                          <Form.Item name={[field.name, 'description']} style={{ marginBottom: 0 }}>
-                            <Input placeholder="Description" style={{ borderRadius: 6 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={4} sm={1} style={{ textAlign: 'center' }}>
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<Trash2 size={14} />}
-                            onClick={() => remove(field.name)}
-                          />
-                        </Col>
-                      </Row>
-                    ))
-                  )}
-                </>
-              )}
-            </Form.List>
-          </div>
-
-          {/* Expenses Section */}
-          <div className="verabill-form-section section-expenses">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ArrowUpRight size={17} color="#dc2626" />
-                <span style={{ fontWeight: 700, color: '#991b1b', fontSize: 14 }}>
-                  Expenses
-                </span>
-                <Tag color="error" style={{ borderRadius: 10, fontWeight: 600 }}>
-                  {watchedExpenses.length} entries
-                </Tag>
-              </div>
-              <Form.Item noStyle>
-                <Form.List name="expenses">
-                  {(fields, { add }) => (
-                    <Button
-                      type="dashed"
-                      size="small"
-                      onClick={() =>
-                        add({ amount: undefined, expensePerson: '', expenseDate: null, description: '' })
-                      }
-                      icon={<Plus size={13} />}
-                      style={{
-                        borderColor: '#dc2626',
-                        color: '#dc2626',
-                        fontWeight: 600,
-                        borderRadius: 6,
-                      }}
-                    >
-                      Add Expense
-                    </Button>
-                  )}
-                </Form.List>
-              </Form.Item>
-            </div>
-
-            <Form.List name="expenses">
-              {(fields, { remove }) => (
-                <>
-                  {fields.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#6b7280', padding: '12px 0', fontSize: 13 }}>
-                      No expenses added yet. Click &quot;Add Expense&quot; to log work expenses.
-                    </div>
-                  ) : (
-                    fields.map((field) => (
-                      <Row
-                        gutter={8}
-                        key={field.key}
-                        align="middle"
-                        style={{
-                          marginBottom: 8,
-                          background: '#ffffff',
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          border: '1px solid #fee2e2',
-                        }}
-                      >
-                        <Col xs={24} sm={5}>
-                          <Form.Item
-                            name={[field.name, 'amount']}
-                            rules={[{ required: true, message: 'Required' }]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <InputNumber
-                              min={0.01}
-                              step={100}
-                              precision={2}
-                              prefix="₹"
-                              placeholder="Amount"
-                              style={{ width: '100%', borderRadius: 6 }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={12} sm={5}>
-                          <Form.Item name={[field.name, 'expensePerson']} style={{ marginBottom: 0 }}>
-                            <Input placeholder="Expense Person" style={{ borderRadius: 6 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={12} sm={5}>
-                          <Form.Item name={[field.name, 'expenseDate']} style={{ marginBottom: 0 }}>
-                            <DatePicker
-                              format="DD/MM/YYYY"
-                              placeholder="Date"
-                              style={{ width: '100%', borderRadius: 6 }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={20} sm={8}>
-                          <Form.Item name={[field.name, 'description']} style={{ marginBottom: 0 }}>
-                            <Input placeholder="Description" style={{ borderRadius: 6 }} />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={4} sm={1} style={{ textAlign: 'center' }}>
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<Trash2 size={14} />}
-                            onClick={() => remove(field.name)}
-                          />
-                        </Col>
-                      </Row>
-                    ))
-                  )}
-                </>
-              )}
-            </Form.List>
-          </div>
-
-          {/* Additional Income */}
           <Row gutter={12}>
-            <Col xs={24} sm={8}>
+            <Col xs={24}>
               <Form.Item
-                name="additionalIncome"
-                label={<span style={{ fontWeight: 600 }}>Additional Income (₹)</span>}
+                name="tenementNo"
+                label={
+                  <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Building2 size={15} color="#2563eb" />
+                    Tenement No. (SMC Surat Municipal Corporation)
+                  </span>
+                }
               >
-                <InputNumber
-                  min={0}
-                  step={100}
-                  precision={2}
-                  prefix="₹"
-                  placeholder="0.00"
-                  style={{ width: '100%', borderRadius: 6, height: 38 }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={16}>
-              <Form.Item
-                name="incomeDescription"
-                label={<span style={{ fontWeight: 600 }}>Income Description</span>}
-              >
-                <TransliterateInput
-                  placeholder="દા.ત. એડિશનલ સર્વિસ ચાર્જ"
-                  style={{ height: 38 }}
-                />
+                <SmcTenementInput />
               </Form.Item>
             </Col>
           </Row>
 
-          {/* Live Net Balance Footer Strip */}
-          {/* <div className="verabill-live-summary-bar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ color: '#94a3b8', fontSize: 12 }}>Fees:</span>
-              <span style={{ fontWeight: 700, color: '#34d399', fontSize: 14 }}>
-                {formatCurrency(modalTotalFees)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ color: '#94a3b8', fontSize: 12 }}>Expenses:</span>
-              <span style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>
-                {formatCurrency(modalTotalExpenses)}
-              </span>
-            </div>
-            {modalAdditionalIncome > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#94a3b8', fontSize: 12 }}>Add. Income:</span>
-                <span style={{ fontWeight: 700, color: '#38bdf8', fontSize: 14 }}>
-                  {formatCurrency(modalAdditionalIncome)}
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}>Net Balance:</span>
-              <span
-                style={{
-                  fontWeight: 800,
-                  fontSize: 16,
-                  color: modalNetBalance >= 0 ? '#4ade80' : '#fb923c',
-                }}
-              >
-                {modalNetBalance >= 0 ? '+' : ''}
-                {formatCurrency(modalNetBalance)}
-              </span>
-            </div>
-          </div> */}
+          {/* ── Fees & Expenses Tabbed Section ── */}
+          <div style={{ marginTop: 6, marginBottom: 8 }}>
+            <Tabs
+              activeKey={formTabKey}
+              onChange={setFormTabKey}
+              type="card"
+              size="small"
+              tabBarExtraContent={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>Net:</span>
+                    <Tag
+                      color={modalNetBalance >= 0 ? 'success' : 'warning'}
+                      style={{
+                        borderRadius: 6,
+                        fontWeight: 800,
+                        fontSize: 12,
+                        padding: '1px 8px',
+                        marginInlineEnd: 0,
+                      }}
+                    >
+                      {modalNetBalance >= 0 ? '+' : ''}
+                      {formatCurrency(modalNetBalance)}
+                    </Tag>
+                  </div>
+
+                  {formTabKey === 'fees' ? (
+                    <Form.Item noStyle>
+                      <Form.List name="fees">
+                        {(fields, { add }) => (
+                          <Button
+                            type="primary"
+                            size="small"
+                            onClick={() =>
+                              add({ amount: undefined, receivedBy: '', transactionDate: null, description: '' })
+                            }
+                            icon={<Plus size={13} />}
+                            style={{
+                              background: '#059669',
+                              borderColor: '#059669',
+                              fontWeight: 600,
+                              borderRadius: 6,
+                              fontSize: 12,
+                              height: 28,
+                            }}
+                          >
+                            Add Fee
+                          </Button>
+                        )}
+                      </Form.List>
+                    </Form.Item>
+                  ) : (
+                    <Form.Item noStyle>
+                      <Form.List name="expenses">
+                        {(fields, { add }) => (
+                          <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            onClick={() =>
+                              add({ amount: undefined, expensePerson: '', expenseDate: null, description: '' })
+                            }
+                            icon={<Plus size={13} />}
+                            style={{
+                              background: '#dc2626',
+                              borderColor: '#dc2626',
+                              fontWeight: 600,
+                              borderRadius: 6,
+                              fontSize: 12,
+                              height: 28,
+                            }}
+                          >
+                            Add Expense
+                          </Button>
+                        )}
+                      </Form.List>
+                    </Form.Item>
+                  )}
+                </div>
+              }
+              items={[
+                {
+                  key: 'fees',
+                  label: (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px' }}>
+                      <ArrowDownLeft size={14} color="#059669" />
+                      <span style={{ fontWeight: 700, color: '#065f46' }}>Fees Received</span>
+                      <Tag
+                        color="success"
+                        style={{
+                          borderRadius: 8,
+                          fontWeight: 700,
+                          fontSize: 11,
+                          padding: '0 6px',
+                          marginInlineEnd: 0,
+                          backgroundColor: '#ecfdf5',
+                          borderColor: '#a7f3d0',
+                        }}
+                      >
+                        {watchedFees.length} • {formatCurrency(modalTotalFees)}
+                      </Tag>
+                    </div>
+                  ),
+                  children: (
+                    <div
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '0 8px 8px 8px',
+                        padding: '8px 10px',
+                      }}
+                    >
+
+                      <Form.List name="fees">
+                        {(fields, { remove, add }) => (
+                          <>
+                            {fields.length === 0 ? (
+                              <div
+                                style={{
+                                  textAlign: 'center',
+                                  color: '#6b7280',
+                                  padding: '16px 0',
+                                  fontSize: 12.5,
+                                  background: '#ffffff',
+                                  borderRadius: 6,
+                                  border: '1px dashed #a7f3d0',
+                                }}
+                              >
+                                <span>No fee payments added yet. </span>
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={() =>
+                                    add({ amount: undefined, receivedBy: '', transactionDate: null, description: '' })
+                                  }
+                                  style={{ padding: 0, fontWeight: 700, color: '#059669' }}
+                                >
+                                  + Click here to add fee
+                                </Button>
+                              </div>
+                            ) : (
+                              fields.map((field) => (
+                                <Row
+                                  gutter={8}
+                                  key={field.key}
+                                  align="middle"
+                                  style={{
+                                    marginBottom: 6,
+                                    background: '#ffffff',
+                                    padding: '6px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid #d1fae5',
+                                  }}
+                                >
+                                  <Col xs={24} sm={5}>
+                                    <Form.Item
+                                      name={[field.name, 'amount']}
+                                      rules={[{ required: true, message: 'Required' }]}
+                                      style={{ marginBottom: 0 }}
+                                    >
+                                      <InputNumber
+                                        min={0.01}
+                                        step={100}
+                                        precision={2}
+                                        prefix="₹"
+                                        placeholder="Amount"
+                                        style={{ width: '100%', borderRadius: 6 }}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={12} sm={5}>
+                                    <Form.Item name={[field.name, 'receivedBy']} style={{ marginBottom: 0 }}>
+                                      <Input placeholder="Received By" style={{ borderRadius: 6 }} />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={12} sm={5}>
+                                    <Form.Item name={[field.name, 'transactionDate']} style={{ marginBottom: 0 }}>
+                                      <DatePicker
+                                        format="DD/MM/YYYY"
+                                        placeholder="Date"
+                                        style={{ width: '100%', borderRadius: 6 }}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={20} sm={8}>
+                                    <Form.Item name={[field.name, 'description']} style={{ marginBottom: 0 }}>
+                                      <Input placeholder="Description" style={{ borderRadius: 6 }} />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={4} sm={1} style={{ textAlign: 'center' }}>
+                                    <Button
+                                      type="text"
+                                      danger
+                                      size="small"
+                                      icon={<Trash2 size={14} />}
+                                      onClick={() => remove(field.name)}
+                                    />
+                                  </Col>
+                                </Row>
+                              ))
+                            )}
+                          </>
+                        )}
+                      </Form.List>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'expenses',
+                  label: (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px' }}>
+                      <ArrowUpRight size={14} color="#dc2626" />
+                      <span style={{ fontWeight: 700, color: '#991b1b' }}>Expenses</span>
+                      <Tag
+                        color={watchedExpenses.length > 0 ? 'error' : 'default'}
+                        style={{
+                          borderRadius: 8,
+                          fontWeight: 700,
+                          fontSize: 11,
+                          padding: '0 6px',
+                          marginInlineEnd: 0,
+                          backgroundColor: watchedExpenses.length > 0 ? '#fef2f2' : '#f8fafc',
+                          borderColor: watchedExpenses.length > 0 ? '#fecaca' : '#e2e8f0',
+                        }}
+                      >
+                        {watchedExpenses.length} • {formatCurrency(modalTotalExpenses)}
+                      </Tag>
+                    </div>
+                  ),
+                  children: (
+                    <div
+                      style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '0 8px 8px 8px',
+                        padding: '8px 10px',
+                      }}
+                    >
+                      <Form.List name="expenses">
+                        {(fields, { remove, add }) => (
+                          <>
+                            {fields.length === 0 ? (
+                              <div
+                                style={{
+                                  textAlign: 'center',
+                                  color: '#6b7280',
+                                  padding: '16px 0',
+                                  fontSize: 12.5,
+                                  background: '#ffffff',
+                                  borderRadius: 6,
+                                  border: '1px dashed #fecaca',
+                                }}
+                              >
+                                <span>No expenses recorded yet. </span>
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={() =>
+                                    add({ amount: undefined, expensePerson: '', expenseDate: null, description: '' })
+                                  }
+                                  style={{ padding: 0, fontWeight: 700, color: '#dc2626' }}
+                                >
+                                  + Click here to add expense
+                                </Button>
+                              </div>
+                            ) : (
+                              fields.map((field) => (
+                                <Row
+                                  gutter={8}
+                                  key={field.key}
+                                  align="middle"
+                                  style={{
+                                    marginBottom: 6,
+                                    background: '#ffffff',
+                                    padding: '6px 8px',
+                                    borderRadius: 6,
+                                    border: '1px solid #fee2e2',
+                                  }}
+                                >
+                                  <Col xs={24} sm={5}>
+                                    <Form.Item
+                                      name={[field.name, 'amount']}
+                                      rules={[{ required: true, message: 'Required' }]}
+                                      style={{ marginBottom: 0 }}
+                                    >
+                                      <InputNumber
+                                        min={0.01}
+                                        step={100}
+                                        precision={2}
+                                        prefix="₹"
+                                        placeholder="Amount"
+                                        style={{ width: '100%', borderRadius: 6 }}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={12} sm={5}>
+                                    <Form.Item name={[field.name, 'expensePerson']} style={{ marginBottom: 0 }}>
+                                      <Input placeholder="Expense Person" style={{ borderRadius: 6 }} />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={12} sm={5}>
+                                    <Form.Item name={[field.name, 'expenseDate']} style={{ marginBottom: 0 }}>
+                                      <DatePicker
+                                        format="DD/MM/YYYY"
+                                        placeholder="Date"
+                                        style={{ width: '100%', borderRadius: 6 }}
+                                      />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={20} sm={8}>
+                                    <Form.Item name={[field.name, 'description']} style={{ marginBottom: 0 }}>
+                                      <Input placeholder="Description" style={{ borderRadius: 6 }} />
+                                    </Form.Item>
+                                  </Col>
+                                  <Col xs={4} sm={1} style={{ textAlign: 'center' }}>
+                                    <Button
+                                      type="text"
+                                      danger
+                                      size="small"
+                                      icon={<Trash2 size={14} />}
+                                      onClick={() => remove(field.name)}
+                                    />
+                                  </Col>
+                                </Row>
+                              ))
+                            )}
+                          </>
+                        )}
+                      </Form.List>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+
         </Form>
-      </Modal>
+      </Drawer>
 
       {/* ── View Details Modal ── */}
       <Modal
@@ -1374,7 +1638,7 @@ export default function VerabillPage() {
           <div style={{ marginTop: 14 }}>
             {/* Quick Metrics Bar */}
             <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
-              <Col span={6}>
+              <Col span={8}>
                 <Card
                   bordered={false}
                   style={{ background: '#ecfdf5', borderRadius: 10, textAlign: 'center' }}
@@ -1388,7 +1652,7 @@ export default function VerabillPage() {
                   </div>
                 </Card>
               </Col>
-              <Col span={6}>
+              <Col span={8}>
                 <Card
                   bordered={false}
                   style={{ background: '#fef2f2', borderRadius: 10, textAlign: 'center' }}
@@ -1402,21 +1666,7 @@ export default function VerabillPage() {
                   </div>
                 </Card>
               </Col>
-              <Col span={6}>
-                <Card
-                  bordered={false}
-                  style={{ background: '#ecfeff', borderRadius: 10, textAlign: 'center' }}
-                  styles={{ body: { padding: '10px 8px' } }}
-                >
-                  <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, color: '#0e7490' }}>
-                    ADD. INCOME
-                  </Text>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#155e75' }}>
-                    {viewing.additionalIncome != null ? formatCurrency(viewing.additionalIncome) : '—'}
-                  </div>
-                </Card>
-              </Col>
-              <Col span={6}>
+              <Col span={8}>
                 <Card
                   bordered={false}
                   style={{
@@ -1461,7 +1711,7 @@ export default function VerabillPage() {
               }}
             >
               <Row gutter={[12, 8]}>
-                <Col span={8}>
+                <Col span={6}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
                     WORK / START DATE
                   </Text>
@@ -1469,7 +1719,37 @@ export default function VerabillPage() {
                     {viewing.startDate ? formatISTDate(viewing.startDate) : '—'}
                   </div>
                 </Col>
-                <Col span={8}>
+                <Col span={6}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
+                    ZONE
+                  </Text>
+                  <div style={{ fontWeight: 600, color: '#0f172a', fontSize: 13.5 }}>
+                    {viewing.zone || '—'}
+                  </div>
+                </Col>
+                <Col span={6}>
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
+                    TYPE OF WORK
+                  </Text>
+                  <div style={{ marginTop: 2 }}>
+                    {viewing.workType === 'Vera Bill' && (
+                      <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Building2 size={12} /> Vera Bill
+                      </Tag>
+                    )}
+                    {viewing.workType === 'Light Bill' && (
+                      <Tag color="gold" style={{ borderRadius: 6, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Zap size={12} /> Light Bill
+                      </Tag>
+                    )}
+                    {(!viewing.workType || viewing.workType === 'Both') && (
+                      <Tag color="purple" style={{ borderRadius: 6, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Building2 size={11} /> <Zap size={11} /> Both
+                      </Tag>
+                    )}
+                  </div>
+                </Col>
+                <Col span={6}>
                   <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
                     WORK DESCRIPTION
                   </Text>
@@ -1477,21 +1757,49 @@ export default function VerabillPage() {
                     {viewing.workDescription || '—'}
                   </div>
                 </Col>
-                <Col span={8}>
-                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
-                    REMARKS
-                  </Text>
-                  <div style={{ color: '#475569', fontSize: 13 }}>
-                    {viewing.remarks || 'No remarks recorded.'}
-                  </div>
-                </Col>
-                {viewing.incomeDescription && (
+                {viewing.tenementNo && (
                   <Col span={24}>
-                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
-                      INCOME DESCRIPTION
-                    </Text>
-                    <div style={{ color: '#0284c7', fontSize: 13, fontWeight: 500 }}>
-                      {viewing.incomeDescription}
+                    <div
+                      style={{
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: 8,
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 10,
+                        marginTop: 4,
+                      }}
+                    >
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: '#1d4ed8' }}>
+                          SMC TENEMENT NO. (SURAT MUNICIPAL CORPORATION)
+                        </Text>
+                        <div style={{ marginTop: 4 }}>
+                          <SmcTenementBadge
+                            tenementNo={viewing.tenementNo}
+                            style={{ fontSize: 13, padding: '4px 10px', background: '#ffffff' }}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<Building2 size={14} />}
+                        onClick={() => {
+                          setSelectedTenement(viewing.tenementNo);
+                          setSmcModalOpen(true);
+                        }}
+                        style={{
+                          background: '#2563eb',
+                          borderColor: '#2563eb',
+                          borderRadius: 6,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Check SMC Bill
+                      </Button>
                     </div>
                   </Col>
                 )}
@@ -1651,6 +1959,124 @@ export default function VerabillPage() {
           {viewing && <VerabillSingleEntryPrintLayout entry={viewing} />}
         </div>
       </div>
+
+      {/* ── Surat Municipal Corporation Property Tax View Bill Modal ── */}
+      <SmcViewBillModal
+        open={smcModalOpen}
+        onClose={() => {
+          setSmcModalOpen(false);
+          setSelectedTenement('');
+        }}
+        tenementNo={selectedTenement}
+      />
+
+      {/* ── Check Light Bill Modal (DGVCL / Torrent Power) ── */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: '#fefce8',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Zap size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+                Check Electricity / Light Bill
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                {selectedLightBillEntry?.clientName} — {selectedLightBillEntry?.property || 'Surat'}
+              </div>
+            </div>
+          </div>
+        }
+        open={lightBillModalOpen}
+        onCancel={() => {
+          setLightBillModalOpen(false);
+          setSelectedLightBillEntry(null);
+        }}
+        footer={null}
+        width={520}
+        centered
+      >
+        <div style={{ padding: '12px 0 6px' }}>
+          <p style={{ color: '#475569', fontSize: 13, marginBottom: 16 }}>
+            Select the electricity provider in Surat to view and verify the light bill:
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              style={{
+                border: '1px solid #fed7aa',
+                borderRadius: 10,
+                padding: '14px 16px',
+                background: '#fffaf5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#9a3412', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Zap size={15} color="#ea580c" />
+                  DGVCL (GUVNL Portal)
+                </div>
+                <div style={{ fontSize: 12, color: '#7c2d12', marginTop: 2 }}>
+                  Dakshin Gujarat Vij Company Ltd — GUVNL Consumer Portal
+                </div>
+              </div>
+              <Button
+                type="primary"
+                icon={<ExternalLink size={14} />}
+                onClick={() => window.open('https://portal.guvnl.in/login.php', '_blank', 'noopener,noreferrer')}
+                style={{ background: '#ea580c', borderColor: '#ea580c', borderRadius: 6, fontWeight: 600 }}
+              >
+                Open DGVCL
+              </Button>
+            </div>
+
+            <div
+              style={{
+                border: '1px solid #bfdbfe',
+                borderRadius: 10,
+                padding: '14px 16px',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Building2 size={15} color="#2563eb" />
+                  Torrent Power (Surat)
+                </div>
+                <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 2 }}>
+                  Torrent Power Surat City Portal & Quick Payment
+                </div>
+              </div>
+              <Button
+                type="primary"
+                icon={<ExternalLink size={14} />}
+                onClick={() => window.open('https://connect.torrentpower.com/tplcp/blockedmodule', '_blank', 'noopener,noreferrer')}
+                style={{ background: '#2563eb', borderColor: '#2563eb', borderRadius: 6, fontWeight: 600 }}
+              >
+                Open Torrent
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
