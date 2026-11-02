@@ -20,6 +20,7 @@ import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
 import verabillRoutes from './routes/verabill.js';
+import notaryHisabRoutes from './routes/notaryHisab.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
 // AnyRoR portal integration (temporarily disabled)
 // import anyrorRoutes from './routes/anyror.js';
@@ -62,7 +63,9 @@ app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
+app.use('/api/nondh-status', nondhStatusRoutes);
 app.use('/api/verabill', verabillRoutes);
+app.use('/api/notary-hisab', notaryHisabRoutes);
 // AnyRoR portal integration (temporarily disabled)
 // app.use('/api/anyror', anyrorRoutes);
 app.use('/api/backup', backupRoutes);
