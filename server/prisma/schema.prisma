@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // ─── Enums ───────────────────────────────────────────────
@@ -48,40 +48,44 @@ enum FormBuilderStatus {
 // ─── User ────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  mobileNumber String   @default("")
-  role         Role     @default(JUNIOR)
-  isActive     Boolean  @default(true)
-  allowedPages String[] @default([])
-  twoFactorEnabled Boolean  @default(false)
-  twoFactorSecret  String?
-  backupCodes      String[] @default([])
-  securityPinHash  String?
-  emailOtpHash     String?
-  emailOtpExpiresAt DateTime?
-  mobileOtpHash    String?
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  mobileNumber       String    @default("")
+  role               Role      @default(JUNIOR)
+  isActive           Boolean   @default(true)
+  allowedPages       String[]  @default([])
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String?
+  backupCodes        String[]  @default([])
+  securityPinHash    String?
+  emailOtpHash       String?
+  emailOtpExpiresAt  DateTime?
+  mobileOtpHash      String?
   mobileOtpExpiresAt DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  clients         Client[]
-  tasks           Task[]
-  transactions    TaskTransaction[]
-  financialYears  FinancialYear[]
-  generalExpenses GeneralExpense[]
+  clients             Client[]
+  tasks               Task[]
+  transactions        TaskTransaction[]
+  financialYears      FinancialYear[]
+  generalExpenses     GeneralExpense[]
   officeLedgerEntries OfficeLedgerEntry[]
-  officeSplitUsers OfficeSplitUser[]
-  invoices        Invoice[]
-  upads           Upad[]
-  pedhinamus      Pedhinamu[]
-  jantriCalculations JantriCalculation[]
-  nondhStatuses   NondhStatus[]
-  formBuilderRecords FormBuilderRecord[]
-  verabillEntries VerabillEntry[]
-  refreshTokens   RefreshToken[]
+  officeSplitUsers    OfficeSplitUser[]
+  invoices            Invoice[]
+  upads               Upad[]
+  pedhinamus          Pedhinamu[]
+  jantriCalculations  JantriCalculation[]
+  nondhStatuses       NondhStatus[]
+  formBuilderRecords  FormBuilderRecord[]
+  verabillEntries     VerabillEntry[]
+  refreshTokens       RefreshToken[]
+
+  // ─── Notary Hisab ───
+  notaryRegistersCreated NotaryRegister[] @relation("NotaryRegisterCreator")
+  notaryEntriesAssigned  NotaryEntry[]    @relation("NotaryEntryAssignee")
 }
 
 // ─── Refresh Tokens (sliding sessions) ───────────────────
@@ -100,7 +104,7 @@ model RefreshToken {
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime  @default(now())
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([familyId])
@@ -212,15 +216,15 @@ model DocumentType {
 model FinancialYear {
   id        String   @id @default(uuid())
   userId    String
-  name      String   // e.g. "FY 2024-2025"
+  name      String // e.g. "FY 2024-2025"
   startDate DateTime
   endDate   DateTime
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
@@ -237,7 +241,7 @@ model GeneralExpense {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isDeleted])
@@ -259,7 +263,7 @@ model OfficeLedgerEntry {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([entryDate])
@@ -278,7 +282,7 @@ model OfficeSplitUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, name])
   @@index([userId])
@@ -304,8 +308,8 @@ model Invoice {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task           Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([taskId])
@@ -327,7 +331,7 @@ model Upad {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([date])
@@ -349,7 +353,7 @@ model Pedhinamu {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isDeleted])
@@ -374,7 +378,7 @@ model JantriCalculation {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isDeleted])
@@ -402,7 +406,7 @@ model NondhStatus {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isDeleted])
@@ -415,21 +419,21 @@ model NondhStatus {
 // signatures and document scans deliberately stay on the user's device.
 
 model FormBuilderRecord {
-  id            String            @id @default(uuid())
+  id            String             @id @default(uuid())
   userId        String
   formKey       FormBuilderFormKey
-  title         String            @default("")
-  clientName    String            @default("")
-  status        FormBuilderStatus @default(DRAFT)
+  title         String             @default("")
+  clientName    String             @default("")
+  status        FormBuilderStatus  @default(DRAFT)
   data          Json
-  schemaVersion Int               @default(1)
-  revision      Int               @default(1)
-  isDeleted     Boolean           @default(false)
+  schemaVersion Int                @default(1)
+  revision      Int                @default(1)
+  isDeleted     Boolean            @default(false)
   deletedAt     DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, formKey, isDeleted, updatedAt])
   @@index([userId, updatedAt])
@@ -454,7 +458,7 @@ model VerabillEntry {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   fees     VerabillFee[]
   expenses VerabillExpense[]
 
@@ -479,7 +483,7 @@ model VerabillFee {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  entry           VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entry VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([entryId])
 }
@@ -488,13 +492,13 @@ model VerabillExpense {
   id            String    @id @default(uuid())
   entryId       String
   amount        Decimal   @db.Decimal(12, 2)
-  expensePerson  String    @default("")
+  expensePerson String    @default("")
   expenseDate   DateTime?
   description   String    @default("")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  entry         VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entry VerabillEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([entryId])
 }
@@ -523,4 +527,62 @@ model BackupRun {
   @@index([startedAt])
   @@index([status])
   @@index([accountEmail])
+}
+
+// ─── Notary Hisab (Monthly Notary Register & user-wise notary amounts) ───
+// A completely separate module. Each monthly register covers one (month, year)
+// combination and holds one or more serial-number ranges plus one generated
+// NotaryEntry per serial number. User amounts are always DERIVED from the
+// assignments (never stored), so totals can never go stale.
+
+model NotaryRegister {
+  id           String   @id @default(uuid())
+  month        Int // 1 = January … 12 = December
+  year         Int
+  ratePerEntry Decimal  @default(150) @db.Decimal(12, 2)
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  creator User                @relation("NotaryRegisterCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  ranges  NotarySerialRange[]
+  entries NotaryEntry[]
+
+  @@unique([month, year])
+  @@index([createdBy])
+  @@index([month, year])
+}
+
+model NotarySerialRange {
+  id          String   @id @default(uuid())
+  registerId  String
+  startNumber Int
+  endNumber   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  register NotaryRegister @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  entries  NotaryEntry[]
+
+  @@index([registerId])
+  @@index([startNumber, endNumber])
+}
+
+model NotaryEntry {
+  id             String   @id @default(uuid())
+  registerId     String
+  serialNumber   Int
+  assignedUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  register            NotaryRegister     @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  assignedTo          User?              @relation("NotaryEntryAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  notarySerialRange   NotarySerialRange? @relation(fields: [notarySerialRangeId], references: [id])
+  notarySerialRangeId String?
+
+  @@unique([registerId, serialNumber])
+  @@index([registerId])
+  @@index([assignedUserId])
+  @@index([serialNumber])
 }

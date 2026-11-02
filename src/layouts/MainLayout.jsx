@@ -29,6 +29,7 @@ import {
   FileSpreadsheet,
   Receipt,
   CloudUpload,
+  BookMarked,
   // Globe,           // AnyRoR portal (temporarily disabled)
   // Landmark        // AnyRoR portal (temporarily disabled)
 } from 'lucide-react';
@@ -288,6 +289,12 @@ export default function MainLayout() {
             permissionKey: '/app/nondh-status',
             icon: <FileCheck size={20} />,
             label: 'Nondh Status',
+          },
+          {
+            key: '/app/excel-sheets/notary-hisab',
+            permissionKey: '/app/notary-hisab',
+            icon: <BookMarked size={20} />,
+            label: 'Notary Hisab',
           },
           {
             key: '/app/excel-sheets/verabill',
