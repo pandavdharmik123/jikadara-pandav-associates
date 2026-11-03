@@ -8,7 +8,7 @@ import { MONTH_NAMES } from '../../hooks/useNotaryHisab';
  *
  * Rendered hidden at 794 px (A4 width) and captured by html2pdf on export.
  */
-export default function NotaryPdfLayout({ register, summary = [], unassignedSerials = [] }) {
+export default function NotaryPdfLayout({ register, summary = [] }) {
   if (!register) return null;
 
   const rate = Number(register.ratePerEntry);
@@ -25,17 +25,8 @@ export default function NotaryPdfLayout({ register, summary = [], unassignedSeri
     userName: s.userName,
     serialNumbers: s.serialNumbers || [],
     totalEntries: s.totalEntries,
-    assigned: true,
+    totalAmount: Math.round(s.totalEntries * rate * 100) / 100,
   }));
-  if (unassignedSerials.length > 0) {
-    rows.push({
-      key: 'unassigned',
-      userName: 'Unassigned',
-      serialNumbers: unassignedSerials,
-      totalEntries: unassignedSerials.length,
-      assigned: false,
-    });
-  }
 
   const totalAssigned = summary.reduce((acc, s) => acc + s.totalEntries, 0);
   const totalSerials = (register.entries || []).length;
@@ -182,111 +173,193 @@ export default function NotaryPdfLayout({ register, summary = [], unassignedSeri
         NOTARY - {shortMonth}
       </div>
 
-      {/* Range line + Total header — like "Sr No. 01 to 74" / "Total" */}
-      <div
+      {/* Real table (borderCollapse) so column dividers align across rows
+          and the Total/Amount cells never squeeze against the border. */}
+      <table
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: 12,
-          marginTop: 6,
-          marginBottom: 2,
-          borderBottom: '1.5px solid #0f172a',
-          paddingBottom: 5,
+          width: '100%',
+          borderCollapse: 'collapse',
+          tableLayout: 'fixed',
         }}
       >
-        <span style={{ fontWeight: 700 }}>{rangeLine}</span>
-        <span style={{ fontWeight: 700, width: 76, textAlign: 'right' }}>Total</span>
-      </div>
-
-      {/* One block per user: name | serial numbers flowing like Excel cells | count */}
-      {rows.map((row) => (
-        <div
-          key={row.key}
-          style={{
-            display: 'flex',
-            alignItems: 'stretch',
-            borderBottom: '1px solid #d9d9d9',
-            pageBreakInside: 'avoid',
-          }}
-        >
-          <div
-            style={{
-              width: 126,
-              flexShrink: 0,
-              fontWeight: 700,
-              fontSize: 12.5,
-              paddingTop: 7,
-              color: row.assigned ? '#111111' : '#8a8a8a',
-            }}
-          >
-            {row.userName}
-          </div>
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignContent: 'flex-start',
-              padding: '5px 0',
-              minWidth: 0,
-            }}
-          >
-            {row.serialNumbers.map((n) => (
-              <div
-                key={n}
+        <colgroup>
+          <col style={{ width: 128 }} />
+          <col />
+          <col style={{ width: 76 }} />
+          <col style={{ width: 118 }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th
+              colSpan={2}
+              style={{
+                textAlign: 'left',
+                fontWeight: 700,
+                fontSize: 12,
+                color: '#0f172a',
+                borderBottom: '1.5px solid #0f172a',
+                padding: '4px 0 5px',
+              }}
+            >
+              {rangeLine}
+            </th>
+            <th
+              style={{
+                textAlign: 'right',
+                fontWeight: 700,
+                fontSize: 12,
+                color: '#0f172a',
+                borderBottom: '1.5px solid #0f172a',
+                padding: '4px 12px 5px 2px',
+              }}
+            >
+              Total
+            </th>
+            <th
+              style={{
+                textAlign: 'right',
+                fontWeight: 700,
+                fontSize: 12,
+                color: '#0f172a',
+                borderBottom: '1.5px solid #0f172a',
+                padding: '4px 10px 5px 8px',
+              }}
+            >
+              Amount (₹)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key} style={{ pageBreakInside: 'avoid' }}>
+              <td
                 style={{
-                  width: 44,
-                  boxSizing: 'border-box',
-                  textAlign: 'center',
-                  fontSize: 11.5,
-                  padding: '4px 0',
-                  border: '1px solid #ececec',
-                  marginLeft: 2,
-                  marginBottom: 2,
-                  background: row.assigned ? '#ffffff' : '#f5f5f5',
-                  color: row.assigned ? '#111111' : '#9a9a9a',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  color: '#111111',
+                  verticalAlign: 'top',
+                  borderBottom: '1px solid #d9d9d9',
+                  padding: '7px 4px 7px 0',
+                  wordBreak: 'break-word',
                 }}
               >
-                {n}
-              </div>
-            ))}
-          </div>
-          <div
-            style={{
-              width: 70,
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              fontWeight: 700,
-              fontSize: 12.5,
-              borderLeft: '1px solid #d9d9d9',
-              paddingLeft: 8,
-              paddingBottom: 2,
-              color: row.assigned ? '#111111' : '#8a8a8a',
-            }}
-          >
-            {row.totalEntries}
-          </div>
-        </div>
-      ))}
-
-      {/* Footer totals */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 10,
-          fontSize: 11.5,
-          fontWeight: 700,
-        }}
-      >
-        <span>{rangeLine}</span>
-        <span>
-          {totalAssigned} × ₹{rate.toLocaleString('en-IN')} = ₹{totalAmount.toLocaleString('en-IN')}
-        </span>
-      </div>
+                {row.userName}
+              </td>
+              <td
+                style={{
+                  verticalAlign: 'top',
+                  borderBottom: '1px solid #d9d9d9',
+                  padding: '5px 0',
+                }}
+              >
+                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                  {row.serialNumbers.map((n) => (
+                    <span
+                      key={n}
+                      style={{
+                        width: 44,
+                        boxSizing: 'border-box',
+                        textAlign: 'center',
+                        fontSize: 11.5,
+                        padding: '4px 0',
+                        border: '1px solid #ececec',
+                        background: '#ffffff',
+                        color: '#111111',
+                        margin: '0 2px 2px 0',
+                      }}
+                    >
+                      {n}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td
+                style={{
+                  textAlign: 'right',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  color: '#111111',
+                  verticalAlign: 'top',
+                  borderLeft: '1px solid #d9d9d9',
+                  borderBottom: '1px solid #d9d9d9',
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  paddingTop: 7,
+                  paddingBottom: 7,
+                }}
+              >
+                {row.totalEntries}
+              </td>
+              <td
+                style={{
+                  textAlign: 'right',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  color: '#059669',
+                  fontVariantNumeric: 'tabular-nums',
+                  verticalAlign: 'top',
+                  borderLeft: '1px solid #d9d9d9',
+                  borderBottom: '1px solid #d9d9d9',
+                  paddingLeft: 10,
+                  paddingRight: 10,
+                  paddingTop: 7,
+                  paddingBottom: 7,
+                }}
+              >
+                ₹{row.totalAmount.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td
+              colSpan={2}
+              style={{
+                textAlign: 'left',
+                fontWeight: 800,
+                fontSize: 12,
+                color: '#0f172a',
+                borderTop: '1.5px solid #0f172a',
+                padding: '7px 0 0',
+              }}
+            >
+              {rangeLine}
+            </td>
+            <td
+              style={{
+                textAlign: 'right',
+                fontWeight: 800,
+                fontSize: 12,
+                color: '#0f172a',
+                borderTop: '1.5px solid #0f172a',
+                borderLeft: '1px solid #d9d9d9',
+                paddingLeft: 12,
+                paddingRight: 12,
+                paddingTop: 7,
+              }}
+            >
+              {totalAssigned}
+            </td>
+            <td
+              style={{
+                textAlign: 'right',
+                fontWeight: 800,
+                fontSize: 12,
+                color: '#059669',
+                fontVariantNumeric: 'tabular-nums',
+                borderTop: '1.5px solid #0f172a',
+                borderLeft: '1px solid #d9d9d9',
+                paddingLeft: 10,
+                paddingRight: 10,
+                paddingTop: 7,
+              }}
+            >
+              ₹{totalAmount.toLocaleString('en-IN')}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

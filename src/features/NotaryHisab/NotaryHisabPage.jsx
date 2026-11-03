@@ -26,21 +26,15 @@ import {
   CircleDashed,
   IndianRupee,
   Trash2,
-  Pencil,
   FileSpreadsheet,
+  Pencil,
   FileDown,
-  Printer,
-
+  Save,
   X,
   Layers,
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
-import dayjs from 'dayjs';
 import { formatCurrencyPrecise } from '../../utils/currency';
-import {
-  buildWorkbookXml,
-  downloadWorkbook,
-} from '../../utils/excelExport';
 import {
   MONTH_NAMES,
   useNotaryRegister,
@@ -49,7 +43,6 @@ import {
   useNotarySummary,
 
   useDeleteNotaryRegister,
-  useAssignNotaryEntry,
   useBulkAssignNotaryEntries,
 } from '../../hooks/useNotaryHisab';
 import NotaryRegisterModal from './NotaryRegisterModal';
@@ -86,7 +79,6 @@ export default function NotaryHisabPage() {
   const { data: summary = [], isLoading: summaryLoading } = useNotarySummary(activeRegisterId);
 
   const deleteRegisterMutation = useDeleteNotaryRegister();
-  const assignMutation = useAssignNotaryEntry();
   const bulkAssignMutation = useBulkAssignNotaryEntries();
 
   // Hidden (off-screen) Excel-style PDF template captured by html2pdf.
@@ -99,6 +91,15 @@ export default function NotaryHisabPage() {
   const [serialSearch, setSerialSearch] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [bulkUserId, setBulkUserId] = useState(null);
+
+  // ── Edit All mode ─────────────────────────────────────────────────────────
+  // Dropdowns are read-only until "Edit All" is clicked. While editing, every
+  // change (per-row dropdown or bulk selection) is buffered locally in
+  // draftAssignments (entryId -> userId | null); nothing hits the API until
+  // "Save" is clicked, which batches the changes through the bulk endpoint.
+  const [editMode, setEditMode] = useState(false);
+  const [draftAssignments, setDraftAssignments] = useState({});
+  const [savingEdits, setSavingEdits] = useState(false);
 
   // ── Controlled pagination ─────────────────────────────────────────────────
   // antd's internal page state stays out of range when filtering, searching or
@@ -137,6 +138,8 @@ export default function NotaryHisabPage() {
     setRegisterId(id);
     setSelectedRowKeys([]);
     setBulkUserId(null);
+    setEditMode(false);
+    setDraftAssignments({});
     setPage(1);
     setSerialSearch('');
     setUserFilter(null);
@@ -191,33 +194,86 @@ export default function NotaryHisabPage() {
     return m;
   }, [notaryUsers, register, summary]);
 
-  // ── Mutations ─────────────────────────────────────────────────────────────
-  const handleAssign = async (entry, userId) => {
-    try {
-      await assignMutation.mutateAsync({ entryId: entry.id, assignedUserId: userId, registerId: activeRegisterId });
-      if (userId) {
-        const name = userNameById.get(userId)?.name || 'user';
-        message.success(`Serial #${entry.serialNumber} assigned to ${name}`);
-      } else {
-        message.success(`Serial #${entry.serialNumber} marked as Unassigned`);
-      }
-    } catch (err) {
-      message.error(err?.response?.data?.error || 'Failed to save assignment');
-    }
+  // ── Edit All / Save flow ──────────────────────────────────────────────────
+  // While editing, the effective assignment of an entry is its draft value
+  // (if one was buffered) or its persisted value otherwise.
+  const effectiveAssignedUserId = (entry) =>
+    entry.id in draftAssignments ? draftAssignments[entry.id] : entry.assignedUserId || null;
+
+  const hasDraftChanges = Object.keys(draftAssignments).length > 0;
+
+  const enterEditMode = () => {
+    setEditMode(true);
+    setSelectedRowKeys([]);
   };
 
-  const handleBulkAssign = async () => {
+  const discardEdits = () => {
+    setDraftAssignments({});
+    setEditMode(false);
+    setBulkUserId(null);
+    setSelectedRowKeys([]);
+    message.info('Edits discarded — assignments unchanged');
+  };
+
+  // Buffer a single row's dropdown change locally (no API call).
+  const bufferRowAssignment = (entryId, userId) => {
+    setDraftAssignments((prev) => ({ ...prev, [entryId]: userId || null }));
+  };
+
+  // "Assign Selected" no longer calls the bulk API directly — it applies the
+  // chosen user to all selected rows locally (entering edit mode if needed).
+  // Only "Save" in edit mode persists anything.
+  const applyBulkSelectionLocally = () => {
     if (selectedRowKeys.length === 0) return;
-    try {
-      const res = await bulkAssignMutation.mutateAsync({
-        registerId: activeRegisterId,
-        entryIds: selectedRowKeys,
-        assignedUserId: bulkUserId,
+    if (!bulkUserId) {
+      message.warning('Choose a user to assign first');
+      return;
+    }
+    const name = userNameById.get(bulkUserId)?.name || 'user';
+    setDraftAssignments((prev) => {
+      const next = { ...prev };
+      selectedRowKeys.forEach((id) => {
+        next[id] = bulkUserId;
       });
-      message.success(`${res?.changed ?? selectedRowKeys.length} serial number(s) updated`);
-      setSelectedRowKeys([]);
+      return next;
+    });
+    setEditMode(true);
+    message.info(
+      `${selectedRowKeys.length} serial number(s) set to ${name} locally — click Save to apply`
+    );
+    setSelectedRowKeys([]);
+  };
+
+  // Save: batch all buffered changes per target user through the bulk API
+  // (assignedUserId: null groups unassign their serial numbers).
+  const saveEdits = async () => {
+    if (!hasDraftChanges || !activeRegisterId) return;
+    setSavingEdits(true);
+    try {
+      const groups = new Map(); // userId | null -> entryIds
+      Object.entries(draftAssignments).forEach(([entryId, userId]) => {
+        const key = userId || null;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(entryId);
+      });
+      let changed = 0;
+      // Run sequentially so the summary/amount cache invalidations stay tidy.
+      for (const [userId, entryIds] of groups.entries()) {
+        const res = await bulkAssignMutation.mutateAsync({
+          registerId: activeRegisterId,
+          entryIds,
+          assignedUserId: userId,
+        });
+        changed += res?.changed ?? entryIds.length;
+      }
+      message.success(`${changed} serial number(s) saved`);
+      setDraftAssignments({});
+      setEditMode(false);
+      setBulkUserId(null);
     } catch (err) {
-      message.error(err?.response?.data?.error || 'Failed to assign selected serial numbers');
+      message.error(err?.response?.data?.error || 'Failed to save assignments');
+    } finally {
+      setSavingEdits(false);
     }
   };
 
@@ -249,48 +305,6 @@ export default function NotaryHisabPage() {
       message.error(err?.response?.data?.error || 'Failed to delete register');
     }
   };
-
-  // ── Exports & print ───────────────────────────────────────────────────────
-  const registerSubtitle = register
-    ? [`Month: ${MONTH_NAMES[register.month - 1]} ${register.year}`, `Per Entry Amount: ₹${rate.toLocaleString('en-IN')}`]
-    : [];
-
-  const exportFullRegister = () => {
-    const xml = buildWorkbookXml({
-      sheetName: 'Monthly Register',
-      title: 'Monthly Notary Register',
-      subtitleLines: registerSubtitle,
-      columnCount: 4,
-      rows: [
-        { type: 'header', cells: ['Serial No.', 'Assigned User', 'Amount (₹)', 'Status'] },
-        ...(register?.entries || []).map((e) => ({
-          type: 'data',
-          cells: [
-            e.serialNumber,
-            e.assignedTo?.name || 'Unassigned',
-            e.assignedUserId ? { type: 'currency', v: rate } : { v: 0, type: 'currency' },
-            e.assignedUserId ? 'Assigned' : 'Pending',
-          ],
-        })),
-        {
-          type: 'total',
-          cells: [
-            `Total (${stats?.total || 0} serials, ${stats?.assigned || 0} assigned)`,
-            '',
-            { type: 'currency', v: stats?.totalAmount || 0 },
-            '',
-          ],
-        },
-      ],
-    });
-    downloadWorkbook(`Notary-Register-${MONTH_NAMES[register.month - 1]}-${register.year}`, xml);
-  };
-
-  // Serial numbers with no user yet — shown as a grayed row for the PDF too.
-  const unassignedSerials = useMemo(
-    () => (register?.entries || []).filter((e) => !e.assignedUserId).map((e) => e.serialNumber),
-    [register]
-  );
 
   // Export the monthly register as a PDF laid out like the office
   // "Notary Hisab.xlsx" sheet: user rows with their serial numbers
@@ -388,84 +402,6 @@ export default function NotaryHisabPage() {
     }
   };
 
-  const exportSummary = () => {
-    const totalAmount = summary.reduce((s, r) => s + r.totalAmount, 0);
-    const totalEntries = summary.reduce((s, r) => s + r.totalEntries, 0);
-    const xml = buildWorkbookXml({
-      sheetName: 'User-wise Summary',
-      title: 'User-wise Notary Summary',
-      subtitleLines: registerSubtitle,
-      columnCount: 4,
-      rows: [
-        { type: 'header', cells: ['User Name', 'Total Entries', 'Rate (₹)', 'Total Amount (₹)'] },
-        ...summary.map((r) => ({
-          type: 'data',
-          cells: [r.userName, r.totalEntries, { type: 'currency', v: r.rate }, { type: 'currency', v: r.totalAmount }],
-        })),
-        {
-          type: 'total',
-          cells: ['Total', totalEntries, '', { type: 'currency', v: totalAmount }],
-        },
-      ],
-    });
-    downloadWorkbook(`Notary-Summary-${register ? MONTH_NAMES[register.month - 1] : ''}-${register?.year ?? ''}`, xml);
-  };
-
-  const printRegister = () => {
-    const rows = (register?.entries || [])
-      .map(
-        (e) => `<tr>
-      <td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;">${e.serialNumber}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;">${e.assignedTo?.name || '—'}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;text-align:right;">${e.assignedUserId ? `₹${rate.toLocaleString('en-IN')}` : '—'}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${e.assignedUserId ? 'Assigned' : 'Pending'}</td>
-    </tr>`
-      )
-      .join('');
-    const w = window.open('', '_blank', 'width=900,height=950');
-    if (!w) {
-      message.error('Please allow pop-ups for printing');
-      return;
-    }
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"/><title>Monthly Notary Register</title>
-      <style>
-        body{font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;color:#0f172a;margin:28px;}
-        .head{border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
-        .firm{display:flex;align-items:center;gap:12px;}
-        .firm img{height:50px;width:auto;}
-        .firm h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-0.3px;}
-        .firm small{display:block;font-size:11px;font-weight:600;color:#64748b;}
-        .meta{text-align:right;}
-        .meta .rtitle{font-size:14px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:.04em;}
-        .meta .per{font-size:13px;font-weight:700;margin-top:2px;}
-        .meta .gen{font-size:10px;color:#64748b;margin-top:2px;}
-        table{width:100%;border-collapse:collapse;font-size:12px;}
-        thead th{background:#f8fafc;color:#64748b;padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
-        th:nth-child(2){text-align:left;}
-        tfoot td{background:#f1f5f9;font-weight:800;padding:9px 12px;}
-        .sum{float:right;margin-top:16px;font-size:12.5px;width:290px;}
-        .sum div{display:flex;justify-content:space-between;padding:3px 0;}
-        .sum .big{font-size:16px;font-weight:800;color:#2563eb;border-top:2px solid #cbd5e1;padding-top:5px;margin-top:4px;}
-        @media print{body{margin:10px}}
-      </style></head><body>
-      <div class="head">
-        <div class="firm"><img src="/logo.png"/><div><h1>JIKADARA &amp; PANDAV ASSOCIATES</h1><small>Advocate &amp; Legal Consultants</small></div></div>
-        <div class="meta"><div class="rtitle">Notary Register</div><div class="per">${MONTH_NAMES[register.month - 1]} ${register.year}</div><div class="gen">Generated: ${dayjs().format('DD/MM/YYYY, hh:mm A')}</div></div>
-      </div>
-      <table><thead><tr><th>Sr. No.</th><th>Assigned User</th><th>Amount (₹)</th><th>Status</th></tr></thead>
-      <tbody>${rows.join('')}</tbody>
-      <tfoot><tr><td colspan="4">Total: ${stats?.total || 0} serial numbers • ${stats?.assigned || 0} assigned • ₹${(stats?.totalAmount || 0).toLocaleString('en-IN')}</td></tr></tfoot></table>
-      <div class="sum">
-        <div><span>Total Serial Numbers</span><b>${stats?.total || 0}</b></div>
-        <div><span>Assigned</span><b>${stats?.assigned || 0}</b></div>
-        <div><span>Unassigned</span><b>${stats?.unassigned || 0}</b></div>
-        <div class="big"><span>Total Notary Amount</span><span>₹${(stats?.totalAmount || 0).toLocaleString('en-IN')}</span></div>
-      </div>
-      </body></html>`);
-    w.document.close();
-    w.focus();
-    w.print();
-  };
 
   // ── Register selector ─────────────────────────────────────────────────────
   const registerOptions = registers.map((r) => ({
@@ -490,23 +426,37 @@ export default function NotaryHisabPage() {
       dataIndex: 'assignedUserId',
       key: 'assignedUserId',
       width: 220,
-      render: (_, entry) => (
-        <Select
-          size="small"
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          placeholder="Unassigned"
-          value={entry.assignedUserId || undefined}
-          loading={assignMutation.isPending}
-          onChange={(v) => handleAssign(entry, v || null)}
-          options={(notaryUsers.length ? notaryUsers : [entry.assignedTo].filter(Boolean)).map((u) => ({
-            label: u.name,
-            value: u.id,
-          }))}
-          style={{ width: '100%' }}
-        />
-      ),
+      render: (_, entry) => {
+        // Read-only until "Edit All" is clicked; while editing the dropdown
+        // buffers the change locally (blue outline marks modified rows).
+        if (!editMode) {
+          const name = entry.assignedTo?.name;
+          return name ? (
+            <span style={{ fontWeight: 600, color: '#0f172a' }}>{name}</span>
+          ) : (
+            <span style={{ color: '#94a3b8' }}>Unassigned</span>
+          );
+        }
+        const changed = entry.id in draftAssignments;
+        const value = effectiveAssignedUserId(entry);
+        return (
+          <Select
+            size="small"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Unassigned"
+            value={value || undefined}
+            status={changed ? 'warning' : undefined}
+            onChange={(v) => bufferRowAssignment(entry.id, v || null)}
+            options={(notaryUsers.length ? notaryUsers : [entry.assignedTo].filter(Boolean)).map((u) => ({
+              label: u.name,
+              value: u.id,
+            }))}
+            style={{ width: '100%' }}
+          />
+        );
+      },
     },
     {
       title: 'Amount',
@@ -515,8 +465,11 @@ export default function NotaryHisabPage() {
       align: 'right',
       sorter: (a, b) => (a.assignedUserId ? 1 : 0) - (b.assignedUserId ? 1 : 0),
       render: (_, entry) =>
-        entry.assignedUserId ? (
-          <span style={{ fontWeight: 700, color: '#16a34a' }}>{formatCurrencyPrecise(rate)}</span>
+        // Live preview while editing: amounts follow the buffered assignment too.
+        effectiveAssignedUserId(entry) ? (
+          <span style={{ fontWeight: 700, color: '#16a34a', opacity: editMode && entry.id in draftAssignments ? 0.55 : 1 }}>
+            {formatCurrencyPrecise(rate)}
+          </span>
         ) : (
           <span style={{ fontWeight: 700, color: '#cbd5e1' }}>₹0</span>
         ),
@@ -532,12 +485,12 @@ export default function NotaryHisabPage() {
       ],
       onFilter: (val, entry) => (val === 'assigned' ? Boolean(entry.assignedUserId) : !entry.assignedUserId),
       render: (_, entry) =>
-        entry.assignedUserId ? (
-          <Tag color="success" style={{ borderRadius: 10, fontWeight: 600 }}>
+        effectiveAssignedUserId(entry) ? (
+          <Tag color="success" style={{ borderRadius: 10, fontWeight: 600, opacity: editMode && entry.id in draftAssignments ? 0.55 : 1 }}>
             Assigned
           </Tag>
         ) : (
-          <Tag style={{ borderRadius: 10, fontWeight: 600, color: '#94a3b8', borderColor: '#e2e8f0' }}>
+          <Tag style={{ borderRadius: 10, fontWeight: 600, color: '#94a3b8', borderColor: '#e2e8f0', opacity: editMode && entry.id in draftAssignments ? 0.55 : 1 }}>
             Pending
           </Tag>
         ),
@@ -598,14 +551,12 @@ export default function NotaryHisabPage() {
       width: 110,
       align: 'center',
       render: (_, row) => (
-        <Tooltip title="Open detailed statement">
-          <Button
-            type="text"
-            size="small"
-            icon={<FileSpreadsheet size={15} color="#2563eb" />}
-            onClick={() => setStatementUser(row)}
-          />
-        </Tooltip>
+        <Button
+          type="text"
+          size="small"
+          icon={<FileSpreadsheet size={15} color="#2563eb" />}
+          onClick={() => setStatementUser(row)}
+        />
       ),
     },
   ];
@@ -634,42 +585,14 @@ export default function NotaryHisabPage() {
             <BookMarked size={26} color="#2563eb" />
             Notary Hisab
           </Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            Monthly notary register & user-wise notary amount calculation
-          </Text>
         </div>
 
-        <Space wrap>
-          <Tooltip title="Refresh">
-            <Button
-              icon={<RefreshCw size={15} />}
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['notaryRegisters'] });
-                if (activeRegisterId) {
-                  queryClient.invalidateQueries({ queryKey: ['notaryRegister', activeRegisterId] });
-                  queryClient.invalidateQueries({ queryKey: ['notarySummary', activeRegisterId] });
-                }
-              }}
-            />
-          </Tooltip>
-          <Button icon={<Plus size={16} />} onClick={() => setIsCreateModalOpen(true)} style={{ borderRadius: 8, height: 40 }}>
-            Create Register
-          </Button>
-        </Space>
-      </div>
-
-      {/* Register selector + actions */}
-      <Card
-        bordered={false}
-        style={{ borderRadius: 16, marginBottom: 16, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
-        styles={{ body: { padding: 16 } }}
-      >
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Text strong style={{ color: '#0f172a' }}>
+        <Space wrap align="center" size={8}>
+          <Text strong style={{ color: '#0f172a', whiteSpace: 'nowrap' }}>
             Register:
           </Text>
           <Select
-            style={{ width: 260 }}
+            style={{ width: 220 }}
             placeholder="Select month / year"
             loading={registersLoading}
             value={activeRegisterId || undefined}
@@ -679,13 +602,23 @@ export default function NotaryHisabPage() {
           />
           {register && (
             <>
-              <Tag icon={<Layers size={12} />} color="blue" style={{ borderRadius: 10 }}>
+              <Tag
+                icon={<Layers size={12} />}
+                color="blue"
+                style={{
+                  borderRadius: 10,
+                  margin: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                }}
+              >
                 {(register.ranges || [])
                   .map((rg) => `${rg.startNumber}–${rg.endNumber}`)
                   .join(', ')}
               </Tag>
               <Button
-                size="small"
                 icon={<Pencil size={13} />}
                 onClick={() => setEditingRegister(register)}
                 style={{ borderRadius: 8 }}
@@ -696,7 +629,7 @@ export default function NotaryHisabPage() {
                 title="Delete this register?"
                 description={
                   stats?.assigned > 0
-? 'All assignments inside it will be permanently deleted.'
+                    ? 'All assignments inside it will be permanently deleted.'
                     : 'This cannot be undone.'
                 }
                 okText="Delete"
@@ -704,14 +637,35 @@ export default function NotaryHisabPage() {
                 okButtonProps={{ danger: true }}
                 onConfirm={handleDeleteRegister}
               >
-                <Button size="small" danger icon={<Trash2 size={13} />} style={{ borderRadius: 8 }}>
+                <Button danger icon={<Trash2 size={13} />} style={{ borderRadius: 8 }}>
                   Delete
                 </Button>
               </Popconfirm>
             </>
           )}
-        </div>
-      </Card>
+          <Tooltip title="Refresh">
+            <Button
+              icon={<RefreshCw size={15} />}
+              style={{ borderRadius: 8 }}
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['notaryRegisters'] });
+                if (activeRegisterId) {
+                  queryClient.invalidateQueries({ queryKey: ['notaryRegister', activeRegisterId] });
+                  queryClient.invalidateQueries({ queryKey: ['notarySummary', activeRegisterId] });
+                }
+              }}
+            />
+          </Tooltip>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsCreateModalOpen(true)}
+            style={{ borderRadius: 8 }}
+          >
+            Create Register
+          </Button>
+        </Space>
+      </div>
 
       {noRegister ? (
         <Card bordered={false} style={{ borderRadius: 16 }}>
@@ -744,17 +698,36 @@ export default function NotaryHisabPage() {
               { label: 'Total Amount', value: formatCurrencyPrecise(stats.totalAmount), icon: IndianRupee, color: '#16a34a' },
               { label: 'Users Involved', value: stats.users, icon: Users, color: '#7c3aed' },
             ].map(({ label, value, icon: Icon, color }) => (
-              <Col xs={12} md={8} lg={4} key={label} style={{ flex: '1 1 150px' }}>
+              <Col
+                key={label}
+                xs={12}
+                sm={12}
+                md={8}
+                style={{ flex: '1 1 160px', minWidth: 140, maxWidth: 'none', display: 'flex' }}
+              >
                 <Card
                   bordered={false}
-                  style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
-                  styles={{ body: { padding: '14px 16px' } }}
+                  style={{
+                    borderRadius: 16,
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                  styles={{
+                    body: {
+                      padding: '12px 14px',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      boxSizing: 'border-box',
+                    },
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
+                        width: 38,
+                        height: 38,
                         borderRadius: 12,
                         background: `${color}1a`,
                         display: 'flex',
@@ -763,10 +736,23 @@ export default function NotaryHisabPage() {
                         flexShrink: 0,
                       }}
                     >
-                      <Icon size={20} color={color} />
+                      <Icon size={19} color={color} />
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <Text
+                        type="secondary"
+                        title={label}
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.4,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {label}
                       </Text>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>{value}</div>
@@ -780,7 +766,8 @@ export default function NotaryHisabPage() {
           {/* Filters */}
           <div style={{ marginBottom: 12 }}>
             <Row gutter={[12, 12]} align="middle">
-              <Col xs={24} md={7}>
+              {/* Narrower in edit mode so Save/Discard/Export PDF fit one row */}
+              <Col xs={24} md={editMode ? 6 : 7}>
                 <Input
                   allowClear
                   prefix={<Search size={15} color="#94a3b8" />}
@@ -816,8 +803,40 @@ export default function NotaryHisabPage() {
                   onChange={applyStatusFilter}
                 />
               </Col>
-              <Col xs={24} md={7} style={{ textAlign: 'right' }}>
+              <Col xs={24} md={editMode ? 8 : 7} style={{ textAlign: 'right' }}>
                 <Space wrap>
+                  {/* Dropdowns are read-only until "Edit All"; Save batches all
+                      buffered changes through the bulk API in one go. */}
+                  {!editMode ? (
+                    <Button
+                      icon={<Pencil size={14} />}
+                      onClick={enterEditMode}
+                      style={{ borderRadius: 8 }}
+                    >
+                      Edit All
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="primary"
+                        icon={<Save size={14} />}
+                        onClick={saveEdits}
+                        loading={savingEdits}
+                        disabled={!hasDraftChanges}
+                        style={{ borderRadius: 8, boxShadow: 'none' }}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        icon={<X size={14} />}
+                        onClick={discardEdits}
+                        disabled={savingEdits}
+                        style={{ borderRadius: 8 }}
+                      >
+                        Discard
+                      </Button>
+                    </>
+                  )}
                   <Button
                     icon={<FileDown size={14} />}
                     onClick={handleExportRegisterPdf}
@@ -826,14 +845,6 @@ export default function NotaryHisabPage() {
                     style={{ borderRadius: 8, boxShadow: 'none' }}
                   >
                     Export PDF
-                  </Button>
-                  <Tooltip title="Excel workbook version of this register">
-                    <Button icon={<FileSpreadsheet size={14} />} onClick={exportFullRegister} style={{ borderRadius: 8 }}>
-                      Excel
-                    </Button>
-                  </Tooltip>
-                  <Button icon={<Printer size={14} />} onClick={printRegister} style={{ borderRadius: 8 }}>
-                    Print
                   </Button>
                 </Space>
               </Col>
@@ -865,10 +876,10 @@ export default function NotaryHisabPage() {
                 options={notaryUsers.map((u) => ({ label: u.name, value: u.id }))}
                 onChange={setBulkUserId}
               />
+              {/* Applies locally — nothing is saved until "Save" in edit mode */}
               <Button
                 type="primary"
-                onClick={handleBulkAssign}
-                loading={bulkAssignMutation.isPending}
+                onClick={applyBulkSelectionLocally}
                 style={{ borderRadius: 8, boxShadow: 'none' }}
               >
                 Assign Selected
@@ -929,19 +940,7 @@ export default function NotaryHisabPage() {
             style={{ borderRadius: 16, marginBottom: 16, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
             styles={{ body: { padding: 0 } }}
             title={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>User-wise Summary</span>
-                <Space>
-                  <Button
-                    size="small"
-                    icon={<FileSpreadsheet size={13} />}
-                    onClick={exportSummary}
-                    style={{ borderRadius: 8 }}
-                  >
-                    Export Summary
-                  </Button>
-                </Space>
-              </div>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>User-wise Summary</span>
             }
           >
             <Table
@@ -984,7 +983,7 @@ export default function NotaryHisabPage() {
             <NotaryPdfLayout
               register={register}
               summary={summary}
-              unassignedSerials={unassignedSerials}
+
             />
           </div>
         </div>
