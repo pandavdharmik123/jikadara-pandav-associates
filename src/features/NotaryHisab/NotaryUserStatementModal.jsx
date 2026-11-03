@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { Modal, Tag, Button, Typography, Empty, Space, message } from 'antd';
-import { Printer, FileSpreadsheet } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { formatCurrencyPrecise } from '../../utils/currency';
-import { buildWorkbookXml, downloadWorkbook } from '../../utils/excelExport';
 import { MONTH_NAMES } from '../../hooks/useNotaryHisab';
 
 
@@ -101,26 +100,6 @@ export default function NotaryUserStatementModal({ open, onClose, summaryRow, re
     }
   };
 
-  const handleExport = () => {
-    const xml = buildWorkbookXml({
-      sheetName: `Notary ${summaryRow.userName}`.slice(0, 28),
-      title: `Notary Statement – ${summaryRow.userName}`,
-      subtitleLines: [`Month: ${monthLabel}`, `Per Entry Amount: ₹${rate.toLocaleString('en-IN')}`],
-      columnCount: 3,
-      rows: [
-        { type: 'header', cells: ['Serial No.', 'Work Type', 'Amount (₹)'] },
-        ...userEntries.map((e) => ({
-          type: 'data',
-          cells: [e.serialNumber, 'Notary', { type: 'currency', v: rate }],
-        })),
-        {
-          type: 'total',
-          cells: [`Total (${summaryRow.totalEntries} entries)`, '', { type: 'currency', v: summaryRow.totalAmount }],
-        },
-      ],
-    });
-    downloadWorkbook(`Notary-Statement-${summaryRow.userName}-${monthLabel.replace(' ', '-')}`, xml);
-  };
 
   return (
     <Modal
@@ -128,10 +107,13 @@ export default function NotaryUserStatementModal({ open, onClose, summaryRow, re
       onCancel={onClose}
       footer={
         <Space>
-          <Button icon={<FileSpreadsheet size={15} />} onClick={handleExport} style={{ borderRadius: 8 }}>
-            Export (Excel)
-          </Button>
-          <Button type="primary" icon={<Printer size={15} />} loading={printing} onClick={handlePrint} style={{ borderRadius: 8, boxShadow: 'none' }}>
+          <Button
+            type="primary"
+            icon={<Printer size={15} />}
+            loading={printing}
+            onClick={handlePrint}
+            style={{ borderRadius: 8, boxShadow: 'none' }}
+          >
             Print Statement
           </Button>
         </Space>
