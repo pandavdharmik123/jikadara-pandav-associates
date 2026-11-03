@@ -274,6 +274,21 @@ export default function MainLayout() {
         label: 'Reports',
       },
       {
+        key: '/app/upad',
+        icon: <Wallet size={20} />,
+        label: 'Upad List',
+      },
+      {
+        key: '/app/recycle-bin',
+        icon: <Trash2 size={20} />,
+        label: 'Recycle Bin',
+      },
+      {
+        key: '/app/admin/document-types',
+        icon: <Files size={20} />,
+        label: 'Document Types',
+      },
+      {
         key: 'excel-sheets-group',
         icon: <FileSpreadsheet size={20} />,
         label: 'Excel Sheets',
@@ -303,21 +318,6 @@ export default function MainLayout() {
             label: 'Verabill / Light Bill',
           },
         ],
-      },
-      {
-        key: '/app/upad',
-        icon: <Wallet size={20} />,
-        label: 'Upad List',
-      },
-      {
-        key: '/app/recycle-bin',
-        icon: <Trash2 size={20} />,
-        label: 'Recycle Bin',
-      },
-      {
-        key: '/app/admin/document-types',
-        icon: <Files size={20} />,
-        label: 'Document Types',
       },
     ];
 
@@ -403,9 +403,9 @@ export default function MainLayout() {
           selectedKeys={[selectedKey]}
           defaultOpenKeys={[
             ...(window.location.pathname.startsWith('/app/excel-sheets') ||
-            window.location.pathname === '/app/office-expenses' ||
-            window.location.pathname === '/app/nondh-status' ||
-            window.location.pathname === '/app/verabill'
+              window.location.pathname === '/app/office-expenses' ||
+              window.location.pathname === '/app/nondh-status' ||
+              window.location.pathname === '/app/verabill'
               ? ['excel-sheets-group']
               : []),
             ...(window.location.pathname.startsWith('/app/tools/form-builder')
