@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, Button, Table, Space, Card, Modal, message, Tag, Select, Grid, Avatar } from 'antd';
-import { Plus, Edit, Trash2, NotebookText, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Typography, Button, Table, Space, Card, Modal, message, Tag, Select, Grid, Avatar, Tooltip } from 'antd';
+import { Plus, Edit, Trash2, NotebookText, Eye, RotateCcw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTasks, useDeleteTask } from '../../hooks/useTasks';
+import { useClients } from '../../hooks/useClients';
+import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import useAuthStore from '../../store/authStore';
 import AddTaskModal from './AddTaskModal';
 import EditTaskModal from './EditTaskModal';
@@ -10,17 +12,17 @@ import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+const { Title } = Typography;
 
 export default function TaskList() {
   const [statusFilter, setStatusFilter] = useState('');
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [clientFilter, setClientFilter] = useState('');
+  const [docTypeFilter, setDocTypeFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, activeFinancialYear } = useAuthStore();
+  const { activeFinancialYear } = useAuthStore();
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
 
@@ -28,21 +30,119 @@ export default function TaskList() {
   const searchParams = new URLSearchParams(location.search);
   const initialAddClient = searchParams.get('addClient');
 
+  const [isAddModalVisible, setIsAddModalVisible] = useState(Boolean(initialAddClient));
+  const [editingTask, setEditingTask] = useState(null);
+
   useEffect(() => {
     if (initialAddClient) {
-      setIsAddModalVisible(true);
       // Clean up URL without reloading page
       navigate('/app/tasks', { replace: true });
     }
   }, [initialAddClient, navigate]);
 
+  const { data: clients, isLoading: clientsLoading } = useClients();
+  const { data: documentTypes, isLoading: docTypesLoading } = useDocumentTypes();
+
+  // Determine effective date range for query based on month filter or FY
+  const { effectiveStartDate, effectiveEndDate } = useMemo(() => {
+    if (monthFilter) {
+      const m = dayjs(`${monthFilter}-01`);
+      return {
+        effectiveStartDate: m.startOf('month').format('YYYY-MM-DD'),
+        effectiveEndDate: m.endOf('month').format('YYYY-MM-DD'),
+      };
+    }
+    return {
+      effectiveStartDate: activeFinancialYear?.startDate || '',
+      effectiveEndDate: activeFinancialYear?.endDate || '',
+    };
+  }, [monthFilter, activeFinancialYear]);
+
   const { data: tasks, isLoading } = useTasks(
-    '',
+    clientFilter,
     statusFilter,
-    activeFinancialYear?.startDate,
-    activeFinancialYear?.endDate
+    effectiveStartDate,
+    effectiveEndDate,
+    docTypeFilter
   );
   const deleteTaskMutation = useDeleteTask();
+
+  // Generate month options from active financial year or current year
+  const monthOptions = useMemo(() => {
+    if (activeFinancialYear?.startDate && activeFinancialYear?.endDate) {
+      const start = dayjs(activeFinancialYear.startDate);
+      const end = dayjs(activeFinancialYear.endDate);
+      const list = [];
+      let cur = start.startOf('month');
+      while (cur.isBefore(end) || cur.isSame(end, 'month')) {
+        list.push({
+          label: cur.format('MMMM YYYY'),
+          value: cur.format('YYYY-MM'),
+        });
+        cur = cur.add(1, 'month');
+      }
+      return list;
+    }
+    const currentYear = dayjs().year();
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = dayjs().year(currentYear).month(i);
+      return {
+        label: d.format('MMMM YYYY'),
+        value: d.format('YYYY-MM'),
+      };
+    });
+  }, [activeFinancialYear]);
+
+  // Client dropdown options
+  const clientOptions = useMemo(() => {
+    return (clients || []).map((c) => ({
+      label: `${c.name}${c.mobileNumber ? ` (${c.mobileNumber})` : ''}`,
+      value: c.id,
+    }));
+  }, [clients]);
+
+  // Document type options
+  const docTypeOptions = useMemo(() => {
+    const set = new Set();
+    const list = [];
+    (documentTypes || []).forEach((dt) => {
+      if (dt.name && !set.has(dt.name)) {
+        set.add(dt.name);
+        list.push({ label: dt.name, value: dt.name });
+      }
+    });
+    (tasks || []).forEach((t) => {
+      if (t.documentType && !set.has(t.documentType)) {
+        set.add(t.documentType);
+        list.push({ label: t.documentType, value: t.documentType });
+      }
+    });
+    return list;
+  }, [documentTypes, tasks]);
+
+  // Client-side filter fallback for instant response
+  const displayTasks = useMemo(() => {
+    if (!tasks) return [];
+    return tasks.filter((t) => {
+      if (statusFilter && t.status !== statusFilter) return false;
+      if (clientFilter && t.clientId !== clientFilter) return false;
+      if (docTypeFilter && t.documentType !== docTypeFilter) return false;
+      if (monthFilter) {
+        const taskMonth = dayjs(t.startDate).format('YYYY-MM');
+        if (taskMonth !== monthFilter) return false;
+      }
+      return true;
+    });
+  }, [tasks, statusFilter, clientFilter, docTypeFilter, monthFilter]);
+
+  const hasActiveFilters = Boolean(statusFilter || clientFilter || docTypeFilter || monthFilter);
+
+  const handleResetFilters = () => {
+    setStatusFilter('');
+    setClientFilter('');
+    setDocTypeFilter('');
+    setMonthFilter('');
+  };
 
   const handleDelete = (id) => {
     Modal.confirm({
@@ -55,7 +155,7 @@ export default function TaskList() {
         try {
           await deleteTaskMutation.mutateAsync(id);
           message.success('Task deleted');
-        } catch (error) {
+        } catch {
           message.error('Failed to delete task');
         }
       },
@@ -65,46 +165,89 @@ export default function TaskList() {
   const columns = [
     {
       title: 'Date',
+      width: 110,
       dataIndex: 'startDate',
       key: 'startDate',
       render: (date) => dayjs(date).format('DD/MM/YYYY'),
     },
     {
       title: 'Document Type',
+      width: 180,
       dataIndex: 'documentType',
       key: 'documentType',
       render: (text, record) => (
-        <Space size="small">
-          <NotebookText size={16} style={{ color: '#64748b' }} />
-          <a onClick={() => navigate(`/app/tasks/${record.id}`)} style={{ fontWeight: 600, color: '#0f172a' }}>{text}</a>
+        <Space size="small" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+          <NotebookText size={16} style={{ color: '#64748b', flexShrink: 0 }} />
+          <a
+            onClick={() => navigate(`/app/tasks/${record.id}`)}
+            style={{
+              fontWeight: 600,
+              color: '#0f172a',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'inline-block',
+              maxWidth: 140,
+            }}
+            title={text}
+          >
+            {text}
+          </a>
         </Space>
-      )
+      ),
     },
     {
       title: 'Place',
       dataIndex: 'place',
       key: 'place',
+      width: 130,
       align: 'center',
+      ellipsis: true,
       render: (text) => text || '-',
     },
     {
       title: 'Client',
       key: 'client',
-      width: 280,
+      width: 240,
       render: (text, record) => {
         const clientName = record.client?.name || record.clientName || '-';
         const initials = clientName && clientName !== '-' ? clientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'C';
         return (
-          <Space gap={12}>
-            <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600 }}>
+          <Space size={10} style={{ maxWidth: '100%', overflow: 'hidden' }}>
+            <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600, flexShrink: 0 }}>
               {initials}
             </Avatar>
             {record.client?.id ? (
-              <a onClick={() => navigate(`/app/clients/${record.client.id}`)} style={{ fontWeight: 600, color: '#4f46e5' }}>
+              <a
+                onClick={() => navigate(`/app/clients/${record.client.id}`)}
+                style={{
+                  fontWeight: 600,
+                  color: '#4f46e5',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-block',
+                  maxWidth: 180,
+                }}
+                title={clientName}
+              >
                 {clientName}
               </a>
             ) : (
-              <span style={{ fontWeight: 600, color: '#0f172a' }}>{clientName}</span>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-block',
+                  maxWidth: 180,
+                }}
+                title={clientName}
+              >
+                {clientName}
+              </span>
             )}
           </Space>
         );
@@ -112,14 +255,34 @@ export default function TaskList() {
     },
     {
       title: 'Reference',
+      width: 160,
       dataIndex: 'referenceName',
       key: 'referenceName',
+      ellipsis: true,
+      render: (text) => text || '-',
+    },
+    {
+      title: 'RR No.',
+      dataIndex: 'rrNumber',
+      key: 'rrNumber',
+      width: 100,
+      align: 'center',
+      render: (val) => (val != null ? <span style={{ fontWeight: 600, color: '#0f172a' }}>{val}</span> : '-'),
+    },
+    {
+      title: 'RR Date',
+      dataIndex: 'rrDate',
+      width: 110,
+      key: 'rrDate',
+      align: 'center',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       width: 100,
+      align: 'center',
       render: (status) => (
         <Tag style={
           status === 'ACTIVE'
@@ -133,6 +296,8 @@ export default function TaskList() {
     {
       title: 'Actions',
       key: 'actions',
+      width: 120,
+      align: 'center',
       render: (_, record) => (
         <Space size="middle">
           <Button
@@ -167,22 +332,73 @@ export default function TaskList() {
         justifyContent: 'space-between',
         alignItems: isMobile ? 'stretch' : 'center',
         marginBottom: 16,
-        gap: 16
+        gap: 12,
+        flexWrap: 'wrap'
       }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Tasks</Title>
         </div>
-        <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
+        <div style={{
+          display: 'flex',
+          gap: 10,
+          flexDirection: isMobile ? 'column' : 'row',
+          flexWrap: 'wrap',
+          alignItems: isMobile ? 'stretch' : 'center'
+        }}>
+          <Select
+            placeholder="Filter by Month"
+            allowClear
+            value={monthFilter || undefined}
+            onChange={(val) => setMonthFilter(val || '')}
+            options={monthOptions}
+            style={{ width: isMobile ? '100%' : 160 }}
+            className="modern-select"
+          />
+          <Select
+            placeholder="Filter by Client"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            value={clientFilter || undefined}
+            onChange={(val) => setClientFilter(val || '')}
+            options={clientOptions}
+            loading={clientsLoading}
+            style={{ width: isMobile ? '100%' : 200 }}
+            className="modern-select"
+          />
+          <Select
+            placeholder="Filter by Document Type"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            value={docTypeFilter || undefined}
+            onChange={(val) => setDocTypeFilter(val || '')}
+            options={docTypeOptions}
+            loading={docTypesLoading}
+            style={{ width: isMobile ? '100%' : 190 }}
+            className="modern-select"
+          />
           <Select
             placeholder="Filter by Status"
             allowClear
-            style={{ width: isMobile ? '100%' : 150 }}
-            onChange={(value) => setStatusFilter(value || '')}
+            value={statusFilter || undefined}
+            onChange={(val) => setStatusFilter(val || '')}
+            options={[
+              { label: 'Active', value: 'ACTIVE' },
+              { label: 'Done', value: 'DONE' },
+            ]}
+            style={{ width: isMobile ? '100%' : 140 }}
             className="modern-select"
-          >
-            <Option value="ACTIVE">Active</Option>
-            <Option value="DONE">Done</Option>
-          </Select>
+          />
+          {hasActiveFilters && (
+            <Tooltip title="Reset Filters">
+              <Button
+                icon={<RotateCcw size={15} />}
+                onClick={handleResetFilters}
+                style={{ borderRadius: 8, height: 40 }}
+              />
+            </Tooltip>
+          )}
           <Button
             type="primary"
             icon={<Plus size={16} />}
@@ -199,11 +415,12 @@ export default function TaskList() {
         <Table
           className="modern-dashboard-table"
           columns={columns}
-          dataSource={tasks}
+          dataSource={displayTasks}
           rowKey="id"
+          tableLayout="fixed"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
+          scroll={{ x: 1250, y: 'calc(100vh - 296px)' }}
           size="small"
           locale={{
             emptyText: (

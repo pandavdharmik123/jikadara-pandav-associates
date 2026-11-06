@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, message, Spin, Space } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, DatePicker, message, Spin, Row, Col } from 'antd';
 import { useCreateTask } from '../../hooks/useTasks';
 import { useClients } from '../../hooks/useClients';
 import { useDocumentTypes, useCreateDocumentType } from '../../hooks/useDocumentTypes';
@@ -66,6 +66,8 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
         ...values,
         documentType: trimmedType,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
+        rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : undefined,
+        rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : undefined,
       };
       
       delete taskData.customDocumentType;
@@ -126,7 +128,7 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
         >
           <Select 
             placeholder="Select type" 
-            size="large"
+            size="large" 
             showSearch
             allowClear
             loading={docTypesLoading}
@@ -156,6 +158,38 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
         >
           <DatePicker style={{ width: '100%' }} size="large" format="DD/MM/YYYY" />
         </Form.Item>
+
+
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="rrNumber"
+              label="RR Number"
+            >
+              <InputNumber
+                placeholder="Enter RR Number"
+                style={{ width: '100%' }}
+                size="large"
+                min={0}
+                precision={0}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="rrDate"
+              label="RR Date"
+            >
+              <DatePicker
+                placeholder="Select RR Date"
+                style={{ width: '100%' }}
+                size="large"
+                format="DD/MM/YYYY"
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item
           name="referenceName"
