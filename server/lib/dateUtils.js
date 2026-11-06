@@ -101,10 +101,19 @@ function parseYMD(dateInput) {
   const s = String(dateInput).trim();
   if (!s) return null;
 
-  // Handle standard YYYY-MM-DD or ISO strings
-  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(s)) {
-    const datePart = s.split('T')[0];
-    const [y, m, d] = datePart.split('-').map(Number);
+  // If it's a full ISO timestamp with time or timezone (e.g. "2026-08-12T18:30:00.000Z"),
+  // convert to IST parts so UTC 18:30 on Aug 12 maps to Aug 13 in IST
+  if (s.includes('T') || s.endsWith('Z')) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const parts = toISTDateParts(d);
+      return parts ? [parts.year, parts.month, parts.day] : null;
+    }
+  }
+
+  // Handle standard date-only YYYY-MM-DD strings (e.g. "2026-08-13")
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
     if (!isNaN(y) && !isNaN(m) && !isNaN(d) && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
       return [y, m, d];
     }

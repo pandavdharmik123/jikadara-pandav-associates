@@ -1,14 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
+import { toISTDateString } from '../utils/istDate';
 
 export const useGeneralExpenses = (startDate, endDate) => {
+  const sDate = toISTDateString(startDate);
+  const eDate = toISTDateString(endDate);
   return useQuery({
-    queryKey: ['generalExpenses', { startDate, endDate }],
+    queryKey: ['generalExpenses', { startDate: sDate, endDate: eDate }],
     queryFn: async () => {
       let url = '/general-expenses';
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
+      if (sDate) params.append('startDate', sDate);
+      if (eDate) params.append('endDate', eDate);
       
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
+import { startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get('/', requireAuth, async (req, res) => {
     if (fyStartDate && fyEndDate) {
       fyFilter = {
         isDeleted: false,
-        startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) },
+        startDate: { gte: startOfDayIST(fyStartDate), lte: endOfDayIST(fyEndDate) },
       };
     }
 
@@ -67,7 +68,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (fyStartDate && fyEndDate) {
       fyFilter = {
         isDeleted: false,
-        startDate: { gte: new Date(fyStartDate), lte: new Date(fyEndDate) },
+        startDate: { gte: startOfDayIST(fyStartDate), lte: endOfDayIST(fyEndDate) },
       };
     }
 

@@ -14,6 +14,7 @@ import PrivacyAmount from '../../components/PrivacyAmount';
 import PinVerificationModal from '../../components/PinVerificationModal';
 import SetPinModal from '../../components/SetPinModal';
 import dayjs from 'dayjs';
+import { toISTDateString } from '../../utils/istDate';
 
 const { Title, Text } = Typography;
 
@@ -28,12 +29,15 @@ export default function Dashboard() {
   const [setPinModalVisible, setSetPinModalVisible] = useState(false);
   const [isResetPinMode, setIsResetPinMode] = useState(false);
 
-  const { data: stats, isLoading: statsLoading } = useDashboardStats(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
-  const { data: recent, isLoading: recentLoading } = useRecentData(activeFinancialYear?.startDate, activeFinancialYear?.endDate);
+  const fyStartDateStr = toISTDateString(activeFinancialYear?.startDate);
+  const fyEndDateStr = toISTDateString(activeFinancialYear?.endDate);
+
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(fyStartDateStr, fyEndDateStr);
+  const { data: recent, isLoading: recentLoading } = useRecentData(fyStartDateStr, fyEndDateStr);
 
   const { data: fyGeneralExpenses, isLoading: fyGeLoading } = useGeneralExpenses(
-    activeFinancialYear?.startDate,
-    activeFinancialYear?.endDate
+    fyStartDateStr,
+    fyEndDateStr
   );
 
   const currentYear = dayjs().year();
@@ -41,12 +45,12 @@ export default function Dashboard() {
   let mStart = dayjs().year(currentYear).month(currentMonth).startOf('month');
   let mEnd = dayjs().year(currentYear).month(currentMonth).endOf('month');
 
-  if (activeFinancialYear?.startDate) {
-    const fyS = dayjs(activeFinancialYear.startDate);
+  if (fyStartDateStr) {
+    const fyS = dayjs(fyStartDateStr);
     if (fyS.isAfter(mStart)) mStart = fyS;
   }
-  if (activeFinancialYear?.endDate) {
-    const fyE = dayjs(activeFinancialYear.endDate);
+  if (fyEndDateStr) {
+    const fyE = dayjs(fyEndDateStr);
     if (fyE.isBefore(mEnd)) mEnd = fyE;
   }
 

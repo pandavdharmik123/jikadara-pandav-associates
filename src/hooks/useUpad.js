@@ -1,20 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
+import { toISTDateString } from '../utils/istDate';
 
 /**
  * Fetch all Upad records with optional filters
  */
 export const useUpads = (filters = {}) => {
   const { userName = '', startDate = '', endDate = '', fyStartDate = '', fyEndDate = '', search = '' } = filters;
+  const sDate = toISTDateString(startDate);
+  const eDate = toISTDateString(endDate);
+  const fySDate = toISTDateString(fyStartDate);
+  const fyEDate = toISTDateString(fyEndDate);
   return useQuery({
-    queryKey: ['upads', userName, startDate, endDate, fyStartDate, fyEndDate, search],
+    queryKey: ['upads', userName, sDate, eDate, fySDate, fyEDate, search],
     queryFn: async () => {
       const params = {};
       if (userName && userName !== 'ALL') params.userName = userName;
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
-      if (fyStartDate) params.fyStartDate = fyStartDate;
-      if (fyEndDate) params.fyEndDate = fyEndDate;
+      if (sDate) params.startDate = sDate;
+      if (eDate) params.endDate = eDate;
+      if (fySDate) params.fyStartDate = fySDate;
+      if (fyEDate) params.fyEndDate = fyEDate;
       if (search) params.search = search;
 
       const { data } = await api.get('/upad', { params });
