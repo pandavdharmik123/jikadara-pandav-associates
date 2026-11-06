@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker } from 'antd';
-import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit, Hash } from 'lucide-react';
 import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
 import EditableTransactionTable from './EditableTransactionTable';
@@ -176,6 +176,30 @@ export default function TaskDetail() {
             <div>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Place</Text>
               <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.place || 'N/A'}</Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Hash size={16} />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>RR Number</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.rrNumber != null ? task.rrNumber : 'N/A'}</Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Calendar size={16} />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>RR Date</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.rrDate ? dayjs(task.rrDate).format('DD MMM YYYY') : 'N/A'}</Text>
             </div>
           </Space>
         </Card>

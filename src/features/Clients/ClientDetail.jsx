@@ -83,6 +83,20 @@ export default function ClientDetail() {
       render: (text) => text || '-',
     },
     {
+      title: 'RR No.',
+      dataIndex: 'rrNumber',
+      key: 'rrNumber',
+      align: 'center',
+      render: (val) => (val != null ? <span style={{ fontWeight: 600, color: '#0f172a' }}>{val}</span> : '-'),
+    },
+    {
+      title: 'RR Date',
+      dataIndex: 'rrDate',
+      key: 'rrDate',
+      align: 'center',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -210,7 +224,7 @@ export default function ClientDetail() {
           dataSource={client.tasks || []}
           rowKey="id"
           pagination={false}
-          scroll={{ x: 800 }}
+          scroll={{ x: 950 }}
           locale={{
             emptyText: (
               <EmptyState

@@ -143,6 +143,8 @@ model Task {
   documentType  String
   referenceName String     @default("")
   place         String     @default("")
+  rrNumber      Int?
+  rrDate        DateTime?
   startDate     DateTime   @default(now())
   completedDate DateTime?
   status        TaskStatus @default(ACTIVE)

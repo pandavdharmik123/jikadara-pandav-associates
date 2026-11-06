@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Modal, Form, Input, Select, DatePicker, message, Row, Col } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, DatePicker, message, Row, Col } from 'antd';
 import { useUpdateTask } from '../../hooks/useTasks';
 import { useDocumentTypes, useCreateDocumentType } from '../../hooks/useDocumentTypes';
 import dayjs from 'dayjs';
@@ -33,6 +33,8 @@ export default function EditTaskModal({ visible, task, onClose }) {
         customDocumentType: isCustom ? task.documentType : undefined,
         referenceName: task.referenceName || '',
         place: task.place || '',
+        rrNumber: task.rrNumber != null ? task.rrNumber : undefined,
+        rrDate: task.rrDate ? dayjs(task.rrDate) : undefined,
         startDate: task.startDate ? dayjs(task.startDate) : dayjs(),
         completedDate: task.completedDate ? dayjs(task.completedDate) : undefined,
       });
@@ -73,6 +75,8 @@ export default function EditTaskModal({ visible, task, onClose }) {
         documentType: trimmedType,
         referenceName: values.referenceName ? values.referenceName.trim() : '',
         place: values.place ? values.place.trim() : '',
+        rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : null,
+        rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : null,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
         completedDate: values.completedDate ? values.completedDate.format('YYYY-MM-DD') : undefined,
       };
@@ -163,6 +167,31 @@ export default function EditTaskModal({ visible, task, onClose }) {
             </Col>
           </Row>
         )}
+
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item name="rrNumber" label="RR Number">
+              <InputNumber
+                placeholder="Enter RR Number"
+                style={{ width: '100%' }}
+                size="large"
+                min={0}
+                precision={0}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="rrDate" label="RR Date">
+              <DatePicker
+                placeholder="Select RR Date"
+                style={{ width: '100%' }}
+                size="large"
+                format="DD/MM/YYYY"
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Row gutter={16}>
           <Col xs={24} sm={task?.status === 'DONE' ? 12 : 24}>

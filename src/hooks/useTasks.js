@@ -2,15 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
 // Fetch all tasks (with optional filters)
-export const useTasks = (clientId = '', status = '', startDate = '', endDate = '') => {
+export const useTasks = (clientId = '', status = '', startDate = '', endDate = '', documentType = '') => {
   return useQuery({
-    queryKey: ['tasks', clientId, status, startDate, endDate],
+    queryKey: ['tasks', clientId, status, startDate, endDate, documentType],
     queryFn: async () => {
       const params = {};
       if (clientId) params.clientId = clientId;
       if (status) params.status = status;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
+      if (documentType) params.documentType = documentType;
       const { data } = await api.get('/tasks', { params });
       return data.tasks;
     },
@@ -103,7 +104,9 @@ export const useUpdateTask = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client', data?.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
