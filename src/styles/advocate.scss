@@ -143,6 +143,7 @@
   }
 }
 
+
 /* Custom Sidebar Menu Styling */
 .sidebar-custom-menu {
   border-right: none !important;
@@ -554,4 +555,8 @@
 
 .ant-drawer-right .ant-drawer-footer {
   border-bottom-left-radius: 20px !important;
+}
+
+.ant-table-measure-row {
+  display: none !important;
 }
