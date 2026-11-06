@@ -1,14 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
+import { toISTDateString } from '../utils/istDate';
 
 // Fetch all clients (with optional search query)
 export const useClients = (search = '', fyStartDate = '', fyEndDate = '') => {
+  const sDate = toISTDateString(fyStartDate);
+  const eDate = toISTDateString(fyEndDate);
   return useQuery({
-    queryKey: ['clients', search, fyStartDate, fyEndDate],
+    queryKey: ['clients', search, sDate, eDate],
     queryFn: async () => {
       const params = { search };
-      if (fyStartDate) params.fyStartDate = fyStartDate;
-      if (fyEndDate) params.fyEndDate = fyEndDate;
+      if (sDate) params.fyStartDate = sDate;
+      if (eDate) params.fyEndDate = eDate;
       const { data } = await api.get('/clients', { params });
       return data.clients;
     },
@@ -17,12 +20,14 @@ export const useClients = (search = '', fyStartDate = '', fyEndDate = '') => {
 
 // Fetch a single client by ID
 export const useClient = (id, fyStartDate = '', fyEndDate = '') => {
+  const sDate = toISTDateString(fyStartDate);
+  const eDate = toISTDateString(fyEndDate);
   return useQuery({
-    queryKey: ['client', id, fyStartDate, fyEndDate],
+    queryKey: ['client', id, sDate, eDate],
     queryFn: async () => {
       const params = {};
-      if (fyStartDate) params.fyStartDate = fyStartDate;
-      if (fyEndDate) params.fyEndDate = fyEndDate;
+      if (sDate) params.fyStartDate = sDate;
+      if (eDate) params.fyEndDate = eDate;
       const { data } = await api.get(`/clients/${id}`, { params });
       return data.client;
     },

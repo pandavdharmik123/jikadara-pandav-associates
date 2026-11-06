@@ -11,6 +11,7 @@ import UpadReportPrintLayout from './UpadReportPrintLayout';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/currency';
+import { toISTDateString } from '../../utils/istDate';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -29,24 +30,27 @@ export default function UpadList() {
   // Queries & Mutations
   const deleteMutation = useDeleteUpad();
 
+  const fyStartDateStr = toISTDateString(activeFinancialYear?.startDate);
+  const fyEndDateStr = toISTDateString(activeFinancialYear?.endDate);
+
   // Fetch financial year net profit from dashboard stats and general expenses
   const { data: stats, isLoading: statsLoading } = useDashboardStats(
-    activeFinancialYear?.startDate,
-    activeFinancialYear?.endDate
+    fyStartDateStr,
+    fyEndDateStr
   );
   const { data: fyGeneralExpenses, isLoading: fyGeLoading } = useGeneralExpenses(
-    activeFinancialYear?.startDate,
-    activeFinancialYear?.endDate
+    fyStartDateStr,
+    fyEndDateStr
   );
 
   const queryFilters = useMemo(() => {
     const filters = {};
     if (activeFinancialYear) {
-      filters.fyStartDate = activeFinancialYear.startDate;
-      filters.fyEndDate = activeFinancialYear.endDate;
+      filters.fyStartDate = fyStartDateStr;
+      filters.fyEndDate = fyEndDateStr;
     }
     return filters;
-  }, [activeFinancialYear]);
+  }, [activeFinancialYear, fyStartDateStr, fyEndDateStr]);
 
   const { data, isLoading: upadsLoading } = useUpads(queryFilters);
   const upads = data?.upads || [];

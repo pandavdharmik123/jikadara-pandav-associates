@@ -17,6 +17,7 @@ import FinancialReportPrintLayout from './FinancialReportPrintLayout';
 import AddIncomeModal from './AddIncomeModal';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
+import { toISTDateString } from '../../utils/istDate';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -77,16 +78,19 @@ export default function ExpenseReport() {
     );
   }
 
+  const fyStartDateStr = toISTDateString(activeFinancialYear?.startDate);
+  const fyEndDateStr = toISTDateString(activeFinancialYear?.endDate);
+
   const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyReport(
-    reportType === 'MONTHLY' ? activeFinancialYear?.startDate : null,
-    reportType === 'MONTHLY' ? activeFinancialYear?.endDate : null,
+    reportType === 'MONTHLY' ? fyStartDateStr : null,
+    reportType === 'MONTHLY' ? fyEndDateStr : null,
     reportType === 'MONTHLY' ? selectedYear : null,
     reportType === 'MONTHLY' ? selectedMonth : null
   );
 
   const { data: yearlyData, isLoading: yearlyLoading } = useYearlyReport(
-    reportType === 'YEARLY' ? activeFinancialYear?.startDate : null,
-    reportType === 'YEARLY' ? activeFinancialYear?.endDate : null,
+    reportType === 'YEARLY' ? fyStartDateStr : null,
+    reportType === 'YEARLY' ? fyEndDateStr : null,
     reportType === 'YEARLY' ? selectedYear : null
   );
 
@@ -95,12 +99,12 @@ export default function ExpenseReport() {
     let mStart = dayjs().year(selectedYear).month(selectedMonth - 1).startOf('month');
     let mEnd = dayjs().year(selectedYear).month(selectedMonth - 1).endOf('month');
 
-    if (activeFinancialYear?.startDate) {
-      const fyS = dayjs(activeFinancialYear.startDate);
+    if (fyStartDateStr) {
+      const fyS = dayjs(fyStartDateStr);
       if (fyS.isAfter(mStart)) mStart = fyS;
     }
-    if (activeFinancialYear?.endDate) {
-      const fyE = dayjs(activeFinancialYear.endDate);
+    if (fyEndDateStr) {
+      const fyE = dayjs(fyEndDateStr);
       if (fyE.isBefore(mEnd)) mEnd = fyE;
     }
 
@@ -112,9 +116,9 @@ export default function ExpenseReport() {
       geEnd = mEnd.format('YYYY-MM-DD');
     }
   } else {
-    if (activeFinancialYear?.startDate && activeFinancialYear?.endDate) {
-      geStart = activeFinancialYear.startDate;
-      geEnd = activeFinancialYear.endDate;
+    if (fyStartDateStr && fyEndDateStr) {
+      geStart = fyStartDateStr;
+      geEnd = fyEndDateStr;
     } else {
       geStart = dayjs().year(selectedYear).startOf('year').format('YYYY-MM-DD');
       geEnd = dayjs().year(selectedYear).endOf('year').format('YYYY-MM-DD');
