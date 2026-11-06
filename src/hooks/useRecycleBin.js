@@ -27,6 +27,7 @@ export const useRestoreItem = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -54,6 +55,7 @@ export const usePermanentDeleteItem = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -79,6 +81,7 @@ export const useEmptyRecycleBin = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
