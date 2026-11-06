@@ -52,6 +52,11 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'taskId, type, and amount are required' });
     }
 
+    const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0.01) {
+      return res.status(400).json({ error: 'amount must be a positive number of at least 0.01' });
+    }
+
     if (!['INCOME', 'EXPENSE'].includes(type)) {
       return res.status(400).json({ error: 'type must be INCOME or EXPENSE' });
     }
@@ -79,7 +84,7 @@ router.post('/', requireAuth, async (req, res) => {
         date: date ? startOfDayIST(date) : new Date(),
         type,
         description: description || '',
-        amount: parseFloat(amount) || 0,
+        amount: parsedAmount,
       },
     });
 
@@ -140,13 +145,21 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     const { date, type, description, amount } = req.body;
 
+    let parsedAmount = undefined;
+    if (amount !== undefined) {
+      parsedAmount = parseFloat(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount < 0.01) {
+        return res.status(400).json({ error: 'amount must be a positive number of at least 0.01' });
+      }
+    }
+
     const transaction = await prisma.taskTransaction.update({
       where: { id: req.params.id },
       data: {
         ...(date !== undefined && { date: startOfDayIST(date) }),
         ...(type !== undefined && { type }),
         ...(description !== undefined && { description }),
-        ...(amount !== undefined && { amount: parseFloat(amount) }),
+        ...(parsedAmount !== undefined && { amount: parsedAmount }),
       },
     });
 

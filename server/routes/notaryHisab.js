@@ -139,9 +139,14 @@ async function buildNewEntriesClient(registerId, ranges, tx) {
 // ─── Users directory for the assignment dropdowns ───────────────────────────
 router.get('/users', requireAuth, async (req, res) => {
   try {
+    const isAdmin = req.user?.role === 'ADMIN';
     const users = await prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, email: true, role: true },
+      select: {
+        id: true,
+        name: true,
+        ...(isAdmin ? { email: true, role: true } : {}),
+      },
       orderBy: { name: 'asc' },
     });
     res.json({ success: true, users });

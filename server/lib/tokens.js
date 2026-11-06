@@ -11,7 +11,7 @@ import prisma from './prisma.js';
  * inside that family.
  */
 
-export const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '1h';
+export const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '15m';
 export const REFRESH_TOKEN_TTL_DAYS = Math.max(
   1,
   Number(process.env.REFRESH_TOKEN_TTL_DAYS || 30)

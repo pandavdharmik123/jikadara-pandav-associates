@@ -34,6 +34,15 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Name, Start Date, and End Date are required' });
     }
 
+    const start = startOfDayIST(startDate);
+    const end = endOfDayIST(endDate);
+    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ error: 'Valid startDate and endDate are required' });
+    }
+    if (end <= start) {
+      return res.status(400).json({ error: 'End date must be greater than start date' });
+    }
+
     if (isDefault) {
       // Unset default for existing
       await prisma.financialYear.updateMany({
@@ -45,9 +54,9 @@ router.post('/', requireAuth, async (req, res) => {
     const newYear = await prisma.financialYear.create({
       data: {
         userId: req.user.id,
-        name,
-        startDate: startOfDayIST(startDate),
-        endDate: endOfDayIST(endDate),
+        name: String(name).trim(),
+        startDate: start,
+        endDate: end,
         isDefault: isDefault || false,
       },
     });
@@ -76,6 +85,19 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Financial year not found' });
     }
 
+    const start = startDate ? startOfDayIST(startDate) : existing.startDate;
+    const end = endDate ? endOfDayIST(endDate) : existing.endDate;
+
+    if (startDate && (!start || isNaN(start.getTime()))) {
+      return res.status(400).json({ error: 'Invalid startDate' });
+    }
+    if (endDate && (!end || isNaN(end.getTime()))) {
+      return res.status(400).json({ error: 'Invalid endDate' });
+    }
+    if (end <= start) {
+      return res.status(400).json({ error: 'End date must be greater than start date' });
+    }
+
     if (isDefault) {
       // Unset default for others
       await prisma.financialYear.updateMany({
@@ -87,9 +109,9 @@ router.put('/:id', requireAuth, async (req, res) => {
     const updated = await prisma.financialYear.update({
       where: { id },
       data: {
-        ...(name && { name }),
-        ...(startDate && { startDate: startOfDayIST(startDate) }),
-        ...(endDate && { endDate: endOfDayIST(endDate) }),
+        ...(name && { name: String(name).trim() }),
+        ...(startDate && { startDate: start }),
+        ...(endDate && { endDate: end }),
         ...(isDefault !== undefined && { isDefault }),
       },
     });

@@ -50,31 +50,42 @@ window.fetch = async function (input) {
 
   if (url && (url.includes('xlit-api.ai4bharat.org') || url.includes('/tl/'))) {
     try {
-      const parts = url.split('/');
-      const tlIndex = parts.indexOf('tl');
-      if (tlIndex !== -1 && parts.length > tlIndex + 2) {
-        const lang = parts[tlIndex + 1];
-        const word = decodeURIComponent(parts[tlIndex + 2]);
+      const parsedUrl = new URL(url, window.location.origin);
+      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+      const tlIndex = pathParts.indexOf('tl');
+      if (tlIndex !== -1 && pathParts.length > tlIndex + 2) {
+        const lang = pathParts[tlIndex + 1];
+        const rawWord = pathParts[tlIndex + 2];
+        const word = decodeURIComponent(rawWord);
 
-        const googleUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(word)}&ime=transliteration_en_${lang}&num=5&cp=0&cs=0&ie=utf-8&oe=utf-8&app=jsapi`;
-        const googleResponse = await originalFetch(googleUrl);
-        const googleData = await googleResponse.json();
+        if (word && word.trim()) {
+          const googleUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(word)}&ime=transliteration_en_${lang}&num=5&cp=0&cs=0&ie=utf-8&oe=utf-8&app=jsapi`;
+          const googleResponse = await originalFetch(googleUrl);
+          const googleData = await googleResponse.json();
 
-        let suggestions = [];
-        if (googleData && googleData[0] === 'SUCCESS' && googleData[1] && googleData[1][0]) {
-          suggestions = googleData[1][0][1] || [];
+          let suggestions = [];
+          if (googleData && googleData[0] === 'SUCCESS' && googleData[1] && googleData[1][0]) {
+            suggestions = googleData[1][0][1] || [];
+          }
+
+          const mockData = { result: suggestions };
+          return new Response(JSON.stringify(mockData), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
-
-        const mockData = { result: suggestions };
-        return new Response(JSON.stringify(mockData), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
       }
-    } catch (err) {
-      console.error('Failed to intercept and transliterate via Google API:', err);
+    } catch {
+      // Suppress network errors from dead upstream host
     }
+
+    // Never pass dead xlit domain to originalFetch
+    return new Response(JSON.stringify({ result: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
+
   return originalFetch.apply(this, arguments);
 };
 

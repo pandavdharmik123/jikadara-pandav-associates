@@ -107,6 +107,21 @@ router.get('/', requireAuth, async (req, res) => {
         where: { isDeleted: true },
         orderBy: { deletedAt: 'desc' },
       }),
+      prisma.verabillEntry.findMany({
+        where: { isDeleted: true, ...userFilter },
+        include: {
+          user: { select: { name: true } },
+          _count: { select: { fees: true, expenses: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+      }),
+      prisma.nondhStatus.findMany({
+        where: { isDeleted: true, ...userFilter },
+        include: {
+          user: { select: { name: true } },
+        },
+        orderBy: { deletedAt: 'desc' },
+      }),
     ]);
 
     const counts = {
@@ -120,6 +135,8 @@ router.get('/', requireAuth, async (req, res) => {
       pedhinamus: pedhinamus.length,
       jantriCalculations: jantriCalculations.length,
       documentTypes: documentTypes.length,
+      verabillEntries: verabillEntries.length,
+      nondhStatuses: nondhStatuses.length,
       total:
         clients.length +
         tasks.length +
@@ -130,7 +147,9 @@ router.get('/', requireAuth, async (req, res) => {
         invoices.length +
         pedhinamus.length +
         jantriCalculations.length +
-        documentTypes.length,
+        documentTypes.length +
+        verabillEntries.length +
+        nondhStatuses.length,
     };
 
     res.json({
@@ -146,6 +165,8 @@ router.get('/', requireAuth, async (req, res) => {
         pedhinamus,
         jantriCalculations,
         documentTypes,
+        verabillEntries,
+        nondhStatuses,
       },
     });
   } catch (err) {
@@ -414,6 +435,38 @@ router.post('/restore', requireAuth, async (req, res) => {
         return res.json({ message: 'Jantri calculation restored successfully' });
       }
 
+      case 'VERABILL': {
+        const existing = await prisma.verabillEntry.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Deleted Verabill entry not found' });
+        }
+
+        await prisma.verabillEntry.update({
+          where: { id },
+          data: { isDeleted: false, deletedAt: null },
+        });
+
+        return res.json({ message: 'Verabill entry restored successfully' });
+      }
+
+      case 'NONDH': {
+        const existing = await prisma.nondhStatus.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Deleted Nondh record not found' });
+        }
+
+        await prisma.nondhStatus.update({
+          where: { id },
+          data: { isDeleted: false, deletedAt: null },
+        });
+
+        return res.json({ message: 'Nondh record restored successfully' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -573,6 +626,28 @@ router.delete('/permanent', requireAuth, async (req, res) => {
         return res.json({ message: 'Jantri calculation permanently deleted' });
       }
 
+      case 'VERABILL': {
+        const existing = await prisma.verabillEntry.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Item not found in Recycle Bin' });
+        }
+        await prisma.verabillEntry.delete({ where: { id } });
+        return res.json({ message: 'Verabill entry permanently deleted' });
+      }
+
+      case 'NONDH': {
+        const existing = await prisma.nondhStatus.findFirst({
+          where: { id, isDeleted: true, ...userFilter },
+        });
+        if (!existing) {
+          return res.status(404).json({ error: 'Item not found in Recycle Bin' });
+        }
+        await prisma.nondhStatus.delete({ where: { id } });
+        return res.json({ message: 'Nondh record permanently deleted' });
+      }
+
       default:
         return res.status(400).json({ error: `Invalid item type: ${type}` });
     }
@@ -602,6 +677,8 @@ router.delete('/empty', requireAuth, async (req, res) => {
         prisma.upad.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.pedhinamu.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         prisma.jantriCalculation.deleteMany({ where: { isDeleted: true, ...userFilter } }),
+        prisma.verabillEntry.deleteMany({ where: { isDeleted: true, ...userFilter } }),
+        prisma.nondhStatus.deleteMany({ where: { isDeleted: true, ...userFilter } }),
         ...(req.user.role === 'ADMIN'
           ? [prisma.documentType.deleteMany({ where: { isDeleted: true } })]
           : []),
@@ -641,6 +718,12 @@ router.delete('/empty', requireAuth, async (req, res) => {
         break;
       case 'DOCUMENT_TYPE':
         await prisma.documentType.deleteMany({ where: { isDeleted: true } });
+        break;
+      case 'VERABILL':
+        await prisma.verabillEntry.deleteMany({ where: { isDeleted: true, ...userFilter } });
+        break;
+      case 'NONDH':
+        await prisma.nondhStatus.deleteMany({ where: { isDeleted: true, ...userFilter } });
         break;
       default:
         return res.status(400).json({ error: `Invalid category: ${category}` });
