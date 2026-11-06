@@ -311,20 +311,28 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     // Group by YYYY-MM
     const monthsMap = new Map();
     
-    // Initialize map with all months in range
-    let current = new Date(startOfYear.getFullYear(), startOfYear.getMonth(), 1);
-    while (current <= endOfYear) {
-      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+    // Initialize map with all months in range based on IST calendar year & month
+    const startParts = toISTDateParts(startOfYear);
+    const endParts = toISTDateParts(endOfYear);
+    let curYear = startParts.year;
+    let curMonth = startParts.month;
+
+    while (curYear < endParts.year || (curYear === endParts.year && curMonth <= endParts.month)) {
+      const key = `${curYear}-${String(curMonth).padStart(2, '0')}`;
       monthsMap.set(key, {
         key,
-        year: current.getFullYear(),
-        month: current.getMonth() + 1,
+        year: curYear,
+        month: curMonth,
         totalIncome: 0,
         totalExpense: 0,
         netAmount: 0,
         taskCount: 0,
       });
-      current.setMonth(current.getMonth() + 1);
+      curMonth += 1;
+      if (curMonth > 12) {
+        curMonth = 1;
+        curYear += 1;
+      }
     }
 
     tasks.forEach((task) => {

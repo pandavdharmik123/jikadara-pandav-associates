@@ -28,14 +28,44 @@ import formBuilderRoutes from './routes/formBuilder.js';
 import backupRoutes from './routes/backup.js';
 import { startBackupScheduler } from './services/backup/scheduler.js';
 
+import helmet from 'helmet';
+
 const app = express();
 const PORT = process.env.PORT || 3001; // Updated scanner pool active
 
-// Middleware
+// Security headers (QA-11)
+app.use(helmet({
+  contentSecurityPolicy: false, // Let reverse-proxy / frontend manage frontend CSP; APIs serve JSON
+  crossOriginEmbedderPolicy: false,
+  xFrameOptions: { action: 'deny' },
+  xContentTypeOptions: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
+
+// CORS configuration (QA-01)
+const allowedOrigins = [
+  'https://jikadara-and-pandav-associates.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://127.0.0.1:5173',
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : []),
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow all origins (for ease of deployment)
-    callback(null, true);
+    // Allow non-browser requests (curl, server-to-server, mobile)
+    if (!origin) return callback(null, true);
+
+    const isExplicitlyAllowed = allowedOrigins.includes(origin);
+    const isVercelPreview = /^https:\/\/jikadara-.*\.vercel\.app$/.test(origin);
+
+    if (isExplicitlyAllowed || isVercelPreview) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
 }));

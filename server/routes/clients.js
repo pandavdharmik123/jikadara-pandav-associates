@@ -101,16 +101,20 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const { name, referenceName, mobileNumber } = req.body;
 
-    if (!name) {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) {
       return res.status(400).json({ error: 'Client name is required' });
+    }
+    if (trimmedName.length > 200) {
+      return res.status(400).json({ error: 'Client name must be 200 characters or fewer' });
     }
 
     const client = await prisma.client.create({
       data: {
         userId: req.user.id,
-        name,
-        referenceName: referenceName || '',
-        mobileNumber: mobileNumber || '',
+        name: trimmedName,
+        referenceName: referenceName ? String(referenceName).trim().slice(0, 200) : '',
+        mobileNumber: mobileNumber ? String(mobileNumber).trim().slice(0, 50) : '',
       },
     });
 
@@ -140,12 +144,23 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     const { name, referenceName, mobileNumber } = req.body;
 
+    let trimmedName = undefined;
+    if (name !== undefined) {
+      trimmedName = String(name || '').trim();
+      if (!trimmedName) {
+        return res.status(400).json({ error: 'Client name cannot be empty' });
+      }
+      if (trimmedName.length > 200) {
+        return res.status(400).json({ error: 'Client name must be 200 characters or fewer' });
+      }
+    }
+
     const client = await prisma.client.update({
       where: { id: req.params.id },
       data: {
-        ...(name !== undefined && { name }),
-        ...(referenceName !== undefined && { referenceName }),
-        ...(mobileNumber !== undefined && { mobileNumber }),
+        ...(trimmedName !== undefined && { name: trimmedName }),
+        ...(referenceName !== undefined && { referenceName: String(referenceName).trim().slice(0, 200) }),
+        ...(mobileNumber !== undefined && { mobileNumber: String(mobileNumber).trim().slice(0, 50) }),
       },
     });
 

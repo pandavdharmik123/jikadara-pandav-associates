@@ -377,7 +377,7 @@ router.patch('/:id/done', requireAuth, requireRole('ADMIN', 'SENIOR'), async (re
     const netAmount = totalIncome - totalExpense;
 
     const { completedDate } = req.body;
-    const finalCompletedDate = completedDate ? startOfDayIST(completedDate) : startOfDayIST(new Date());
+    const finalCompletedDate = (completedDate && startOfDayIST(completedDate)) || startOfDayIST(new Date());
 
     const task = await prisma.task.update({
       where: { id: req.params.id },

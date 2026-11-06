@@ -15,20 +15,25 @@ const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in ms
  * returns the start of that day in IST as a UTC Date object.
  * e.g. "2026-07-01" → 2026-06-30T18:30:00.000Z
  */
-export function startOfDayIST(dateStr) {
-  // Parse just the date portion to avoid any browser/node timezone shifts
-  const [year, month, day] = parseYMD(dateStr);
+export function startOfDayIST(dateInput) {
+  if (!dateInput) return null;
+  const parsed = parseYMD(dateInput);
+  if (!parsed) return null;
+  const [year, month, day] = parsed;
   // Midnight IST = UTC - 5h30m
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0) - IST_OFFSET_MS);
 }
 
 /**
- * Given a date string like "2026-07-01" or a full ISO string,
+ * Given a date string like "2026-07-01" or a full ISO string or Date,
  * returns the end of that day in IST as a UTC Date object.
  * e.g. "2026-07-01" → 2026-07-01T18:29:59.999Z
  */
-export function endOfDayIST(dateStr) {
-  const [year, month, day] = parseYMD(dateStr);
+export function endOfDayIST(dateInput) {
+  if (!dateInput) return null;
+  const parsed = parseYMD(dateInput);
+  if (!parsed) return null;
+  const [year, month, day] = parsed;
   // 23:59:59.999 IST = UTC - 5h30m + 24h - 1ms
   return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999) - IST_OFFSET_MS);
 }
@@ -56,7 +61,10 @@ export function endOfMonthIST(year, month) {
  * Useful for grouping tasks by the month the user sees.
  */
 export function toISTDateParts(date) {
-  const istMs = new Date(date).getTime() + IST_OFFSET_MS;
+  if (!date) return null;
+  const dObj = date instanceof Date ? date : new Date(date);
+  if (isNaN(dObj.getTime())) return null;
+  const istMs = dObj.getTime() + IST_OFFSET_MS;
   const d = new Date(istMs);
   return {
     year: d.getUTCFullYear(),
@@ -67,7 +75,9 @@ export function toISTDateParts(date) {
 
 export function toISTDateString(date) {
   if (!date) return null;
-  const { year, month, day } = toISTDateParts(date);
+  const parts = toISTDateParts(date);
+  if (!parts) return null;
+  const { year, month, day } = parts;
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
@@ -75,13 +85,37 @@ export function toISTDateString(date) {
 // ─── Internal helper ─────────────────────────────────────────────────────────
 
 /**
- * Parses a date string to [year, month, day].
- * Handles both "YYYY-MM-DD" and full ISO strings "2026-07-01T18:30:00.000Z".
+ * Parses a date string or Date object to [year, month, day].
+ * Handles Date objects, "YYYY-MM-DD", and full ISO strings "2026-07-01T18:30:00.000Z".
+ * Returns null if the input is not a valid date.
  */
-function parseYMD(dateStr) {
-  const s = String(dateStr).trim();
-  // Take just the date part before any T
-  const datePart = s.split('T')[0];
-  const [y, m, d] = datePart.split('-').map(Number);
-  return [y, m, d];
+function parseYMD(dateInput) {
+  if (!dateInput) return null;
+
+  if (dateInput instanceof Date) {
+    if (isNaN(dateInput.getTime())) return null;
+    const parts = toISTDateParts(dateInput);
+    return parts ? [parts.year, parts.month, parts.day] : null;
+  }
+
+  const s = String(dateInput).trim();
+  if (!s) return null;
+
+  // Handle standard YYYY-MM-DD or ISO strings
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(s)) {
+    const datePart = s.split('T')[0];
+    const [y, m, d] = datePart.split('-').map(Number);
+    if (!isNaN(y) && !isNaN(m) && !isNaN(d) && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return [y, m, d];
+    }
+  }
+
+  // Attempt general Date parse fallback
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const parts = toISTDateParts(d);
+    return parts ? [parts.year, parts.month, parts.day] : null;
+  }
+
+  return null;
 }

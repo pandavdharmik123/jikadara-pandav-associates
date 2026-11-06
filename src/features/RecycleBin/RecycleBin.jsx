@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, Tabs, Input, Modal, Popconfirm, message, Badge } from 'antd';
-import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files, GitFork } from 'lucide-react';
+import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files, GitFork, Zap, ClipboardList } from 'lucide-react';
 import { useRecycleBin, useRestoreItem, usePermanentDeleteItem, useEmptyRecycleBin } from '../../hooks/useRecycleBin';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
@@ -29,6 +29,8 @@ export default function RecycleBin() {
     invoices: 0,
     pedhinamus: 0,
     documentTypes: 0,
+    verabillEntries: 0,
+    nondhStatuses: 0,
     total: 0,
   };
 
@@ -42,6 +44,8 @@ export default function RecycleBin() {
     invoices: [],
     pedhinamus: [],
     documentTypes: [],
+    verabillEntries: [],
+    nondhStatuses: [],
   };
 
   // Format and flatten items with a unified schema
@@ -184,6 +188,36 @@ export default function RecycleBin() {
         details: '',
         deletedAt: dt.deletedAt,
         amount: null,
+      });
+    });
+
+    // Verabill Entries
+    (rawData.verabillEntries || []).forEach((vb) => {
+      list.push({
+        id: vb.id,
+        type: 'VERABILL',
+        typeName: 'Verabill / Light Bill',
+        typeColor: 'volcano',
+        title: vb.clientName,
+        subtitle: vb.property ? `Property: ${vb.property}` : (vb.workDescription ? `Work: ${vb.workDescription}` : ''),
+        details: vb.workType ? `Type: ${vb.workType}` : '',
+        deletedAt: vb.deletedAt,
+        amount: null,
+      });
+    });
+
+    // Nondh Status Entries
+    (rawData.nondhStatuses || []).forEach((nd) => {
+      list.push({
+        id: nd.id,
+        type: 'NONDH',
+        typeName: 'Nondh Status',
+        typeColor: 'purple',
+        title: nd.partyName || `Entry #${nd.number}`,
+        subtitle: nd.placeName ? `Place: ${nd.placeName}` : (nd.documentType ? `Doc: ${nd.documentType}` : ''),
+        details: nd.nondhNumber ? `Nondh No: ${nd.nondhNumber}` : `Status: ${nd.status}`,
+        deletedAt: nd.deletedAt,
+        amount: nd.vahivatFee ? Number(nd.vahivatFee) : null,
       });
     });
 
@@ -455,6 +489,26 @@ export default function RecycleBin() {
           <Files size={14} />
           <span>Document Types</span>
           <Badge count={counts.documentTypes} overflowCount={999} style={{ backgroundColor: '#64748b' }} />
+        </Space>
+      ),
+    },
+    {
+      key: 'VERABILL',
+      label: (
+        <Space size="small">
+          <Zap size={14} />
+          <span>Verabill</span>
+          <Badge count={counts.verabillEntries} overflowCount={999} style={{ backgroundColor: '#f97316' }} />
+        </Space>
+      ),
+    },
+    {
+      key: 'NONDH',
+      label: (
+        <Space size="small">
+          <ClipboardList size={14} />
+          <span>Nondh Status</span>
+          <Badge count={counts.nondhStatuses} overflowCount={999} style={{ backgroundColor: '#8b5cf6' }} />
         </Space>
       ),
     },

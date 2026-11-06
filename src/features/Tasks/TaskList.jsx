@@ -226,7 +226,7 @@ export default function TaskList() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  display: 'inline-block',
+                  // display: 'inline-block',
                   maxWidth: 180,
                 }}
                 title={clientName}
@@ -420,7 +420,7 @@ export default function TaskList() {
           tableLayout="fixed"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 1250, y: 'calc(100vh - 296px)' }}
+          scroll={{ x: 1250, y: 'calc(100vh - 259px)' }}
           size="small"
           locale={{
             emptyText: (

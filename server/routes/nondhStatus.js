@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../lib/prisma.js';
 import requireAuth from '../middleware/requireAuth.js';
+import { startOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
@@ -95,6 +96,22 @@ router.post('/', requireAuth, async (req, res) => {
       num = (maxRecord?.number || 0) + 1;
     }
 
+    let parsedDate = null;
+    if (date !== undefined && date !== null && date !== '') {
+      parsedDate = startOfDayIST(date);
+      if (!parsedDate || isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date format' });
+      }
+    }
+
+    let parsedPaymentDate = null;
+    if (paymentDate !== undefined && paymentDate !== null && paymentDate !== '') {
+      parsedPaymentDate = startOfDayIST(paymentDate);
+      if (!parsedPaymentDate || isNaN(parsedPaymentDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid paymentDate format' });
+      }
+    }
+
     const created = await prisma.nondhStatus.create({
       data: {
         userId: req.user.id,
@@ -102,13 +119,13 @@ router.post('/', requireAuth, async (req, res) => {
         placeName: placeName ? String(placeName).trim() : '',
         documentType: documentType ? String(documentType).trim() : '',
         nondhNumber: nondhNumber !== undefined && nondhNumber !== null ? String(nondhNumber).trim() : '',
-        date: date ? new Date(date) : null,
+        date: parsedDate,
         partyName: partyName ? String(partyName).trim() : '',
         status: status ? String(status).trim() : 'પ્રમાણિત',
         referenceName: referenceName ? String(referenceName).trim() : '',
         doneOrNot: doneOrNot ? String(doneOrNot).trim() : 'Done',
         vahivatFee: vahivatFee !== null && vahivatFee !== undefined && vahivatFee !== '' ? Number(vahivatFee) : null,
-        paymentDate: paymentDate ? new Date(paymentDate) : null,
+        paymentDate: parsedPaymentDate,
       },
     });
 
@@ -152,6 +169,30 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Nondh Status record not found' });
     }
 
+    let parsedDate = undefined;
+    if (date !== undefined) {
+      if (date === null || date === '') {
+        parsedDate = null;
+      } else {
+        parsedDate = startOfDayIST(date);
+        if (!parsedDate || isNaN(parsedDate.getTime())) {
+          return res.status(400).json({ error: 'Invalid date format' });
+        }
+      }
+    }
+
+    let parsedPaymentDate = undefined;
+    if (paymentDate !== undefined) {
+      if (paymentDate === null || paymentDate === '') {
+        parsedPaymentDate = null;
+      } else {
+        parsedPaymentDate = startOfDayIST(paymentDate);
+        if (!parsedPaymentDate || isNaN(parsedPaymentDate.getTime())) {
+          return res.status(400).json({ error: 'Invalid paymentDate format' });
+        }
+      }
+    }
+
     const updated = await prisma.nondhStatus.update({
       where: { id },
       data: {
@@ -159,7 +200,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         placeName: placeName !== undefined ? String(placeName).trim() : undefined,
         documentType: documentType !== undefined ? String(documentType).trim() : undefined,
         nondhNumber: nondhNumber !== undefined && nondhNumber !== null ? String(nondhNumber).trim() : undefined,
-        date: date !== undefined ? (date ? new Date(date) : null) : undefined,
+        date: parsedDate,
         partyName: partyName !== undefined ? String(partyName).trim() : undefined,
         status: status !== undefined ? String(status).trim() : undefined,
         referenceName: referenceName !== undefined ? String(referenceName).trim() : undefined,
@@ -168,7 +209,7 @@ router.put('/:id', requireAuth, async (req, res) => {
           vahivatFee !== undefined
             ? (vahivatFee !== null && vahivatFee !== '' ? Number(vahivatFee) : null)
             : undefined,
-        paymentDate: paymentDate !== undefined ? (paymentDate ? new Date(paymentDate) : null) : undefined,
+        paymentDate: parsedPaymentDate,
       },
     });
 

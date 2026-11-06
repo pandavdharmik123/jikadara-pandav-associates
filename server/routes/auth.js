@@ -20,8 +20,19 @@ import {
   rotateRefreshToken,
   signAccessToken,
 } from '../lib/tokens.js';
+import { tokenBlacklist } from '../lib/tokenBlacklist.js';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// Login rate limiter: max 10 failed/success attempts per 15 mins per IP (QA-09)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' },
+});
 
 const USER_SELECT_FIELDS = {
   id: true,
@@ -100,7 +111,10 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
       return res.status(400).json({ error: 'Email, password, and full name are required' });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
     if (existing) {
       return res.status(400).json({ error: 'Email already registered' });
     }
@@ -109,7 +123,7 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
         name: name.trim(),
         mobileNumber: mobileNumber ? mobileNumber.trim() : '',
@@ -131,7 +145,7 @@ router.post('/register', requireAuth, requireRole('ADMIN'), async (req, res) => 
  * Public: authenticate user with email + password from database.
  * If user has 2FA enabled, returns a temporary token for TOTP code submission.
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -139,7 +153,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -223,6 +240,11 @@ router.post('/refresh', async (req, res) => {
  */
 router.post('/logout', async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      tokenBlacklist.revoke(token);
+    }
     await revokeRefreshToken(req.body?.refreshToken);
     res.status(204).end();
   } catch (err) {
@@ -633,7 +655,10 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
     if (!user) {
       return res.status(404).json({ error: 'User with this email does not exist' });
     }

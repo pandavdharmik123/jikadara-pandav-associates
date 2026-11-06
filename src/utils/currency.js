@@ -1,9 +1,12 @@
 export const formatCurrency = (val) => {
-  return Number(val || 0).toLocaleString('en-IN', {
+  const amount = Number(val || 0);
+  const hasPaise = Math.abs(Math.round(amount * 100) % 100) !== 0;
+
+  return amount.toLocaleString('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0
+    maximumFractionDigits: 2,
+    minimumFractionDigits: hasPaise ? 2 : 0,
   });
 };
 

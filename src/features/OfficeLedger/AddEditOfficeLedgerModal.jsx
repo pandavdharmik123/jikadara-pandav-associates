@@ -210,8 +210,8 @@ export default function AddEditOfficeLedgerModal({
                 { required: true, message: 'Please enter the amount' },
                 {
                   validator(_, value) {
-                    if (value === undefined || value === null || Number(value) <= 0) {
-                      return Promise.reject(new Error('Amount must be greater than 0'));
+                    if (value === undefined || value === null || Number(value) < 0.01) {
+                      return Promise.reject(new Error('Amount must be at least ₹0.01'));
                     }
                     return Promise.resolve();
                   },
@@ -221,7 +221,6 @@ export default function AddEditOfficeLedgerModal({
               <InputNumber
                 style={{ width: '100%' }}
                 size="middle"
-                min={0.01}
                 precision={2}
                 prefix="₹"
                 placeholder="0.00"
