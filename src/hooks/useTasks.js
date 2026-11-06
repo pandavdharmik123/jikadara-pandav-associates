@@ -40,10 +40,14 @@ export const useCreateTask = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
     },
   });
 };
@@ -148,8 +152,11 @@ export const useMarkTaskDone = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
     },
   });
 };
@@ -168,8 +175,11 @@ export const useReopenTask = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
     },
   });
 };
@@ -185,7 +195,10 @@ export const useCreateTransaction = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -202,7 +215,10 @@ export const useUpdateTransaction = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['task', data.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
