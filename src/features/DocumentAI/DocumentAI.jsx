@@ -650,7 +650,7 @@ export default function DocumentAI() {
       formData.append('file', compiledFile);
       formData.append('preferredLang', preferredLang);
 
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const backendUrl = import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await axios.post(`${backendUrl}/document/read`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });

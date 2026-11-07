@@ -11,7 +11,7 @@ import { Globe, RotateCw, ExternalLink } from 'lucide-react';
  */
 
 // Derive the backend origin the same way src/services/api.js does.
-const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
+const API_ORIGIN = (import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
   /\/api\/?$/,
   ''
 );

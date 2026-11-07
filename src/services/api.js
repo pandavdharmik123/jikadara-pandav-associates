@@ -5,7 +5,7 @@ import { isTokenExpired } from '../utils/tokenUtils';
 
 // Create an Axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
 });
 
 // These endpoints either establish a session or are used by the refresh flow

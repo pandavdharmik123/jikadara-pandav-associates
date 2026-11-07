@@ -27,6 +27,13 @@ router.get('/', requireAuth, async (req, res) => {
       };
     }
 
+    if (req.query.appointmentDate) {
+      where.appointmentDate = {
+        gte: startOfDayIST(req.query.appointmentDate),
+        lte: endOfDayIST(req.query.appointmentDate),
+      };
+    }
+
     const tasks = await prisma.task.findMany({
       where,
       include: {
@@ -309,7 +316,11 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    const { documentType, referenceName, startDate, place, completedDate, rrNumber, rrDate, appointmentDate } = req.body;
+    const { documentType, referenceName, startDate, place, completedDate, rrNumber, rrDate, appointmentDate, status } = req.body;
+
+    if (status !== undefined && !['ACTIVE', 'IN_PROGRESS', 'DONE'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be ACTIVE, IN_PROGRESS, or DONE' });
+    }
 
     const parsedRrNumber = (rrNumber !== undefined && rrNumber !== null && rrNumber !== '' && !isNaN(Number(rrNumber)))
       ? parseInt(rrNumber, 10)
@@ -343,6 +354,34 @@ router.put('/:id', requireAuth, async (req, res) => {
       }
     }
 
+    let statusUpdateData = {};
+    if (status !== undefined) {
+      statusUpdateData.status = status;
+      if (status === 'DONE') {
+        const aggregations = await prisma.taskTransaction.groupBy({
+          by: ['type'],
+          where: { taskId: req.params.id, isDeleted: false },
+          _sum: { amount: true },
+        });
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+        aggregations.forEach((agg) => {
+          if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
+          if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
+        });
+
+        statusUpdateData.totalIncome = totalIncome;
+        statusUpdateData.totalExpense = totalExpense;
+        statusUpdateData.netAmount = totalIncome - totalExpense;
+        if (!existing.completedDate && !completedDate) {
+          statusUpdateData.completedDate = startOfDayIST(new Date());
+        }
+      } else if (existing.status === 'DONE' && completedDate === undefined) {
+        statusUpdateData.completedDate = null;
+      }
+    }
+
     const task = await prisma.task.update({
       where: { id: req.params.id },
       data: {
@@ -354,6 +393,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         ...(rrNumber !== undefined && { rrNumber: parsedRrNumber }),
         ...(parsedRrDate !== undefined && { rrDate: parsedRrDate }),
         ...(parsedAppointmentDate !== undefined && { appointmentDate: parsedAppointmentDate }),
+        ...statusUpdateData,
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -364,6 +404,81 @@ router.put('/:id', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Update task error:', err);
     res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
+/**
+ * PATCH /api/tasks/:id/status
+ * Quick update task status (ACTIVE, IN_PROGRESS, DONE)
+ */
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const { status, completedDate } = req.body;
+    if (!['ACTIVE', 'IN_PROGRESS', 'DONE'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be ACTIVE, IN_PROGRESS, or DONE' });
+    }
+
+    const where = {
+      id: req.params.id,
+      isDeleted: false,
+      ...(req.user.role !== 'ADMIN' ? { userId: req.user.id } : {}),
+    };
+
+    const existing = await prisma.task.findFirst({ where });
+    if (!existing) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (status === 'DONE') {
+      const aggregations = await prisma.taskTransaction.groupBy({
+        by: ['type'],
+        where: { taskId: req.params.id, isDeleted: false },
+        _sum: { amount: true },
+      });
+
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      aggregations.forEach((agg) => {
+        if (agg.type === 'INCOME') totalIncome = Number(agg._sum.amount) || 0;
+        if (agg.type === 'EXPENSE') totalExpense = Number(agg._sum.amount) || 0;
+      });
+
+      const netAmount = totalIncome - totalExpense;
+      const finalCompletedDate = (completedDate && startOfDayIST(completedDate)) || startOfDayIST(new Date());
+
+      const task = await prisma.task.update({
+        where: { id: req.params.id },
+        data: {
+          status: 'DONE',
+          completedDate: finalCompletedDate,
+          totalIncome,
+          totalExpense,
+          netAmount,
+        },
+        include: {
+          client: { select: { id: true, name: true } },
+        },
+      });
+
+      return res.json({ task });
+    } else {
+      const task = await prisma.task.update({
+        where: { id: req.params.id },
+        data: {
+          status,
+          ...(existing.status === 'DONE' ? { completedDate: null } : {}),
+        },
+        include: {
+          client: { select: { id: true, name: true } },
+        },
+      });
+
+      return res.json({ task });
+    }
+  } catch (err) {
+    console.error('Update task status error:', err);
+    res.status(500).json({ error: 'Failed to update task status' });
   }
 });
 

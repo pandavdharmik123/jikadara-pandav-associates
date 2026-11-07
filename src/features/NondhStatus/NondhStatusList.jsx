@@ -137,7 +137,7 @@ const DONE_OPTIONS = ['Done', 'Pending', '-'];
  * AnyRoR – Land Record (Rural) portal integration (temporarily disabled).
  * It sends `X-Frame-Options: deny`, so it is displayed through the backend
  * proxy (/api/anyror/*) inside the drawer.
-const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
+const API_ORIGIN = (import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(
   /\/api\/?$/,
   ''
 );

@@ -19,6 +19,7 @@ enum Role {
 
 enum TaskStatus {
   ACTIVE
+  IN_PROGRESS
   DONE
 }
 
@@ -166,6 +167,7 @@ model Task {
   @@index([clientId])
   @@index([status])
   @@index([completedDate])
+  @@index([appointmentDate])
   @@index([isDeleted])
   @@index([deletedAt])
 }

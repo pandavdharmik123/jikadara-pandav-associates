@@ -107,16 +107,28 @@ export default function ClientDetail() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
-      render: (status) => (
-        <Tag style={
-          status === 'ACTIVE'
-            ? { backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-            : { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-        }>
-          {status === 'ACTIVE' ? 'Active' : 'Done'}
-        </Tag>
-      ),
+      width: 110,
+      render: (status) => {
+        if (status === 'IN_PROGRESS') {
+          return (
+            <Tag style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }}>
+              In Progress
+            </Tag>
+          );
+        }
+        if (status === 'DONE') {
+          return (
+            <Tag style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }}>
+              Done
+            </Tag>
+          );
+        }
+        return (
+          <Tag style={{ backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }}>
+            Active
+          </Tag>
+        );
+      },
     },
     {
       title: 'Net Amount',

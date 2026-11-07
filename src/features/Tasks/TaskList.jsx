@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Typography, Button, Table, Space, Card, Modal, message, Tag, Select, Grid, Avatar, Tooltip } from 'antd';
-import { Plus, Edit, Trash2, NotebookText, Eye, RotateCcw } from 'lucide-react';
+import { Typography, Button, Table, Space, Card, Modal, message, Tag, Select, Grid, Avatar, Tooltip, Dropdown } from 'antd';
+import { Plus, Edit, Trash2, NotebookText, Eye, RotateCcw, ChevronDown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTasks, useDeleteTask } from '../../hooks/useTasks';
+import { useTasks, useDeleteTask, useUpdateTaskStatus } from '../../hooks/useTasks';
 import { useClients } from '../../hooks/useClients';
 import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import useAuthStore from '../../store/authStore';
@@ -32,6 +32,31 @@ export default function TaskList() {
 
   const [isAddModalVisible, setIsAddModalVisible] = useState(Boolean(initialAddClient));
   const [editingTask, setEditingTask] = useState(null);
+
+  const updateStatusMutation = useUpdateTaskStatus();
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id: taskId, status: newStatus });
+      const label = newStatus === 'IN_PROGRESS' ? 'In Progress' : newStatus === 'DONE' ? 'Done' : 'Active';
+      message.success(`Status updated to ${label}`);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      message.error(err.response?.data?.error || 'Failed to update status');
+    }
+  };
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return { label: 'In Progress', color: '#2563eb', bg: '#eff6ff', border: '#dbeafe' };
+      case 'DONE':
+        return { label: 'Done', color: '#16a34a', bg: '#f0fdf4', border: '#dcfce7' };
+      case 'ACTIVE':
+      default:
+        return { label: 'Active', color: '#ea580c', bg: '#fff7ed', border: '#ffedd5' };
+    }
+  };
 
   useEffect(() => {
     if (initialAddClient) {
@@ -289,17 +314,74 @@ export default function TaskList() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 125,
       align: 'center',
-      render: (status) => (
-        <Tag style={
-          status === 'ACTIVE'
-            ? { backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-            : { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-        }>
-          {status === 'ACTIVE' ? 'Active' : 'Done'}
-        </Tag>
-      ),
+      render: (status, record) => {
+        const config = getStatusConfig(status);
+        const menuItems = [
+          {
+            key: 'ACTIVE',
+            label: (
+              <span style={{ color: '#ea580c', fontWeight: status === 'ACTIVE' ? 700 : 500 }}>
+                ● Active
+              </span>
+            ),
+          },
+          {
+            key: 'IN_PROGRESS',
+            label: (
+              <span style={{ color: '#2563eb', fontWeight: status === 'IN_PROGRESS' ? 700 : 500 }}>
+                ● In Progress
+              </span>
+            ),
+          },
+          {
+            key: 'DONE',
+            label: (
+              <span style={{ color: '#16a34a', fontWeight: status === 'DONE' ? 700 : 500 }}>
+                ● Done
+              </span>
+            ),
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{
+              items: menuItems,
+              selectedKeys: [status || 'ACTIVE'],
+              onClick: ({ key }) => {
+                if (key !== status) {
+                  handleStatusChange(record.id, key);
+                }
+              },
+            }}
+            trigger={['click']}
+          >
+            <Tag
+              style={{
+                cursor: 'pointer',
+                backgroundColor: config.bg,
+                color: config.color,
+                border: `1px solid ${config.border}`,
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontWeight: 600,
+                fontSize: '12px',
+                margin: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                userSelect: 'none',
+              }}
+              title="Click to change status"
+            >
+              {config.label}
+              <ChevronDown size={12} style={{ opacity: 0.6 }} />
+            </Tag>
+          </Dropdown>
+        );
+      },
     },
     {
       title: 'Actions',
@@ -393,6 +475,7 @@ export default function TaskList() {
             onChange={(val) => setStatusFilter(val || '')}
             options={[
               { label: 'Active', value: 'ACTIVE' },
+              { label: 'In Progress', value: 'IN_PROGRESS' },
               { label: 'Done', value: 'DONE' },
             ]}
             style={{ width: isMobile ? '100%' : 140 }}
@@ -428,7 +511,7 @@ export default function TaskList() {
           tableLayout="fixed"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 1360, y: 'calc(100vh - 259px)' }}
+          scroll={{ x: 1380, y: 'calc(100vh - 259px)' }}
           size="small"
           locale={{
             emptyText: (
