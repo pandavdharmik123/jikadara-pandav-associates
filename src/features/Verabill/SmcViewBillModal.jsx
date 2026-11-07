@@ -12,7 +12,7 @@ export default function SmcViewBillModal({ open, onClose, tenementNo = '' }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const iframeRef = useRef(null);
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+  const apiBase = import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
   const iframeSrc = tenementNo
     ? `${apiBase}/verabill/smc-viewbill-proxy?tenementNo=${encodeURIComponent(tenementNo)}`
     : `${apiBase}/verabill/smc-viewbill-proxy`;

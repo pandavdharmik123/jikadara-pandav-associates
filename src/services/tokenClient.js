@@ -5,7 +5,7 @@
  * and the axios interceptors can use it without a circular import.
  */
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/$/, '');
+const API_BASE = (import.meta.env.API_LINK || import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/$/, '');
 
 async function readError(response) {
   let data = null;

@@ -11,6 +11,7 @@ export default function EditTaskModal({ visible, task, onClose }) {
   const { data: documentTypes, isLoading: docTypesLoading } = useDocumentTypes();
 
   const watchedDocType = Form.useWatch('documentType', form);
+  const watchedStatus = Form.useWatch('status', form);
   const isOtherSelected = watchedDocType === 'Other';
 
   const docTypeOptions = useMemo(() => {
@@ -33,10 +34,12 @@ export default function EditTaskModal({ visible, task, onClose }) {
         customDocumentType: isCustom ? task.documentType : undefined,
         referenceName: task.referenceName || '',
         place: task.place || '',
+        status: task.status || 'ACTIVE',
         rrNumber: task.rrNumber != null ? task.rrNumber : undefined,
         rrDate: task.rrDate ? dayjs(task.rrDate) : undefined,
+        appointmentDate: task.appointmentDate ? dayjs(task.appointmentDate) : undefined,
         startDate: task.startDate ? dayjs(task.startDate) : dayjs(),
-        completedDate: task.completedDate ? dayjs(task.completedDate) : undefined,
+        completedDate: task.completedDate ? dayjs(task.completedDate) : dayjs(),
       });
     }
   }, [visible, task, form, documentTypes]);
@@ -75,10 +78,12 @@ export default function EditTaskModal({ visible, task, onClose }) {
         documentType: trimmedType,
         referenceName: values.referenceName ? values.referenceName.trim() : '',
         place: values.place ? values.place.trim() : '',
+        status: values.status,
         rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : null,
         rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : null,
+        appointmentDate: values.appointmentDate ? values.appointmentDate.format('YYYY-MM-DD') : null,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
-        completedDate: values.completedDate ? values.completedDate.format('YYYY-MM-DD') : undefined,
+        completedDate: values.status === 'DONE' && values.completedDate ? values.completedDate.format('YYYY-MM-DD') : undefined,
       };
 
       await updateTaskMutation.mutateAsync(payload);
@@ -194,7 +199,7 @@ export default function EditTaskModal({ visible, task, onClose }) {
         </Row>
 
         <Row gutter={16}>
-          <Col xs={24} sm={task?.status === 'DONE' ? 12 : 24}>
+          <Col xs={24} sm={12}>
             <Form.Item
               name="startDate"
               label="Start Date"
@@ -203,26 +208,60 @@ export default function EditTaskModal({ visible, task, onClose }) {
               <DatePicker style={{ width: '100%' }} size="large" format="DD/MM/YYYY" allowClear={false} />
             </Form.Item>
           </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item name="appointmentDate" label="Appointment Date">
+              <DatePicker
+                placeholder="Select Appointment Date"
+                style={{ width: '100%' }}
+                size="large"
+                format="DD/MM/YYYY"
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
-          {task?.status === 'DONE' && (
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="status"
+              label="Status"
+              rules={[{ required: true, message: 'Status is required' }]}
+            >
+              <Select
+                size="large"
+                options={[
+                  { label: 'Active', value: 'ACTIVE' },
+                  { label: 'In Progress', value: 'IN_PROGRESS' },
+                  { label: 'Done', value: 'DONE' },
+                ]}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="referenceName"
+              label="Reference Name"
+              tooltip="Enter if there is a reference person"
+            >
+              <Input placeholder="Enter Reference Name" size="large" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        {watchedStatus === 'DONE' && (
+          <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item
                 name="completedDate"
                 label="Completion Date"
+                rules={[{ required: true, message: 'Completion date is required when task is done' }]}
               >
                 <DatePicker style={{ width: '100%' }} size="large" format="DD/MM/YYYY" allowClear={false} />
               </Form.Item>
             </Col>
-          )}
-        </Row>
-
-        <Form.Item
-          name="referenceName"
-          label="Reference Name"
-          tooltip="Enter if there is a reference person"
-        >
-          <Input placeholder="Enter Reference Name" size="large" />
-        </Form.Item>
+          </Row>
+        )}
       </Form>
     </Modal>
   );

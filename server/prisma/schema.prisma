@@ -19,6 +19,7 @@ enum Role {
 
 enum TaskStatus {
   ACTIVE
+  IN_PROGRESS
   DONE
 }
 
@@ -143,9 +144,10 @@ model Task {
   documentType  String
   referenceName String     @default("")
   place         String     @default("")
-  rrNumber      Int?
-  rrDate        DateTime?
-  startDate     DateTime   @default(now())
+  rrNumber        Int?
+  rrDate          DateTime?
+  appointmentDate DateTime?
+  startDate       DateTime   @default(now())
   completedDate DateTime?
   status        TaskStatus @default(ACTIVE)
   totalIncome   Decimal    @default(0) @db.Decimal(12, 2)
@@ -165,6 +167,7 @@ model Task {
   @@index([clientId])
   @@index([status])
   @@index([completedDate])
+  @@index([appointmentDate])
   @@index([isDeleted])
   @@index([deletedAt])
 }

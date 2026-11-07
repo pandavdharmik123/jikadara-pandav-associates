@@ -59,7 +59,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       fyDirectIncomeAgg,
     ] = await Promise.all([
       prisma.client.count({ where: userFilter }),
-      prisma.task.count({ where: { ...userFilter, status: 'ACTIVE', startDate: { gte: fyStart, lte: fyEnd } } }),
+      prisma.task.count({ where: { ...userFilter, status: { in: ['ACTIVE', 'IN_PROGRESS'] }, startDate: { gte: fyStart, lte: fyEnd } } }),
       prisma.task.count({ where: { ...userFilter, status: 'DONE', ...completedDateFilter(fyStart, fyEnd) } }),
       isMonthInFy ? prisma.task.aggregate({
         where: {

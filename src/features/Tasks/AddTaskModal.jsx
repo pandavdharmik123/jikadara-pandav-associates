@@ -66,6 +66,7 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
         ...values,
         documentType: trimmedType,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
+        appointmentDate: values.appointmentDate ? values.appointmentDate.format('YYYY-MM-DD') : undefined,
         rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : undefined,
         rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : undefined,
       };
@@ -151,13 +152,31 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
           </Form.Item>
         )}
 
-        <Form.Item
-          name="startDate"
-          label="Start Date"
-          rules={[{ required: true, message: 'Date is required' }]}
-        >
-          <DatePicker style={{ width: '100%' }} size="large" format="DD/MM/YYYY" />
-        </Form.Item>
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="startDate"
+              label="Start Date"
+              rules={[{ required: true, message: 'Date is required' }]}
+            >
+              <DatePicker style={{ width: '100%' }} size="large" format="DD/MM/YYYY" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Form.Item
+              name="appointmentDate"
+              label="Appointment Date"
+            >
+              <DatePicker
+                placeholder="Select Appointment Date"
+                style={{ width: '100%' }}
+                size="large"
+                format="DD/MM/YYYY"
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
 
         <Row gutter={16}>

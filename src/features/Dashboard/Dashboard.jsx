@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Row, Col, Card, Typography, Table, Tag, Empty, Button, Tooltip } from 'antd';
-import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen, Eye, EyeOff } from 'lucide-react';
+import { Row, Col, Card, Typography, Table, Tag, Empty, Button, Tooltip, DatePicker, Dropdown, message } from 'antd';
+import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen, Eye, EyeOff, Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/currency';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../../components/Loader';
 import EmptyState from '../../components/EmptyState';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
 import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
+import { useAppointmentTasks, useUpdateTaskStatus } from '../../hooks/useTasks';
 import { useCurrentProfile } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
 import usePrivacyStore from '../../store/privacyStore';
@@ -28,6 +29,50 @@ export default function Dashboard() {
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [setPinModalVisible, setSetPinModalVisible] = useState(false);
   const [isResetPinMode, setIsResetPinMode] = useState(false);
+
+  const [appointmentDate, setAppointmentDate] = useState(() => dayjs());
+  const appointmentDateStr = appointmentDate ? appointmentDate.format('YYYY-MM-DD') : '';
+  const isApptDateToday = appointmentDate ? appointmentDate.isSame(dayjs(), 'day') : false;
+  const { data: appointmentTasks = [], isLoading: apptTasksLoading } = useAppointmentTasks(appointmentDateStr);
+  const updateStatusMutation = useUpdateTaskStatus();
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id: taskId, status: newStatus });
+      const label = newStatus === 'IN_PROGRESS' ? 'In Progress' : newStatus === 'DONE' ? 'Done' : 'Active';
+      message.success(`Task status updated to ${label}`);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      message.error(err.response?.data?.error || 'Failed to update status');
+    }
+  };
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return {
+          label: 'In Progress',
+          color: '#2563eb',
+          bg: '#eff6ff',
+          border: '#dbeafe',
+        };
+      case 'DONE':
+        return {
+          label: 'Done',
+          color: '#16a34a',
+          bg: '#f0fdf4',
+          border: '#dcfce7',
+        };
+      case 'ACTIVE':
+      default:
+        return {
+          label: 'Active',
+          color: '#ea580c',
+          bg: '#fff7ed',
+          border: '#ffedd5',
+        };
+    }
+  };
 
   const fyStartDateStr = toISTDateString(activeFinancialYear?.startDate);
   const fyEndDateStr = toISTDateString(activeFinancialYear?.endDate);
@@ -115,15 +160,23 @@ export default function Dashboard() {
       dataIndex: 'status',
       key: 'status',
       align: 'right',
-      render: (status) => (
-        <Tag style={
-          status === 'ACTIVE'
-            ? { backgroundColor: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-            : { backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #dcfce7', borderRadius: '12px', padding: '2px 10px', margin: 0, fontWeight: 600, fontSize: '12px' }
-        }>
-          {status === 'ACTIVE' ? 'Active' : 'Done'}
-        </Tag>
-      ),
+      render: (status) => {
+        const config = getStatusConfig(status);
+        return (
+          <Tag style={{
+            backgroundColor: config.bg,
+            color: config.color,
+            border: `1px solid ${config.border}`,
+            borderRadius: '12px',
+            padding: '2px 10px',
+            margin: 0,
+            fontWeight: 600,
+            fontSize: '12px',
+          }}>
+            {config.label}
+          </Tag>
+        );
+      },
     }
   ];
 
@@ -142,6 +195,148 @@ export default function Dashboard() {
       key: 'mobileNumber',
       align: 'right',
       render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text}</Text>
+    },
+  ];
+
+  const appointmentTasksColumns = [
+    {
+      title: 'CLIENT',
+      key: 'client',
+      width: 180,
+      render: (_, record) => {
+        const clientName = record.client?.name || record.clientName || '-';
+        return (
+          <Text style={{ fontWeight: 600, color: '#1f2937', fontSize: '13px' }} title={clientName}>
+            {clientName}
+          </Text>
+        );
+      },
+    },
+    {
+      title: 'DOCUMENT',
+      dataIndex: 'documentType',
+      key: 'documentType',
+      width: 170,
+      render: (text, record) => (
+        <a
+          style={{ color: '#2563eb', fontWeight: 600, fontSize: '13px' }}
+          onClick={() => navigate(`/app/tasks/${record.id}`)}
+          title={text}
+        >
+          {text}
+        </a>
+      ),
+    },
+    {
+      title: 'PLACE',
+      dataIndex: 'place',
+      key: 'place',
+      width: 130,
+      render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text || '-'}</Text>,
+    },
+    {
+      title: 'REFERENCE',
+      dataIndex: 'referenceName',
+      key: 'referenceName',
+      width: 140,
+      render: (text) => <Text style={{ color: '#4b5563', fontSize: '13px' }}>{text || '-'}</Text>,
+    },
+    {
+      title: 'RR NO.',
+      dataIndex: 'rrNumber',
+      key: 'rrNumber',
+      width: 90,
+      align: 'center',
+      render: (val) => (val != null ? <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>{val}</span> : '-'),
+    },
+    {
+      title: 'STATUS',
+      dataIndex: 'status',
+      key: 'status',
+      width: 130,
+      align: 'center',
+      render: (status, record) => {
+        const config = getStatusConfig(status);
+        const menuItems = [
+          {
+            key: 'ACTIVE',
+            label: (
+              <span style={{ color: '#ea580c', fontWeight: status === 'ACTIVE' ? 700 : 500 }}>
+                ● Active
+              </span>
+            ),
+          },
+          {
+            key: 'IN_PROGRESS',
+            label: (
+              <span style={{ color: '#2563eb', fontWeight: status === 'IN_PROGRESS' ? 700 : 500 }}>
+                ● In Progress
+              </span>
+            ),
+          },
+          {
+            key: 'DONE',
+            label: (
+              <span style={{ color: '#16a34a', fontWeight: status === 'DONE' ? 700 : 500 }}>
+                ● Done
+              </span>
+            ),
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{
+              items: menuItems,
+              selectedKeys: [status || 'ACTIVE'],
+              onClick: ({ key }) => {
+                if (key !== status) {
+                  handleStatusChange(record.id, key);
+                }
+              },
+            }}
+            trigger={['click']}
+          >
+            <Tag
+              style={{
+                cursor: 'pointer',
+                backgroundColor: config.bg,
+                color: config.color,
+                border: `1px solid ${config.border}`,
+                borderRadius: '12px',
+                padding: '2px 8px',
+                fontWeight: 600,
+                fontSize: '12px',
+                margin: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                userSelect: 'none',
+              }}
+              title="Click to change status"
+            >
+              {config.label}
+              <ChevronDown size={12} style={{ opacity: 0.6 }} />
+            </Tag>
+          </Dropdown>
+        );
+      },
+    },
+    {
+      title: 'ACTION',
+      key: 'action',
+      width: 80,
+      align: 'center',
+      render: (_, record) => (
+        <Tooltip title="View Task">
+          <Button
+            type="text"
+            size="small"
+            icon={<Eye size={15} color="#2563eb" />}
+            onClick={() => navigate(`/app/tasks/${record.id}`)}
+          />
+        </Tooltip>
+      ),
     },
   ];
 
@@ -194,6 +389,96 @@ export default function Dashboard() {
           </Card>
         </Col>
       </Row>
+
+      {/* Appointment Tasks Card */}
+      <Card
+        bordered={false}
+        style={{ borderRadius: '12px', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)', marginBottom: 20 }}
+        styles={{ body: { padding: 0 } }}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+              <Calendar size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '16px' }}>
+                  {isApptDateToday ? "Today's Tasks" : `Tasks for ${appointmentDate.format('DD MMM YYYY')}`}
+                </span>
+                <Tag color={isApptDateToday ? "blue" : "default"} style={{ borderRadius: 10, margin: 0, fontWeight: 600 }}>
+                  {appointmentTasks.length} {appointmentTasks.length === 1 ? 'task' : 'tasks'}
+                </Tag>
+              </div>
+              <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 500 }}>
+                {appointmentDate.format('dddd, DD MMMM YYYY')}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {!isApptDateToday && (
+              <Button
+                size="middle"
+                onClick={() => setAppointmentDate(dayjs())}
+                style={{ borderRadius: 8, fontWeight: 500 }}
+              >
+                Today
+              </Button>
+            )}
+            <Button
+              size="middle"
+              icon={<ChevronLeft size={16} />}
+              onClick={() => setAppointmentDate(prev => prev.subtract(1, 'day'))}
+              style={{ borderRadius: 8 }}
+              title="Previous Day"
+            />
+            <DatePicker
+              value={appointmentDate}
+              onChange={(date) => setAppointmentDate(date || dayjs())}
+              format="DD/MM/YYYY"
+              allowClear={false}
+              size="middle"
+              style={{ width: 140, borderRadius: 8 }}
+            />
+            <Button
+              size="middle"
+              icon={<ChevronRight size={16} />}
+              onClick={() => setAppointmentDate(prev => prev.add(1, 'day'))}
+              style={{ borderRadius: 8 }}
+              title="Next Day"
+            />
+          </div>
+        </div>
+
+        {appointmentTasks.length > 0 ? (
+          <Table
+            className="modern-dashboard-table"
+            columns={appointmentTasksColumns}
+            dataSource={appointmentTasks}
+            rowKey="id"
+            loading={apptTasksLoading}
+            pagination={appointmentTasks.length > 5 ? { pageSize: 5, size: 'small' } : false}
+            scroll={{ x: 750 }}
+          />
+        ) : (
+          <div style={{ padding: '24px 0' }}>
+            <EmptyState
+              icon={Calendar}
+              title={isApptDateToday ? "No tasks scheduled for today" : `No tasks scheduled for ${appointmentDate.format('DD/MM/YYYY')}`}
+              description="Change the date from the picker above or set appointment dates in tasks."
+            />
+          </div>
+        )}
+      </Card>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={12}>

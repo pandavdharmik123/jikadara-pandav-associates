@@ -30,6 +30,21 @@ export const useTask = (id) => {
   });
 };
 
+// Fetch tasks by appointment date
+export const useAppointmentTasks = (appointmentDate) => {
+  return useQuery({
+    queryKey: ['tasks', 'appointment', appointmentDate],
+    queryFn: async () => {
+      if (!appointmentDate) return [];
+      const { data } = await api.get('/tasks', {
+        params: { appointmentDate },
+      });
+      return data.tasks || [];
+    },
+    enabled: !!appointmentDate,
+  });
+};
+
 // Create a new task
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
@@ -131,6 +146,29 @@ export const useDeleteTask = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['report'] });
       queryClient.invalidateQueries({ queryKey: ['recycleBin'] });
+    },
+  });
+};
+
+// Quick update task status (ACTIVE, IN_PROGRESS, DONE)
+export const useUpdateTaskStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, completedDate }) => {
+      const { data } = await api.patch(`/tasks/${id}/status`, { status, completedDate });
+      return data.task;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['client'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      if (data?.clientId) {
+        queryClient.invalidateQueries({ queryKey: ['client', data.clientId] });
+      }
     },
   });
 };

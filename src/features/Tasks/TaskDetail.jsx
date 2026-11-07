@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker } from 'antd';
-import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit, Hash } from 'lucide-react';
-import { useTask, useMarkTaskDone, useReopenTask } from '../../hooks/useTasks';
+import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker, Dropdown } from 'antd';
+import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit, Hash, ChevronDown } from 'lucide-react';
+import { useTask, useMarkTaskDone, useReopenTask, useUpdateTaskStatus } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
 import EditableTransactionTable from './EditableTransactionTable';
 import EditTaskModal from './EditTaskModal';
@@ -20,6 +20,7 @@ export default function TaskDetail() {
   const { data: task, isLoading } = useTask(id);
   const markDoneMutation = useMarkTaskDone();
   const reopenMutation = useReopenTask();
+  const updateStatusMutation = useUpdateTaskStatus();
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isMarkDoneModalOpen, setIsMarkDoneModalOpen] = useState(false);
@@ -81,6 +82,45 @@ export default function TaskDetail() {
     });
   };
 
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id: task.id, status: newStatus });
+      message.success(`Status updated to ${newStatus === 'IN_PROGRESS' ? 'In Progress' : 'Active'}`);
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      message.error('Failed to update status');
+    }
+  };
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return {
+          label: 'In Progress',
+          bg: '#eff6ff',
+          color: '#2563eb',
+          border: '#dbeafe',
+        };
+      case 'DONE':
+        return {
+          label: 'Done',
+          bg: '#f0fdf4',
+          color: '#16a34a',
+          border: '#dcfce7',
+        };
+      case 'ACTIVE':
+      default:
+        return {
+          label: 'Active',
+          bg: '#fff7ed',
+          color: '#ea580c',
+          border: '#ffedd5',
+        };
+    }
+  };
+
+  const statusCfg = getStatusConfig(task.status);
+
   // Calculate current totals dynamically if ACTIVE, else use stored totals
   let displayIncome = Number(task.totalIncome) || 0;
   let displayExpense = Number(task.totalExpense) || 0;
@@ -108,7 +148,25 @@ export default function TaskDetail() {
           <div style={{ width: 44, height: 44, borderRadius: '12px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
             <NotebookText size={20} />
           </div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>{task.documentType}</Title>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>{task.documentType}</Title>
+              <Tag
+                style={{
+                  backgroundColor: statusCfg.bg,
+                  color: statusCfg.color,
+                  border: `1px solid ${statusCfg.border}`,
+                  borderRadius: '12px',
+                  padding: '2px 10px',
+                  margin: 0,
+                  fontWeight: 600,
+                  fontSize: '12px',
+                }}
+              >
+                {statusCfg.label}
+              </Tag>
+            </div>
+          </div>
         </Space>
 
         <Space>
@@ -120,13 +178,47 @@ export default function TaskDetail() {
             Edit Task
           </Button>
 
+          {canToggleStatus && !isTaskDone && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'ACTIVE',
+                    label: 'Set as Active',
+                    disabled: task.status === 'ACTIVE',
+                    onClick: () => handleStatusChange('ACTIVE'),
+                  },
+                  {
+                    key: 'IN_PROGRESS',
+                    label: 'Set as In Progress',
+                    disabled: task.status === 'IN_PROGRESS',
+                    onClick: () => handleStatusChange('IN_PROGRESS'),
+                  },
+                  {
+                    type: 'divider',
+                  },
+                  {
+                    key: 'DONE',
+                    label: 'Mark Done...',
+                    onClick: handleOpenMarkDoneModal,
+                  },
+                ],
+              }}
+              trigger={['click']}
+            >
+              <Button style={{ borderRadius: '8px', height: 40 }}>
+                Status: {statusCfg.label} <ChevronDown size={14} style={{ marginLeft: 4 }} />
+              </Button>
+            </Dropdown>
+          )}
+
           {canToggleStatus && (
             <Button
               type={isTaskDone ? "default" : "primary"}
               danger={isTaskDone}
               icon={isTaskDone ? <RefreshCw size={16} /> : <CheckCircle size={16} />}
               onClick={isTaskDone ? handleReopenTask : handleOpenMarkDoneModal}
-              loading={markDoneMutation.isPending || reopenMutation.isPending}
+              loading={markDoneMutation.isPending || reopenMutation.isPending || updateStatusMutation.isPending}
               style={{ borderRadius: '8px', height: 40, boxShadow: 'none' }}
             >
               {isTaskDone ? 'Reopen' : 'Mark Done'}
@@ -200,6 +292,18 @@ export default function TaskDetail() {
             <div>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>RR Date</Text>
               <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.rrDate ? dayjs(task.rrDate).format('DD MMM YYYY') : 'N/A'}</Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Calendar size={16} />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Appointment Date</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.appointmentDate ? dayjs(task.appointmentDate).format('DD MMM YYYY') : 'N/A'}</Text>
             </div>
           </Space>
         </Card>
