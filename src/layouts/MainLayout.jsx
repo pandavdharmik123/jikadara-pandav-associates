@@ -55,6 +55,25 @@ export default function MainLayout() {
   };
 
   React.useEffect(() => {
+    // Ant Design renders scrollable table bodies without a tab index, which
+    // makes them unreachable by keyboard (axe: scrollable-region-focusable).
+    const makeTablesKeyboardScrollable = () => {
+      document.querySelectorAll('.ant-table-body, .ant-table-content').forEach((el) => {
+        if (!el.hasAttribute('tabindex')) {
+          el.setAttribute('tabindex', '0');
+          el.setAttribute('role', 'region');
+          el.setAttribute('aria-label', 'Scrollable table');
+        }
+      });
+    };
+
+    makeTablesKeyboardScrollable();
+    const observer = new MutationObserver(makeTablesKeyboardScrollable);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  React.useEffect(() => {
     if (financialYears && financialYears.length > 0 && !activeFinancialYear) {
       const defaultFy = financialYears.find(f => f.isDefault) || financialYears[0];
       setActiveFinancialYear(defaultFy);
@@ -107,24 +126,43 @@ export default function MainLayout() {
 
   const rawToolItems = [
     {
-      key: '/app/tools/translator',
+      key: 'translate-group',
       icon: <Languages size={20} />,
-      label: 'Eng to Guj',
+      label: 'Translate',
+      children: [
+        {
+          key: '/app/tools/translator',
+          icon: <Languages size={20} />,
+          label: 'Eng to Guj',
+        },
+        {
+          key: '/app/tools/ai-translator',
+          icon: <Sparkles size={20} />,
+          label: 'AI Translate',
+        },
+        {
+          key: '/app/tools/universal',
+          icon: <Palette size={20} />,
+          label: 'Universal Converter',
+        },
+      ],
     },
     {
-      key: '/app/tools/universal',
-      icon: <Palette size={20} />,
-      label: 'Universal Converter',
-    },
-    {
-      key: '/app/tools/jantri',
+      key: 'jantri-group',
       icon: <Calculator size={20} />,
-      label: 'Jantri Calculator',
-    },
-    {
-      key: '/app/tools/rent_agreement',
-      icon: <FileSignature size={20} />,
-      label: 'Rent Agreement',
+      label: 'Jantri',
+      children: [
+        {
+          key: '/app/tools/jantri',
+          icon: <Calculator size={20} />,
+          label: 'Makan/Milkat Jantri',
+        },
+        {
+          key: '/app/tools/rent_agreement',
+          icon: <FileSignature size={20} />,
+          label: 'Rent Agreement',
+        },
+      ],
     },
     {
       key: '/app/tools/invoice',
@@ -142,15 +180,16 @@ export default function MainLayout() {
       label: 'Document AI & OCR',
     },
     {
-      key: '/app/tools/pedhinamu',
-      icon: <GitFork size={20} />,
-      label: 'Pedhinamu Builder',
-    },
-    {
       key: 'form-builder-group',
       icon: <FileSignature size={20} />,
       label: 'Form Builder',
       children: [
+        {
+          key: '/app/tools/pedhinamu',
+          permissionKey: '/app/tools/pedhinamu',
+          icon: <GitFork size={20} />,
+          label: 'Pedhinamu Builder',
+        },
         {
           key: '/app/tools/form-builder/pan-new-application',
           permissionKey: '/app/tools/form-builder',
@@ -408,8 +447,17 @@ export default function MainLayout() {
               window.location.pathname === '/app/verabill'
               ? ['excel-sheets-group']
               : []),
-            ...(window.location.pathname.startsWith('/app/tools/form-builder')
+            ...(window.location.pathname.startsWith('/app/tools/form-builder') ||
+              window.location.pathname === '/app/tools/pedhinamu'
               ? ['form-builder-group']
+              : []),
+            ...(['/app/tools/translator', '/app/tools/ai-translator', '/app/tools/universal'].includes(
+              window.location.pathname
+            )
+              ? ['translate-group']
+              : []),
+            ...(['/app/tools/jantri', '/app/tools/rent_agreement'].includes(window.location.pathname)
+              ? ['jantri-group']
               : []),
           ]}
           onClick={handleMenuClick}
@@ -422,6 +470,8 @@ export default function MainLayout() {
         <div style={{ padding: '8px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
           <Button
             type="text"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             onClick={() => setCollapsed(!collapsed)}
             icon={collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             style={{ color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -482,7 +532,14 @@ export default function MainLayout() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16, flex: 1, height: '100%' }}>
             {isMobile && (
-              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setCollapsed(!collapsed)} style={{ padding: '0 4px', marginLeft: -4 }} />
+              <Button
+                type="text"
+                aria-label="Open navigation menu"
+                title="Open navigation menu"
+                icon={<MenuIcon size={20} />}
+                onClick={() => setCollapsed(!collapsed)}
+                style={{ padding: '0 4px', marginLeft: -4 }}
+              />
             )}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: '#0f172a', lineHeight: 1.2 }}>
@@ -501,6 +558,7 @@ export default function MainLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24 }}>
             {!isMobile && user?.role !== 'ADMIN' && (
               <Select
+                aria-label="Financial year"
                 placeholder="Select Financial Year"
                 value={activeFinancialYear?.id || undefined}
                 onChange={(id) => {
@@ -519,12 +577,30 @@ export default function MainLayout() {
             )}
 
             <Badge dot color="red">
-              <Bell size={20} color="#64748b" style={{ cursor: 'pointer' }} />
+              <Button
+                type="text"
+                aria-label="Notifications"
+                title="Notifications"
+                icon={<Bell size={20} color="#475569" />}
+                style={{ padding: 4 }}
+              />
             </Badge>
 
             <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600 }}>
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Account menu"
+                aria-haspopup="menu"
+                style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.currentTarget.click();
+                  }
+                }}
+              >
+                <Avatar style={{ backgroundColor: '#e0e7ff', color: '#4338ca', fontWeight: 600 }}>
                   {getInitials(user?.name)}
                 </Avatar>
                 {!isMobile && (

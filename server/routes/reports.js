@@ -266,6 +266,12 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     if (fyStartDate && fyEndDate) {
       startOfYear = startOfDayIST(fyStartDate);
       endOfYear = endOfDayIST(fyEndDate);
+      if (!startOfYear || !endOfYear || isNaN(startOfYear.getTime()) || isNaN(endOfYear.getTime())) {
+        return res.status(400).json({ error: 'fyStartDate and fyEndDate must be valid dates' });
+      }
+      if (endOfYear <= startOfYear) {
+        return res.status(400).json({ error: 'fyEndDate must be after fyStartDate' });
+      }
     } else {
       const targetYear = parseInt(year) || toISTDateParts(new Date()).year;
       startOfYear = startOfMonthIST(targetYear, 1);
@@ -314,6 +320,9 @@ router.get('/yearly', requireAuth, requireRole('ADMIN', 'SENIOR'), async (req, r
     // Initialize map with all months in range based on IST calendar year & month
     const startParts = toISTDateParts(startOfYear);
     const endParts = toISTDateParts(endOfYear);
+    if (!startParts || !endParts) {
+      return res.status(400).json({ error: 'Invalid report date range' });
+    }
     let curYear = startParts.year;
     let curMonth = startParts.month;
 

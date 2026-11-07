@@ -52,10 +52,14 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'taskId, type, and amount are required' });
     }
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0.01) {
       return res.status(400).json({ error: 'amount must be a positive number of at least 0.01' });
     }
+    if (parsedAmount > 9999999999.99) {
+      return res.status(400).json({ error: 'amount exceeds the maximum supported value' });
+    }
+    const roundedAmount = Math.round(parsedAmount * 100) / 100;
 
     if (!['INCOME', 'EXPENSE'].includes(type)) {
       return res.status(400).json({ error: 'type must be INCOME or EXPENSE' });
@@ -84,7 +88,7 @@ router.post('/', requireAuth, async (req, res) => {
         date: date ? startOfDayIST(date) : new Date(),
         type,
         description: description || '',
-        amount: parsedAmount,
+        amount: roundedAmount,
       },
     });
 
@@ -147,10 +151,14 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     let parsedAmount = undefined;
     if (amount !== undefined) {
-      parsedAmount = parseFloat(amount);
+      parsedAmount = Number(amount);
       if (!Number.isFinite(parsedAmount) || parsedAmount < 0.01) {
         return res.status(400).json({ error: 'amount must be a positive number of at least 0.01' });
       }
+      if (parsedAmount > 9999999999.99) {
+        return res.status(400).json({ error: 'amount exceeds the maximum supported value' });
+      }
+      parsedAmount = Math.round(parsedAmount * 100) / 100;
     }
 
     const transaction = await prisma.taskTransaction.update({

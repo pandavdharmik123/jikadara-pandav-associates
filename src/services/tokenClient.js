@@ -37,12 +37,15 @@ export async function requestTokenRefresh(refreshToken) {
  * Revoke a refresh-token family. Fire-and-forget: local logout must never be
  * blocked by a network failure.
  */
-export function revokeToken(refreshToken) {
-  if (!refreshToken) return Promise.resolve();
+export function revokeToken(refreshToken, accessToken = null) {
+  if (!refreshToken && !accessToken) return Promise.resolve();
 
   return fetch(`${API_BASE}/auth/logout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify({ refreshToken }),
     keepalive: true,
   }).catch(() => undefined);

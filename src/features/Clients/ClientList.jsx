@@ -158,6 +158,7 @@ export default function ClientList() {
         </div>
         <div style={{ display: 'flex', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
           <Input
+            aria-label="Search clients"
             placeholder="Search by name, mobile..."
             prefix={<Search size={16} style={{ color: 'rgba(0,0,0,.25)' }} />}
             allowClear

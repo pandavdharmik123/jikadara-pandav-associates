@@ -513,6 +513,7 @@ export default function ExpenseReport() {
         </div>
         <Space wrap>
           <Select
+            aria-label="Report type"
             value={reportType}
             onChange={setReportType}
             size="middle"
@@ -525,6 +526,7 @@ export default function ExpenseReport() {
 
           {reportType === 'MONTHLY' && (
             <Select
+              aria-label="Report month"
               value={selectedMonth}
               onChange={setSelectedMonth}
               size="middle"
@@ -539,6 +541,7 @@ export default function ExpenseReport() {
 
           {(reportType === 'MONTHLY' || !activeFinancialYear) && (
             <DatePicker
+              aria-label="Report year"
               picker="year"
               value={dayjs().year(selectedYear)}
               onChange={(date) => setSelectedYear(date ? date.year() : currentYear)}

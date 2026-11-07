@@ -90,6 +90,7 @@ function TransliterateInput({
           }}
           className={`custom-transliterate-input ant-input ${className}`}
           placeholder={placeholder}
+          aria-label={rest['aria-label'] || placeholder || 'Gujarati transliteration input'}
           style={{
             width: '100%',
             height: 32,
@@ -509,7 +510,7 @@ export default function NondhStatusList() {
       title: 'Place name',
       dataIndex: 'placeName',
       key: 'placeName',
-      width: 100,
+      width: 120,
       render: (text, record) =>
         isEditingRow(record) ? (
           <TransliterateInput
@@ -527,7 +528,7 @@ export default function NondhStatusList() {
       dataIndex: 'documentType',
       key: 'documentType',
       align: 'center',
-      width: 100,
+      width: 150,
       render: (text, record) =>
         isEditingRow(record) ? (
           <Select
@@ -548,7 +549,7 @@ export default function NondhStatusList() {
       title: 'Nondh No.',
       dataIndex: 'nondhNumber',
       key: 'nondhNumber',
-      width: 100,
+      width: 110,
       align: 'center',
       render: (text, record) =>
         isEditingRow(record) ? (
@@ -588,7 +589,7 @@ export default function NondhStatusList() {
       title: 'Party Name',
       dataIndex: 'partyName',
       key: 'partyName',
-      width: 170,
+      width: 180,
       render: (text, record) =>
         isEditingRow(record) ? (
           <TransliterateInput
@@ -605,7 +606,7 @@ export default function NondhStatusList() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 130,
       align: 'center',
       render: (text, record) =>
         isEditingRow(record) ? (
@@ -627,7 +628,7 @@ export default function NondhStatusList() {
       title: 'Reference',
       dataIndex: 'referenceName',
       key: 'referenceName',
-      width: 150,
+      width: 140,
       align: 'center',
       render: (text, record) =>
         isEditingRow(record) ? (
@@ -642,10 +643,10 @@ export default function NondhStatusList() {
         ),
     },
     {
-      title: 'Done Status',
+      title: 'Done',
       dataIndex: 'doneOrNot',
       key: 'doneOrNot',
-      width: 140,
+      width: 110,
       align: 'center',
       render: (val, record) => {
         if (isEditingRow(record)) {
@@ -693,7 +694,7 @@ export default function NondhStatusList() {
       title: 'Pay. Date',
       dataIndex: 'paymentDate',
       key: 'paymentDate',
-      width: 90,
+      width: 100,
       align: 'center',
       render: (date, record) =>
         isEditingRow(record) ? (
@@ -713,7 +714,7 @@ export default function NondhStatusList() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 120,
+      width: 100,
       fixed: 'right',
       align: 'center',
       render: (_, record) => {
@@ -724,6 +725,8 @@ export default function NondhStatusList() {
               <Button
                 type="text"
                 size="small"
+                aria-label="Save changes"
+                title="Save changes"
                 loading={updateMutation.isPending}
                 icon={<Check size={16} color="#16a34a" />}
                 onClick={handleSaveEdit}
@@ -733,6 +736,8 @@ export default function NondhStatusList() {
               <Button
                 type="text"
                 size="small"
+                aria-label="Cancel editing"
+                title="Cancel editing"
                 disabled={updateMutation.isPending}
                 icon={<X size={16} color="#dc2626" />}
                 onClick={handleCancelEdit}
@@ -747,6 +752,8 @@ export default function NondhStatusList() {
             <Button
               type="text"
               size="small"
+              aria-label="Edit record"
+              title="Edit record"
               disabled={editingId !== null}
               icon={<Edit size={15} color="#2563eb" />}
               onClick={() => handleStartEdit(record)}
@@ -765,6 +772,8 @@ export default function NondhStatusList() {
                 type="text"
                 size="small"
                 danger
+                aria-label="Delete record"
+                title="Delete record"
                 disabled={editingId !== null}
                 icon={<Trash2 size={15} />}
               />
@@ -902,6 +911,7 @@ export default function NondhStatusList() {
           </Col>
           <Col xs={12} md={5}>
             <Select
+              aria-label="Filter by status"
               placeholder="Filter by Status"
               allowClear
               value={statusFilter || undefined}
@@ -917,6 +927,7 @@ export default function NondhStatusList() {
           </Col>
           <Col xs={12} md={5}>
             <Select
+              aria-label="Filter by completion"
               placeholder="Filter Done / Not"
               allowClear
               value={doneFilter || undefined}
@@ -929,6 +940,7 @@ export default function NondhStatusList() {
           </Col>
           <Col xs={12} md={5}>
             <Select
+              aria-label="Filter by reference"
               placeholder="Filter by Reference"
               allowClear
               value={referenceFilter || undefined}
@@ -953,6 +965,7 @@ export default function NondhStatusList() {
       >
         <Table
           className="modern-dashboard-table nondh-status-table"
+          tableLayout="fixed"
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
@@ -963,7 +976,7 @@ export default function NondhStatusList() {
           }
           loading={isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
           pagination={{ pageSize: 15, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries` }}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
+          scroll={{ x: 1410, y: 'calc(100vh - 320px)' }}
           size="middle"
           bordered
           locale={{
@@ -1020,6 +1033,7 @@ export default function NondhStatusList() {
                 rules={[{ required: true, message: 'Please select document type' }]}
               >
                 <Select
+                  aria-label="Type of document"
                   placeholder="Select type of document"
                   options={documentTypeOptions.map((name) => ({ label: name, value: name }))}
                   showSearch

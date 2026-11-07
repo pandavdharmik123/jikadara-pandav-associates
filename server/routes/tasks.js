@@ -377,7 +377,16 @@ router.patch('/:id/done', requireAuth, requireRole('ADMIN', 'SENIOR'), async (re
     const netAmount = totalIncome - totalExpense;
 
     const { completedDate } = req.body;
-    const finalCompletedDate = (completedDate && startOfDayIST(completedDate)) || startOfDayIST(new Date());
+    let finalCompletedDate;
+    if (completedDate) {
+      finalCompletedDate = startOfDayIST(completedDate);
+      if (!finalCompletedDate || isNaN(finalCompletedDate.getTime())) {
+        return res.status(400).json({ error: 'completedDate must be a valid date' });
+      }
+    } else {
+      // Default to today in IST (startOfDayIST also accepts Date objects).
+      finalCompletedDate = startOfDayIST(new Date());
+    }
 
     const task = await prisma.task.update({
       where: { id: req.params.id },

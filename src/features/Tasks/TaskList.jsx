@@ -346,6 +346,7 @@ export default function TaskList() {
           alignItems: isMobile ? 'stretch' : 'center'
         }}>
           <Select
+            aria-label="Filter by month"
             placeholder="Filter by Month"
             allowClear
             value={monthFilter || undefined}
@@ -355,6 +356,7 @@ export default function TaskList() {
             className="modern-select"
           />
           <Select
+            aria-label="Filter by client"
             placeholder="Filter by Client"
             allowClear
             showSearch
@@ -367,6 +369,7 @@ export default function TaskList() {
             className="modern-select"
           />
           <Select
+            aria-label="Filter by document type"
             placeholder="Filter by Document Type"
             allowClear
             showSearch
@@ -379,6 +382,7 @@ export default function TaskList() {
             className="modern-select"
           />
           <Select
+            aria-label="Filter by status"
             placeholder="Filter by Status"
             allowClear
             value={statusFilter || undefined}
@@ -393,6 +397,8 @@ export default function TaskList() {
           {hasActiveFilters && (
             <Tooltip title="Reset Filters">
               <Button
+                aria-label="Reset filters"
+                title="Reset filters"
                 icon={<RotateCcw size={15} />}
                 onClick={handleResetFilters}
                 style={{ borderRadius: 8, height: 40 }}

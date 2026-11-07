@@ -32,10 +32,11 @@ const useAuthStore = create(
         })),
 
       logout: () => {
-        const { refreshToken } = get();
-        // Revoke the server-side family in the background. Clearing local state
-        // immediately keeps logout instantaneous even when offline.
-        if (refreshToken) revokeToken(refreshToken);
+        const { refreshToken, token } = get();
+        // Revoke both the refresh family and the current access token in the
+        // background. Clearing local state immediately keeps logout
+        // instantaneous even when offline.
+        if (refreshToken || token) revokeToken(refreshToken, token);
         set({ ...EMPTY_SESSION });
       },
 

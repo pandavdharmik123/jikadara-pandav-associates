@@ -34,6 +34,8 @@ router.get('/', requireAuth, async (req, res) => {
       pedhinamus,
       jantriCalculations,
       documentTypes,
+      verabillEntries,
+      nondhStatuses,
     ] = await Promise.all([
       prisma.client.findMany({
         where: { isDeleted: true, ...userFilter },

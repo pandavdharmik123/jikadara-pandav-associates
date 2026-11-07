@@ -130,7 +130,7 @@
     height: 0 !important;
     font-size: 0 !important;
     line-height: 0 !important;
-    visibility: hidden !important;
+    visibility: collapse !important;
     border: none !important;
 
     td {
@@ -153,7 +153,7 @@
     font-size: 11px !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #94a3b8 !important;
+    color: #475569 !important;
     font-weight: 600;
     margin-top: 16px;
     margin-bottom: 8px;
@@ -357,7 +357,7 @@
   }
 
   &::placeholder {
-    color: #94a3b8;
+    color: #64748b;
   }
 }
 
@@ -482,7 +482,7 @@
       height: 0 !important;
       font-size: 0 !important;
       line-height: 0 !important;
-      visibility: hidden !important;
+      visibility: collapse !important;
       border: 0 !important;
 
       td {
@@ -557,6 +557,40 @@
   border-bottom-left-radius: 20px !important;
 }
 
-.ant-table-measure-row {
-  display: none !important;
+/* Ensure table measure row collapses completely to 0 height without breaking column width synchronization */
+.ant-table-measure-row,
+tr.ant-table-measure-row {
+  visibility: collapse !important;
+  height: 0 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  border: 0 !important;
+
+  td,
+  th {
+    padding: 0 !important;
+    border: 0 !important;
+    height: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+}
+/* ─── WCAG AA contrast for secondary text and form affordances ─────────────── */
+/* #94a3b8 on white is only ~2.8:1; use slate-600 (≥4.5:1) instead. */
+.ant-typography.ant-typography-secondary,
+.ant-form-item-extra,
+.ant-form-item-explain,
+.ant-select-selection-placeholder,
+.ant-input::placeholder,
+.ant-input-number-input::placeholder,
+textarea.ant-input::placeholder,
+.custom-transliterate-input::placeholder {
+  color: #475569 !important;
+}
+
+/* Keyboard focus ring for scrollable tables (tabindex is added in MainLayout). */
+.ant-table-body:focus-visible,
+.ant-table-content:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }

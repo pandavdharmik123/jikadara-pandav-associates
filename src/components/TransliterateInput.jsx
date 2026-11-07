@@ -39,6 +39,7 @@ export default function TransliterateInput({
           }}
           className={`custom-transliterate-input ant-input ${className}`}
           placeholder={placeholder}
+          aria-label={rest['aria-label'] || placeholder || 'Gujarati transliteration input'}
           style={{
             width: '100%',
             height: 40,

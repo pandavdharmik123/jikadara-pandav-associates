@@ -22,6 +22,7 @@ import jantriRoutes from './routes/jantri.js';
 import verabillRoutes from './routes/verabill.js';
 import notaryHisabRoutes from './routes/notaryHisab.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
+import translateRoutes from './routes/translate.js';
 // AnyRoR portal integration (temporarily disabled)
 // import anyrorRoutes from './routes/anyror.js';
 import formBuilderRoutes from './routes/formBuilder.js';
@@ -35,12 +36,21 @@ const PORT = process.env.PORT || 3001; // Updated scanner pool active
 
 // Security headers (QA-11)
 app.use(helmet({
-  contentSecurityPolicy: false, // Let reverse-proxy / frontend manage frontend CSP; APIs serve JSON
+  contentSecurityPolicy: false, // Set explicitly below for this JSON-only API
   crossOriginEmbedderPolicy: false,
   xFrameOptions: { action: 'deny' },
   xContentTypeOptions: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+
+// This service only serves JSON, so no script/style/img sources are needed.
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+  );
+  next();
+});
 
 // CORS configuration (QA-01)
 const allowedOrigins = [
@@ -94,6 +104,7 @@ app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
 app.use('/api/nondh-status', nondhStatusRoutes);
+app.use('/api/translate', translateRoutes);
 app.use('/api/verabill', verabillRoutes);
 app.use('/api/notary-hisab', notaryHisabRoutes);
 // AnyRoR portal integration (temporarily disabled)

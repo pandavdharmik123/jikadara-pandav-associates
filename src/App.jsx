@@ -26,6 +26,7 @@ import UserProfile from './features/Profile/UserProfile';
 // Existing Tools
 import FontStudio from './features/FontStudio/FontStudio';
 import Translator from './features/Translator/Translator';
+import AITranslator from './features/AITranslator/AITranslator';
 import UniversalConverter from './features/UniversalConverter/UniversalConverter';
 import JantriCalculator from './features/JantriCalculator/JantriCalculator';
 import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgreementCalculator';
@@ -43,47 +44,83 @@ import './styles/main.scss';
 import useAuthStore from './store/authStore';
 import { getInitialUserRoute } from './utils/pagePermissions';
 
-// Intercept fetch calls for AI4Bharat API (same as before)
+// Intercept AI4Bharat transliteration requests.
+//
+// The upstream host `xlit-api.ai4bharat.org` no longer resolves (NXDOMAIN), so
+// every call used to log a network error and the typing aid silently failed.
+// Requests are now served by the Google Input Tools API, which is still live.
+// The library's analytics endpoint (backend.shoonya.ai4bharat.org) is also
+// stubbed so it cannot generate errors or leak typed text.
 const originalFetch = window.fetch;
+
+const TRANSLITERATION_LANGUAGES = [
+  { LangCode: 'gu', Direction: 'ltr', GoogleFont: 'Noto Sans Gujarati', FallbackFont: 'sans-serif' },
+  { LangCode: 'hi', Direction: 'ltr', GoogleFont: 'Noto Sans Devanagari', FallbackFont: 'sans-serif' },
+  { LangCode: 'mr', Direction: 'ltr', GoogleFont: 'Noto Sans Devanagari', FallbackFont: 'sans-serif' },
+  { LangCode: 'bn', Direction: 'ltr', GoogleFont: 'Noto Sans Bengali', FallbackFont: 'sans-serif' },
+  { LangCode: 'ta', Direction: 'ltr', GoogleFont: 'Noto Sans Tamil', FallbackFont: 'sans-serif' },
+  { LangCode: 'te', Direction: 'ltr', GoogleFont: 'Noto Sans Telugu', FallbackFont: 'sans-serif' },
+  { LangCode: 'kn', Direction: 'ltr', GoogleFont: 'Noto Sans Kannada', FallbackFont: 'sans-serif' },
+  { LangCode: 'ml', Direction: 'ltr', GoogleFont: 'Noto Sans Malayalam', FallbackFont: 'sans-serif' },
+  { LangCode: 'pa', Direction: 'ltr', GoogleFont: 'Noto Sans Gurmukhi', FallbackFont: 'sans-serif' },
+  { LangCode: 'or', Direction: 'ltr', GoogleFont: 'Noto Sans Oriya', FallbackFont: 'sans-serif' },
+];
+
+function jsonResponse(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 window.fetch = async function (input) {
   const url = typeof input === 'string' ? input : (input && input.url) ? input.url : '';
 
-  if (url && (url.includes('xlit-api.ai4bharat.org') || url.includes('/tl/'))) {
-    try {
-      const parsedUrl = new URL(url, window.location.origin);
-      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-      const tlIndex = pathParts.indexOf('tl');
-      if (tlIndex !== -1 && pathParts.length > tlIndex + 2) {
-        const lang = pathParts[tlIndex + 1];
-        const rawWord = pathParts[tlIndex + 2];
-        const word = decodeURIComponent(rawWord);
+  // Analytics/telemetry beacon from @ai4bharat/indic-transliterate. Drop it.
+  if (url && url.includes('backend.shoonya.ai4bharat.org')) {
+    return new Response(null, { status: 204 });
+  }
 
-        if (word && word.trim()) {
+  if (url && url.includes('xlit-api.ai4bharat.org')) {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url, window.location.origin);
+    } catch {
+      return jsonResponse({ result: [] });
+    }
+
+    // Supported-language metadata requested when the input mounts.
+    if (parsedUrl.pathname.replace(/\/+$/, '') === '/languages') {
+      return jsonResponse(TRANSLITERATION_LANGUAGES);
+    }
+
+    const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+    const tlIndex = pathParts.indexOf('tl');
+    if (tlIndex !== -1 && pathParts.length > tlIndex + 2) {
+      const lang = pathParts[tlIndex + 1];
+      const word = decodeURIComponent(pathParts[tlIndex + 2]);
+
+      if (word && word.trim()) {
+        try {
           const googleUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(word)}&ime=transliteration_en_${lang}&num=5&cp=0&cs=0&ie=utf-8&oe=utf-8&app=jsapi`;
           const googleResponse = await originalFetch(googleUrl);
           const googleData = await googleResponse.json();
 
-          let suggestions = [];
-          if (googleData && googleData[0] === 'SUCCESS' && googleData[1] && googleData[1][0]) {
-            suggestions = googleData[1][0][1] || [];
-          }
+          const suggestions =
+            googleData && googleData[0] === 'SUCCESS' && googleData[1] && googleData[1][0]
+              ? googleData[1][0][1] || []
+              : [];
 
-          const mockData = { result: suggestions };
-          return new Response(JSON.stringify(mockData), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
+          return jsonResponse({ result: suggestions });
+        } catch {
+          // Fall through to an empty suggestion list instead of surfacing a
+          // network error to the user.
         }
       }
-    } catch {
-      // Suppress network errors from dead upstream host
     }
 
-    // Never pass dead xlit domain to originalFetch
-    return new Response(JSON.stringify({ result: [] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Never pass the dead xlit domain to the network.
+    return jsonResponse({ result: [] });
   }
 
   return originalFetch.apply(this, arguments);
@@ -247,6 +284,10 @@ export default function App() {
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/translator" />}>
                     <Route path="translator" element={<Translator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/ai-translator" />}>
+                    <Route path="ai-translator" element={<AITranslator currentAccentColor={currentAccentColor} />} />
                   </Route>
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/universal" />}>

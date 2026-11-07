@@ -390,6 +390,8 @@ export default function InvoiceGenerator({ currentAccentColor }) {
             <Button
               type="text"
               danger
+              aria-label="Delete invoice"
+              title="Delete invoice"
               icon={<Trash2 size={16} />}
             />
           </Popconfirm>
@@ -445,6 +447,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 <Col xs={24}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Link to Task (Optional)</Text>
                   <Select
+                    aria-label="Link to task"
                     showSearch
                     allowClear
                     placeholder="Select a Task"
@@ -461,7 +464,7 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                   <Text type="secondary" style={{ fontSize: 12 }}>Invoice To (Name) <span style={{ color: '#ff4d4f' }}>*</span></Text>
                   <IndicTransliterate
                     containerClassName="transliterate-wrapper"
-                    renderComponent={(props) => <input {...props} className="custom-transliterate-input" style={{ width: '100%', padding: '4px 8px', height: '28px' }} />}
+                    renderComponent={(props) => <input {...props} className="custom-transliterate-input" aria-label="Invoice customer name" style={{ width: '100%', padding: '4px 8px', height: '28px' }} />}
                     value={clientName}
                     onChangeText={setClientName}
                     lang="gu"
@@ -469,11 +472,11 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 </Col>
                 <Col xs={12}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Invoice #</Text>
-                  <Input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} style={{ height: '28px' }} />
+                  <Input aria-label="Invoice number" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} style={{ height: '28px' }} />
                 </Col>
                 <Col xs={12}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Date</Text>
-                  <DatePicker value={invoiceDate} onChange={setInvoiceDate} format="DD/MM/YYYY" style={{ width: '100%', height: '28px' }} />
+                  <DatePicker aria-label="Invoice date" value={invoiceDate} onChange={setInvoiceDate} format="DD/MM/YYYY" style={{ width: '100%', height: '28px' }} />
                 </Col>
               </Row>
             </Card>
@@ -483,22 +486,22 @@ export default function InvoiceGenerator({ currentAccentColor }) {
                 <Row gutter={8} key={item.id} style={{ marginBottom: 8 }} align="middle">
                   <Col xs={24} style={{ marginBottom: 4 }}>
                     <Text type="secondary" style={{ fontSize: 12, marginRight: 8 }}>#{index + 1}</Text>
-                    <Button type="text" danger size="small" icon={<Trash2 size={16} />} onClick={() => removeItem(item.id)} style={{ float: 'right' }} />
+                    <Button type="text" danger size="small" aria-label={`Remove item ${index + 1}`} title="Remove item" icon={<Trash2 size={16} />} onClick={() => removeItem(item.id)} style={{ float: 'right' }} />
                   </Col>
                   <Col xs={24}>
                     <IndicTransliterate
                       containerClassName="transliterate-wrapper"
-                      renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Item Description" style={{ width: '100%', padding: '4px 8px', height: '28px', marginBottom: 4 }} />}
+                      renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Item Description" aria-label={`Item ${index + 1} description`} style={{ width: '100%', padding: '4px 8px', height: '28px', marginBottom: 4 }} />}
                       value={item.description}
                       onChangeText={(text) => updateItem(item.id, 'description', text)}
                       lang="gu"
                     />
                   </Col>
                   <Col xs={12}>
-                    <Input type="number" placeholder="Price" value={item.price} onChange={(e) => updateItem(item.id, 'price', e.target.value)} prefix="₹" />
+                    <Input aria-label={`Item ${index + 1} price`} type="number" placeholder="Price" value={item.price} onChange={(e) => updateItem(item.id, 'price', e.target.value)} prefix="₹" />
                   </Col>
                   <Col xs={12}>
-                    <Input type="number" placeholder="Qty" value={item.qty} onChange={(e) => updateItem(item.id, 'qty', e.target.value)} />
+                    <Input aria-label={`Item ${index + 1} quantity`} type="number" placeholder="Qty" value={item.qty} onChange={(e) => updateItem(item.id, 'qty', e.target.value)} />
                   </Col>
                   <Col xs={24}>
                     <Divider style={{ margin: '8px 0' }} />
@@ -512,15 +515,15 @@ export default function InvoiceGenerator({ currentAccentColor }) {
               <Row gutter={[8, 8]}>
                 <Col xs={8}>
                   <Text type="secondary" style={{ fontSize: 12 }}>Discount Amount</Text>
-                  <InputNumber value={discountAmount} onChange={setDiscountAmount} style={{ width: '100%' }} min={0} />
+                  <InputNumber aria-label="Discount amount" value={discountAmount} onChange={setDiscountAmount} style={{ width: '100%' }} min={0} />
                 </Col>
                 <Col xs={8}>
                   <Text type="secondary" style={{ fontSize: 12 }}>જમા (Paid)</Text>
-                  <InputNumber value={jamaAmount} onChange={setJamaAmount} style={{ width: '100%' }} min={0} />
+                  <InputNumber aria-label="Paid amount" value={jamaAmount} onChange={setJamaAmount} style={{ width: '100%' }} min={0} />
                 </Col>
                 <Col xs={8}>
                   <Text type="secondary" style={{ fontSize: 12 }}>બાકી (Balance)</Text>
-                  <Input value={formatMoney(balance)} disabled style={{ width: '100%' }} />
+                  <Input aria-label="Balance amount" value={formatMoney(balance)} disabled style={{ width: '100%' }} />
                 </Col>
               </Row>
             </Card>

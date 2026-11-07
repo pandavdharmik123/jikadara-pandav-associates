@@ -19,7 +19,7 @@ async function exchange(refreshToken) {
   // The user may have logged out (or another tab may have ended the session)
   // while this request was in flight. Never resurrect a closed session.
   if (!useAuthStore.getState().isAuthenticated) {
-    revokeToken(data.refreshToken);
+    revokeToken(data.refreshToken, useAuthStore.getState().token);
     const error = new Error('The session was closed during refresh.');
     error.code = 'SESSION_CLOSED';
     throw error;

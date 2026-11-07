@@ -243,7 +243,16 @@ router.post('/logout', async (req, res) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      tokenBlacklist.revoke(token);
+      let ttlMs = 60 * 60 * 1000;
+      try {
+        const decoded = jwt.decode(token);
+        if (decoded?.exp) {
+          ttlMs = Math.max(1000, decoded.exp * 1000 - Date.now());
+        }
+      } catch {
+        // Keep the safe default TTL when the token cannot be decoded.
+      }
+      tokenBlacklist.revoke(token, ttlMs);
     }
     await revokeRefreshToken(req.body?.refreshToken);
     res.status(204).end();
