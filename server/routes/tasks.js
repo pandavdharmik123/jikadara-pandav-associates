@@ -83,7 +83,7 @@ router.get('/:id', requireAuth, async (req, res) => {
  */
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { clientId, documentType, referenceName, startDate, place, rrNumber, rrDate } = req.body;
+    const { clientId, documentType, referenceName, startDate, place, rrNumber, rrDate, appointmentDate } = req.body;
 
     if (!clientId || !documentType) {
       return res.status(400).json({ error: 'clientId and documentType are required' });
@@ -114,6 +114,16 @@ router.post('/', requireAuth, async (req, res) => {
       }
     }
 
+    let parsedAppointmentDate = null;
+    if (appointmentDate && String(appointmentDate).trim()) {
+      try {
+        const d = startOfDayIST(appointmentDate);
+        if (!isNaN(d.getTime())) parsedAppointmentDate = d;
+      } catch {
+        parsedAppointmentDate = null;
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         clientId,
@@ -123,6 +133,7 @@ router.post('/', requireAuth, async (req, res) => {
         place: place ? place.trim() : '',
         rrNumber: parsedRrNumber,
         rrDate: parsedRrDate,
+        appointmentDate: parsedAppointmentDate,
         startDate: startDate ? startOfDayIST(startDate) : new Date(),
       },
       include: {
@@ -298,7 +309,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    const { documentType, referenceName, startDate, place, completedDate, rrNumber, rrDate } = req.body;
+    const { documentType, referenceName, startDate, place, completedDate, rrNumber, rrDate, appointmentDate } = req.body;
 
     const parsedRrNumber = (rrNumber !== undefined && rrNumber !== null && rrNumber !== '' && !isNaN(Number(rrNumber)))
       ? parseInt(rrNumber, 10)
@@ -318,6 +329,20 @@ router.put('/:id', requireAuth, async (req, res) => {
       }
     }
 
+    let parsedAppointmentDate = undefined;
+    if (appointmentDate !== undefined) {
+      if (appointmentDate && String(appointmentDate).trim()) {
+        try {
+          const d = startOfDayIST(appointmentDate);
+          parsedAppointmentDate = !isNaN(d.getTime()) ? d : null;
+        } catch {
+          parsedAppointmentDate = null;
+        }
+      } else {
+        parsedAppointmentDate = null;
+      }
+    }
+
     const task = await prisma.task.update({
       where: { id: req.params.id },
       data: {
@@ -328,6 +353,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         ...(completedDate !== undefined && { completedDate: completedDate ? startOfDayIST(completedDate) : null }),
         ...(rrNumber !== undefined && { rrNumber: parsedRrNumber }),
         ...(parsedRrDate !== undefined && { rrDate: parsedRrDate }),
+        ...(parsedAppointmentDate !== undefined && { appointmentDate: parsedAppointmentDate }),
       },
       include: {
         client: { select: { id: true, name: true } },

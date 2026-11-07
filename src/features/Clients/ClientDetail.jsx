@@ -97,6 +97,13 @@ export default function ClientDetail() {
       render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
     },
     {
+      title: 'Appt. Date',
+      dataIndex: 'appointmentDate',
+      key: 'appointmentDate',
+      align: 'center',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -224,7 +231,7 @@ export default function ClientDetail() {
           dataSource={client.tasks || []}
           rowKey="id"
           pagination={false}
-          scroll={{ x: 950 }}
+          scroll={{ x: 1060 }}
           locale={{
             emptyText: (
               <EmptyState

@@ -278,6 +278,14 @@ export default function TaskList() {
       render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
     },
     {
+      title: 'Appt. Date',
+      dataIndex: 'appointmentDate',
+      width: 110,
+      key: 'appointmentDate',
+      align: 'center',
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+    },
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
@@ -420,7 +428,7 @@ export default function TaskList() {
           tableLayout="fixed"
           loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 1250, y: 'calc(100vh - 259px)' }}
+          scroll={{ x: 1360, y: 'calc(100vh - 259px)' }}
           size="small"
           locale={{
             emptyText: (

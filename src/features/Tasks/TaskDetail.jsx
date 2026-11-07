@@ -210,6 +210,18 @@ export default function TaskDetail() {
               <Calendar size={16} />
             </div>
             <div>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Appointment Date</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.appointmentDate ? dayjs(task.appointmentDate).format('DD MMM YYYY') : 'N/A'}</Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+          <Space align="center" size="middle">
+            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+              <Calendar size={16} />
+            </div>
+            <div>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Start Date</Text>
               <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{dayjs(task.startDate).format('DD MMM YYYY')}</Text>
             </div>
