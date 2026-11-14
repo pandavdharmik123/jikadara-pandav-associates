@@ -1,0 +1,49 @@
+{
+  "name": "jikadara-pandav-income-expense-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "mobile:build": "vite build && cap copy",
+    "mobile:sync": "vite build && cap sync",
+    "android:open": "npm run mobile:build && cap open android",
+    "ios:open": "npm run mobile:build && cap open ios"
+  },
+  "dependencies": {
+    "@ai4bharat/indic-transliterate": "^1.3.8",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/keyboard": "^8.0.6",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "@tanstack/react-query": "^5.101.0",
+    "antd": "^6.4.3",
+    "axios": "^1.18.0",
+    "dayjs": "^1.11.21",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.14.0",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.21.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.3.289",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.18.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "sass": "^1.108.2",
+    "vite": "^8.0.12"
+  }
+}

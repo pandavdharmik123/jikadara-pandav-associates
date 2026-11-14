@@ -1,0 +1,1675 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Col, Row, Typography, InputNumber, Divider, Statistic, Space, Select, Input, Button, message, Tooltip, Tag, Dropdown, Modal } from 'antd';
+import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
+import { Calculator, FileText, Plus, Trash2, Save, FolderOpen, RotateCcw, Cloud, MoreVertical, Sparkles } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
+import api from '../../services/api';
+import SaveJantriModal from './components/SaveJantriModal';
+import SavedJantriModal from './components/SavedJantriModal';
+
+const { Title, Text } = Typography;
+
+export default function JantriCalculator({ currentAccentColor }) {
+  const componentRef = useRef();
+
+  const syncCloneFormState = (original, clone) => {
+    const originalInputs = original.querySelectorAll('input, textarea, select');
+    const clonedInputs = clone.querySelectorAll('input, textarea, select');
+    originalInputs.forEach((input, index) => {
+      const target = clonedInputs[index];
+      if (!target) return;
+      if (input.type === 'checkbox' || input.type === 'radio') {
+        target.checked = input.checked;
+      } else {
+        target.value = input.value;
+        target.setAttribute('value', input.value);
+      }
+    });
+
+    const originalSelects = original.querySelectorAll('.ant-select');
+    const clonedSelects = clone.querySelectorAll('.ant-select');
+    originalSelects.forEach((select, index) => {
+      const selectionItem = select.querySelector('.ant-select-selection-item');
+      const cloneItem = clonedSelects[index]?.querySelector('.ant-select-selection-item');
+      if (selectionItem && cloneItem) {
+        cloneItem.textContent = selectionItem.textContent;
+      }
+    });
+  };
+
+  const handleGeneratePDF = async (isSummary = false) => {
+    const element = componentRef.current;
+    if (!element) return;
+
+    const clone = element.cloneNode(true);
+    syncCloneFormState(element, clone);
+    clone.classList.add('pdf-mode');
+
+    // Remove elements that shouldn't be printed
+    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
+    if (isSummary) {
+      const leftCol = clone.querySelector('.main-print-col-left');
+      if (leftCol) leftCol.remove();
+      const rightCol = clone.querySelector('.main-print-col-right');
+      if (rightCol) {
+        rightCol.style.setProperty('width', '100%', 'important');
+        rightCol.style.setProperty('max-width', '100%', 'important');
+        rightCol.style.setProperty('flex', '0 0 100%', 'important');
+      }
+    }
+
+    const container = document.createElement('div');
+    container.className = 'pdf-export-container';
+    Object.assign(container.style, {
+      position: 'fixed',
+      left: '-10000px',
+      top: '0',
+      width: '794px',
+      overflow: 'visible',
+      pointerEvents: 'none',
+      zIndex: '-1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    });
+    Object.assign(clone.style, {
+      overflow: 'visible',
+      height: 'auto',
+      maxHeight: 'none',
+      width: '754px',
+      maxWidth: '754px',
+      margin: '0 auto',
+      boxSizing: 'border-box',
+    });
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+    const PAGE_WIDTH_PX = 794;
+    const A4_HEIGHT_IN = 11.69;
+    const maxContentHeightPx = A4_HEIGHT_IN * 96 * 0.94;
+
+    let naturalHeight = Math.max(clone.scrollHeight, clone.offsetHeight);
+    let captureHeight = naturalHeight + 20;
+
+    if (naturalHeight > maxContentHeightPx) {
+      const scale = maxContentHeightPx / naturalHeight;
+      clone.style.transform = `scale(${scale})`;
+      clone.style.transformOrigin = 'top center';
+
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+      captureHeight = Math.ceil(naturalHeight * scale) + 20;
+    }
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'visible';
+    document.documentElement.style.overflow = 'visible';
+
+    const filename = buyerName ? `${buyerName}_Jantri.pdf` : 'Jantri.pdf';
+
+    const opt = {
+      margin: 0,
+      filename,
+      image: { type: 'png' },
+      html2canvas: {
+        scale: 4,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        letterRendering: true,
+        dpi: 300,
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        width: PAGE_WIDTH_PX,
+        height: captureHeight,
+        windowWidth: PAGE_WIDTH_PX,
+        windowHeight: captureHeight,
+        onclone: (doc) => {
+          const clonedRoot = doc.querySelector('.pdf-container.pdf-mode');
+          if (!clonedRoot) return;
+          clonedRoot.style.overflow = 'visible';
+          clonedRoot.style.height = 'auto';
+          clonedRoot.style.maxHeight = 'none';
+          clonedRoot.querySelectorAll('.ant-card, .ant-row, .ant-col, table, th, td').forEach((node) => {
+            node.style.overflow = 'visible';
+          });
+        },
+      },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: true, precision: 16 },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+    };
+
+    try {
+      await html2pdf().set(opt).from(clone).save();
+      message.success('PDF Generated successfully!');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      message.error('Failed to generate PDF.');
+    } finally {
+      document.body.removeChild(container);
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    }
+  };
+
+  // --- Database Persistence State & Initial Data ---
+  const initialData = useRef((() => {
+    try {
+      const saved = localStorage.getItem('jantri_active_data');
+      if (saved) return JSON.parse(saved);
+    } catch (_) { }
+    return {};
+  })()).current;
+
+  const [activeCalculationId, setActiveCalculationId] = useState(() => {
+    return localStorage.getItem('jantri_active_id') || null;
+  });
+  const [activeCalculationTitle, setActiveCalculationTitle] = useState(() => {
+    return localStorage.getItem('jantri_active_title') || '';
+  });
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // --- Inputs ---
+  const [plotArea, setPlotArea] = useState(initialData.plotArea ?? 241.84);
+  const [plotRate, setPlotRate] = useState(initialData.plotRate ?? 25500);
+
+  const [buildArea, setBuildArea] = useState(initialData.buildArea ?? 150);
+  const [buildRate, setBuildRate] = useState(initialData.buildRate ?? 10395);
+
+  // Floor-wise construction & depreciation for મકાન / પ્લોટ
+  const [floors, setFloors] = useState(
+    Array.isArray(initialData.floors) && initialData.floors.length > 0
+      ? initialData.floors
+      : [{ id: 1, floor: 'GF', area: 150, age: 0 }]
+  );
+
+  const getFloorLabel = (index) => {
+    switch (index) {
+      case 0: return 'GF';
+      case 1: return 'FF';
+      case 2: return 'SF';
+      case 3: return '3F';
+      case 4: return '4th Floor';
+      case 5: return '5th Floor';
+      case 6: return '6th Floor';
+      case 7: return '7th Floor';
+      case 8: return '8th Floor';
+      default: return `${index}th Floor`;
+    }
+  };
+
+  const handleAddFloor = () => {
+    const nextIdx = floors.length;
+    setFloors(prev => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        floor: getFloorLabel(nextIdx),
+        area: 0,
+        age: 0,
+      }
+    ]);
+  };
+
+  const handleRemoveFloor = (id) => {
+    if (floors.length <= 1) {
+      message.warning('ઓછામાં ઓછો એક ફ્લોર જરૂરી છે (At least one floor is required)');
+      return;
+    }
+    setFloors(prev => {
+      const filtered = prev.filter(f => f.id !== id);
+      return filtered.map((f, idx) => ({
+        ...f,
+        floor: getFloorLabel(idx),
+      }));
+    });
+  };
+
+  const handleUpdateFloor = (id, key, val) => {
+    setFloors(prev => prev.map(f => (f.id === id ? { ...f, [key]: val } : f)));
+  };
+
+  const [depAge, setDepAge] = useState(initialData.depAge ?? 0); // ઘસારો મિ. ઉમર (for flat/shop)
+  const [totalPages, setTotalPages] = useState(initialData.totalPages ?? 0); // ટોટલ પેજ
+
+  const [vahiwatFee, setVahiwatFee] = useState(initialData.vahiwatFee ?? 1000); // વહીવટ
+  const [vakilFee, setVakilFee] = useState(initialData.vakilFee ?? 3500); // વકીલ ફી
+  const [gender, setGender] = useState(initialData.gender ?? 'male'); // લિંગ (ખરીદનાર)
+
+  const [buyerName, setBuyerName] = useState(initialData.buyerName ?? ''); // ખરીદનાર નું નામ
+  const [propertyDetails, setPropertyDetails] = useState(initialData.propertyDetails ?? ''); // મિલકત ની વિગત
+  const [village, setVillage] = useState(initialData.village ?? ''); // મોજે. ગામ
+  const [valueZone, setValueZone] = useState(initialData.valueZone ?? ''); // વેલ્યુ ઝોન (Value Zone)
+  const [tp, setTp] = useState(initialData.tp ?? ''); // TP
+  const [fp, setFp] = useState(initialData.fp ?? ''); // FP
+  const [propertyType, setPropertyType] = useState(initialData.propertyType ?? 'ખુલ્લો પ્લોટ'); // મિલકત નો પ્રકાર
+  const [gunthaSelection, setGunthaSelection] = useState(initialData.gunthaSelection ?? 16); // ગુંઠા પસંદગી
+  const [customFinalValue, setCustomFinalValue] = useState(initialData.customFinalValue ?? null); // Custom user-entered final value
+  const [customRegFee, setCustomRegFee] = useState(initialData.customRegFee ?? null); // Custom user-entered reg fee
+  const [asrDeduction, setAsrDeduction] = useState(initialData.asrDeduction ?? 10); // ASR Deduction for flats
+
+  const [customFields, setCustomFields] = useState(Array.isArray(initialData.customFields) ? initialData.customFields : []);
+
+  const addCustomField = () => setCustomFields([...customFields, { id: Date.now(), name: '', value: '' }]);
+  const updateCustomField = (id, key, val) => setCustomFields(customFields.map(f => f.id === id ? { ...f, [key]: val } : f));
+  const removeCustomField = (id) => setCustomFields(customFields.filter(f => f.id !== id));
+
+  // --- Calculations ---
+  const isPlotMakan = propertyType === 'ખુલ્લો પ્લોટ';
+
+  // પ્લોટ નો અવેજ = ખુલ્લો પ્લોટ ક્ષેત્રફળ * ખુલ્લો પ્લોટ જંત્રી ભાવ
+  let plotValue = (plotArea || 0) * (plotRate || 0);
+  if (propertyType === 'ફ્લેટ' && asrDeduction) {
+    plotValue = plotValue - (plotValue * (asrDeduction / 100));
+  }
+
+  // Floors Calculation (મકાન / પ્લોટ માટે floor-wise breakdown)
+  const totalFloorArea = floors.reduce((sum, f) => sum + (Number(f.area) || 0), 0);
+  const totalFloorBuildValue = floors.reduce((sum, f) => sum + ((Number(f.area) || 0) * (Number(buildRate) || 0)), 0);
+  const totalFloorDepAmount = floors.reduce((sum, f) => {
+    const bVal = (Number(f.area) || 0) * (Number(buildRate) || 0);
+    return sum + (((Number(f.age) || 0) * bVal * 1.2) / 100);
+  }, 0);
+  const totalFloorNetValue = totalFloorBuildValue - totalFloorDepAmount;
+
+  // બાંધકામ નો અવેજ = બાંધકામ ક્ષેત્રફળ ચો.મી * બાંધકામ જંત્રી ભાવ
+  const buildValue = isPlotMakan
+    ? totalFloorBuildValue
+    : ((propertyType === 'ફ્લેટ' || propertyType === 'દુકાન' || propertyType === 'ખેતી ની જમીન') ? 0 : ((buildArea || 0) * (buildRate || 0)));
+
+  // પાર્કિંગ ની ગણતરી 
+  const parkingValue = propertyType === 'ફ્લેટ' ? ((plotRate || 0) * 0.8) : (propertyType === 'દુકાન' ? ((plotRate || 0) * 1.6) : 0);
+
+  // ટોટલ અવેજ = પ્લોટ નો અવેજ + બાંધકામ નો અવેજ + પાર્કિંગ નો અવેજ
+  const totalValue = isPlotMakan
+    ? (plotValue + totalFloorBuildValue)
+    : (plotValue + buildValue + parkingValue);
+
+  const getSection1Title = () => {
+    switch (propertyType) {
+      case 'ફ્લેટ': return 'ફ્લેટ (Flat)';
+      case 'દુકાન': return 'દુકાન (Shop)';
+      case 'ખેતી ની જમીન': return 'ખેતી ની જમીન (Agriculture Land)';
+      default: return 'ખુલ્લો પ્લોટ (Open Plot)';
+    }
+  };
+
+  const getSection1ValueTitle = () => {
+    switch (propertyType) {
+      case 'ફ્લેટ': return 'ફ્લેટ નો અવેજ (Flat Value)';
+      case 'દુકાન': return 'દુકાન નો અવેજ (Shop Value)';
+      case 'ખેતી ની જમીન': return 'ખેતી ની જમીન અવેજ ';
+      default: return 'પ્લોટ નો અવેજ ';
+    }
+  };
+
+  // ઘસારાની રકમ = (ઘસારો મિ. ઉમર*બાંધકામ નો અવેજ*1.2)/100
+  const depBaseValue = (propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') ? plotValue : buildValue;
+  const depAmount = isPlotMakan
+    ? totalFloorDepAmount
+    : (propertyType === 'ખેતી ની જમીન' ? 0 : (((depAge || 0) * depBaseValue * 1.2) / 100));
+
+  // ઘસારા બાદ અવેજ = ટોટલ અવેજ - ઘસારાની રકમ
+  // મકાન / પ્લોટ માટે: પ્લોટ નો અવેજ + તમામ ફ્લોરના ઘસારા બાદ ની રકમનું કુલ સરવાળો
+  const calculatedFinalValue = isPlotMakan
+    ? (plotValue + totalFloorNetValue)
+    : (totalValue - depAmount);
+
+  useEffect(() => {
+    setCustomFinalValue(null);
+  }, [calculatedFinalValue]);
+
+  const finalValue = customFinalValue !== null ? customFinalValue : calculatedFinalValue;
+
+  // સ્ટેમ્પ ડયુટી = ઘસારા બાદ અવેજ * 4.9 / 100
+  const stampDuty = (finalValue * 4.9) / 100;
+
+  // રજી. ફી = ઘસારા બાદ અવેજ / 100 (પુરુષ માટે 1%, સ્ત્રી માટે 0%)
+  const calculatedRegFee = gender === 'male' ? finalValue / 100 : 0;
+
+  useEffect(() => {
+    setCustomRegFee(null);
+  }, [calculatedRegFee]);
+
+  const regFee = customRegFee !== null ? customRegFee : calculatedRegFee;
+
+  // પેજ ફી = ટોટલ પેજ * 20
+  const pageFee = (totalPages || 0) * 20;
+
+  // ઇન્ડેક્ષ ફી = 600 fixed
+  const indexFee = 600;
+
+  // ટોટલ ફી = સ્ટેમ્પ ડયુટી + રજી. ફી + પેજ ફી + ઇન્ડેક્ષ ફી + વહીવટ + વકીલ ફી
+  const customFieldsTotal = customFields.reduce((sum, f) => sum + (Number(f.value) || 0), 0);
+  const totalFee = stampDuty + regFee + pageFee + indexFee + (vahiwatFee || 0) + (vakilFee || 0) + customFieldsTotal;
+
+  // Formatter for currency (always rounded to integer)
+  const formatMoney = (val) => {
+    if (val === null || val === undefined || isNaN(Number(val))) return '0';
+    return Math.round(Number(val)).toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  };
+
+  // Autosave active calculation state to localStorage
+  useEffect(() => {
+    try {
+      const payload = {
+        buyerName,
+        propertyDetails,
+        village,
+        valueZone,
+        tp,
+        fp,
+        propertyType,
+        gender,
+        plotArea,
+        plotRate,
+        buildArea,
+        buildRate,
+        floors,
+        depAge,
+        asrDeduction,
+        gunthaSelection,
+        totalPages,
+        vahiwatFee,
+        vakilFee,
+        customFinalValue,
+        customRegFee,
+        customFields,
+        finalValue,
+        totalFee,
+        stampDuty,
+        regFee
+      };
+      localStorage.setItem('jantri_active_data', JSON.stringify(payload));
+    } catch (_) { }
+  }, [
+    buyerName,
+    propertyDetails,
+    village,
+    valueZone,
+    tp,
+    fp,
+    propertyType,
+    gender,
+    plotArea,
+    plotRate,
+    buildArea,
+    buildRate,
+    floors,
+    depAge,
+    asrDeduction,
+    gunthaSelection,
+    totalPages,
+    vahiwatFee,
+    vakilFee,
+    customFinalValue,
+    customRegFee,
+    customFields,
+    finalValue,
+    totalFee,
+    stampDuty,
+    regFee
+  ]);
+
+  useEffect(() => {
+    if (activeCalculationId) {
+      localStorage.setItem('jantri_active_id', activeCalculationId);
+    } else {
+      localStorage.removeItem('jantri_active_id');
+    }
+  }, [activeCalculationId]);
+
+  useEffect(() => {
+    if (activeCalculationTitle) {
+      localStorage.setItem('jantri_active_title', activeCalculationTitle);
+    } else {
+      localStorage.removeItem('jantri_active_title');
+    }
+  }, [activeCalculationTitle]);
+
+  // // Keyboard shortcut Ctrl+S / Cmd+S
+  // useEffect(() => {
+  //   const handleKeyDown = (e) => {
+  //     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+  //       e.preventDefault();
+  //       setSaveModalVisible(true);
+  //     }
+  //   };
+  //   window.addEventListener('keydown', handleKeyDown);
+  //   return () => window.removeEventListener('keydown', handleKeyDown);
+  // }, []);
+
+  // Save calculation to PostgreSQL database
+  const handleSaveCalculation = async ({ title, saveAsNew = false }) => {
+    setIsSaving(true);
+    const resolvedTitle = (title || activeCalculationTitle || (buyerName ? `${buyerName} - જંત્રી ગણતરી` : 'Untitled Jantri')).trim();
+    const isNew = saveAsNew || !activeCalculationId || activeCalculationId.startsWith('draft-');
+
+    const payloadSnapshot = {
+      buyerName,
+      propertyDetails,
+      village,
+      valueZone,
+      tp,
+      fp,
+      propertyType,
+      gender,
+      plotArea,
+      plotRate,
+      buildArea,
+      buildRate,
+      floors,
+      depAge,
+      asrDeduction,
+      gunthaSelection,
+      totalPages,
+      vahiwatFee,
+      vakilFee,
+      customFinalValue,
+      customRegFee,
+      customFields,
+      finalValue,
+      totalFee,
+      stampDuty,
+      regFee
+    };
+
+    try {
+      if (!isNew && activeCalculationId) {
+        const res = await api.put(`/jantri/${activeCalculationId}`, {
+          title: resolvedTitle,
+          clientName: buyerName,
+          propertyDetails,
+          village,
+          propertyType,
+          finalValue,
+          totalFee,
+          calculationData: payloadSnapshot
+        });
+        if (res.data?.calculation) {
+          setActiveCalculationId(res.data.calculation.id);
+        }
+        message.success(`Updated "${resolvedTitle}" in database!`);
+      } else {
+        const res = await api.post('/jantri', {
+          title: resolvedTitle,
+          clientName: buyerName,
+          propertyDetails,
+          village,
+          propertyType,
+          finalValue,
+          totalFee,
+          calculationData: payloadSnapshot
+        });
+        if (res.data?.calculation?.id) {
+          setActiveCalculationId(res.data.calculation.id);
+        }
+        message.success(`Saved "${resolvedTitle}" to database!`);
+      }
+
+      setActiveCalculationTitle(resolvedTitle);
+      setSaveModalVisible(false);
+    } catch (err) {
+      console.error('Error saving calculation to database:', err);
+      message.error(err.response?.data?.error || 'Failed to save calculation to database');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Load a calculation into the active calculator
+  const handleLoadCalculation = (calcData, title, id) => {
+    if (!calcData) return;
+    setBuyerName(calcData.buyerName || '');
+    setPropertyDetails(calcData.propertyDetails || '');
+    setVillage(calcData.village || '');
+    setValueZone(calcData.valueZone || '');
+    setTp(calcData.tp || '');
+    setFp(calcData.fp || '');
+    setPropertyType(calcData.propertyType || 'ખુલ્લો પ્લોટ');
+    setGender(calcData.gender || 'male');
+    setPlotArea(calcData.plotArea !== undefined ? calcData.plotArea : 241.84);
+    setPlotRate(calcData.plotRate !== undefined ? calcData.plotRate : 25500);
+    setBuildArea(calcData.buildArea !== undefined ? calcData.buildArea : 150);
+    setBuildRate(calcData.buildRate !== undefined ? calcData.buildRate : 10395);
+    setFloors(Array.isArray(calcData.floors) && calcData.floors.length > 0
+      ? calcData.floors
+      : [{ id: 1, floor: 'GF', area: 150, age: 0 }]
+    );
+    setDepAge(calcData.depAge || 0);
+    setAsrDeduction(calcData.asrDeduction !== undefined ? calcData.asrDeduction : 10);
+    setGunthaSelection(calcData.gunthaSelection !== undefined ? calcData.gunthaSelection : 16);
+    setTotalPages(calcData.totalPages || 0);
+    setVahiwatFee(calcData.vahiwatFee !== undefined ? calcData.vahiwatFee : 1000);
+    setVakilFee(calcData.vakilFee !== undefined ? calcData.vakilFee : 3500);
+    setCustomFinalValue(calcData.customFinalValue !== undefined ? calcData.customFinalValue : null);
+    setCustomRegFee(calcData.customRegFee !== undefined ? calcData.customRegFee : null);
+    setCustomFields(Array.isArray(calcData.customFields) ? calcData.customFields : []);
+
+    setActiveCalculationId(id);
+    setActiveCalculationTitle(title || '');
+  };
+
+  // Reset all fields to clean empty defaults for fresh calculation
+  const resetToCleanDefaults = () => {
+    setBuyerName('');
+    setPropertyDetails('');
+    setVillage('');
+    setValueZone('');
+    setTp('');
+    setFp('');
+    setPropertyType('ખુલ્લો પ્લોટ');
+    setGender('male');
+    setPlotArea(0);
+    setPlotRate(0);
+    setBuildArea(0);
+    setBuildRate(0);
+    setFloors([{ id: 1, floor: 'GF', area: 0, age: 0 }]);
+    setDepAge(0);
+    setAsrDeduction(10);
+    setGunthaSelection(16);
+    setTotalPages(0);
+    setVahiwatFee(1000);
+    setVakilFee(3500);
+    setCustomFinalValue(null);
+    setCustomRegFee(null);
+    setCustomFields([]);
+
+    // Clear active cloud calculation binding so subsequent save creates a brand fresh entry
+    setActiveCalculationId(null);
+    setActiveCalculationTitle('');
+
+    // Clear cached draft from localStorage
+    try {
+      localStorage.removeItem('jantri_active_data');
+      localStorage.removeItem('jantri_active_id');
+      localStorage.removeItem('jantri_active_title');
+    } catch (_) { }
+
+    message.success('New calculation started! All fields cleared for fresh entry.');
+  };
+
+  // Start a fresh new calculation
+  const handleNewCalculation = () => {
+    const hasExistingData = Boolean(
+      activeCalculationId ||
+      activeCalculationTitle ||
+      (buyerName && buyerName.trim()) ||
+      (propertyDetails && propertyDetails.trim()) ||
+      (village && village.trim()) ||
+      (plotArea && Number(plotArea) > 0) ||
+      (plotRate && Number(plotRate) > 0) ||
+      (buildArea && Number(buildArea) > 0) ||
+      (buildRate && Number(buildRate) > 0) ||
+      (floors && floors.length > 0 && (Number(floors[0].area) > 0 || floors.length > 1)) ||
+      (customFields && customFields.length > 0)
+    );
+
+    if (hasExistingData) {
+      Modal.confirm({
+        title: 'Start New Calculation?',
+        content: 'This will clear all current inputs. Any unsaved changes will be lost, and when you save next, it will be saved as a fresh new calculation.',
+        okText: 'Yes, Start Fresh',
+        cancelText: 'Cancel',
+        okType: 'primary',
+        onOk: () => {
+          resetToCleanDefaults();
+        }
+      });
+    } else {
+      resetToCleanDefaults();
+    }
+  };
+
+  // Reset to empty/defaults
+  const handleResetCalculation = () => {
+    Modal.confirm({
+      title: 'Reset Jantri Calculator?',
+      content: 'This will clear all fields to zero/empty values. Any unsaved progress will be lost.',
+      okText: 'Reset Form',
+      okType: 'danger',
+      onOk: () => {
+        resetToCleanDefaults();
+      }
+    });
+  };
+
+  // Load sample calculation for demo/testing
+  const handleLoadSample = () => {
+    setBuyerName('મધુભાઇ પરશોતમભાઇ જીકાદરા');
+    setPropertyDetails('પ્લોટ નં. ૨૫, સુદામા સોસાયટી');
+    setVillage('મોજે. મોટા વરાછા');
+    setValueZone('વરાછા');
+    setTp('૪૧');
+    setFp('૨૦૪');
+    setPropertyType('ખુલ્લો પ્લોટ');
+    setGender('male');
+    setPlotArea(241.84);
+    setPlotRate(25500);
+    setBuildArea(150);
+    setBuildRate(10395);
+    setFloors([{ id: 1, floor: 'GF', area: 150, age: 0 }]);
+    setDepAge(0);
+    setAsrDeduction(10);
+    setGunthaSelection(16);
+    setTotalPages(12);
+    setVahiwatFee(1000);
+    setVakilFee(3500);
+    setCustomFinalValue(null);
+    setCustomRegFee(null);
+    setCustomFields([]);
+    setActiveCalculationId(null);
+    setActiveCalculationTitle('');
+    message.info('Sample calculation loaded. Click Save to save as new document.');
+  };
+
+  return (
+    <div className="jantri-calculator-wrap" style={{ padding: '4px 0 12px' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: 'rgba(79, 70, 229, 0.1)',
+            color: currentAccentColor || '#4f46e5'
+          }}>
+            <Calculator size={18} />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, color: 'var(--text-primary)', fontSize: 16 }}>
+              Jantri & Stamp Duty Calculator
+            </Title>
+            {activeCalculationTitle && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <Tag color="purple" style={{ fontSize: 11, margin: 0, padding: '0 6px' }}>
+                  ☁️ {activeCalculationTitle}
+                </Tag>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Space size={8} wrap>
+          {/* <Tooltip title="Start a fresh Jantri calculation (બધું સાફ કરીને નવી ગણતરી શરૂ કરો)"> */}
+          <Button
+            icon={<Plus size={14} />}
+            onClick={handleNewCalculation}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            New Calculation
+          </Button>
+          {/* </Tooltip> */}
+
+          {/* <Tooltip title="View saved calculations from database"> */}
+          <Button
+            icon={<FolderOpen size={14} />}
+            onClick={() => setSavedModalVisible(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Saved Calculations
+          </Button>
+          {/* </Tooltip> */}
+
+          {/* <Tooltip title="Save calculation to database (Ctrl+S / Cmd+S)"> */}
+          <Button
+            type="default"
+            icon={<Save size={14} style={{ color: '#4f46e5' }} />}
+            onClick={() => setSaveModalVisible(true)}
+            loading={isSaving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Save
+          </Button>
+          {/* </Tooltip> */}
+
+          <Button
+            type="primary"
+            icon={<FileText size={15} />}
+            onClick={() => handleGeneratePDF(false)}
+            style={{ backgroundColor: currentAccentColor || '#4f46e5', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Generate PDF
+          </Button>
+
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'pdf-summary',
+                  icon: <FileText size={14} style={{ color: '#4f46e5' }} />,
+                  label: 'Generate Summary PDF',
+                  onClick: () => handleGeneratePDF(true)
+                },
+                {
+                  type: 'divider'
+                },
+                {
+                  key: 'sample-data',
+                  icon: <Sparkles size={14} style={{ color: '#8b5cf6' }} />,
+                  label: 'Load Sample Data',
+                  onClick: handleLoadSample
+                },
+                {
+                  key: 'reset',
+                  icon: <RotateCcw size={14} />,
+                  label: 'Reset to Defaults',
+                  danger: true,
+                  onClick: handleResetCalculation
+                }
+              ]
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Tooltip title="More options">
+              <Button
+                icon={<MoreVertical size={16} />}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}
+              />
+            </Tooltip>
+          </Dropdown>
+        </Space>
+      </div>
+
+      <div ref={componentRef} className="pdf-container" style={{ padding: '0px' }}>
+        {/* PDF Only Header */}
+        <div className="pdf-header">
+          {/* <Title level={2} style={{ margin: 0, fontWeight: 700 }}>|| શ્રી ૧| ||</Title> */}
+          <img src="/headingText.png" alt="Header Text" className="pdf-heading-text-img" style={{ maxWidth: 460, height: 'auto', marginBottom: 6 }} />
+          <img src="/logo.png" alt="Company Logo" className="pdf-logo-img" style={{ height: 50, marginBottom: 8 }} />
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Advocate and Legal Consultants</Title>
+          <Divider style={{ margin: '12px 0 20px' }} />
+          <Text type="secondary" className="pdf-calculator-title" style={{ fontSize: 16, fontWeight: 'bold', fontFamily: 'Cambria, Cochin, Georgia, Times, "Times New Roman", serif', fontWeight: 'bolder' }}>JANTRI & STAMP DUTY CALCULATOR</Text>
+          <Divider style={{ margin: '12px 0 20px' }} />
+        </div>
+
+        <Row gutter={[12, 12]} className="main-print-row">
+          {/* Left Column: Inputs */}
+          <Col xs={24} lg={16} className="main-print-col-left">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              {/* Section 0: Buyer Details */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખરીદનાર ની વિગત (Buyer Details)</span>} style={{ position: 'relative', zIndex: 100 }}>
+                {/* PDF/Print Table View */}
+                <div className="pdf-only-view">
+                  <table className="pdf-section-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '30%' }}>ખરીદનાર નું નામ</th>
+                        <th style={{ width: '40%' }}>મિલકત ની વિગત</th>
+                        <th style={{ width: '30%' }}>મોજે. ગામ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style={{ fontWeight: 600 }}>{buyerName || '-'}</td>
+                        <td style={{ fontWeight: 600 }}>{propertyDetails || '-'}</td>
+                        <td style={{ fontWeight: 600 }}>{village || '-'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table className="pdf-section-table" style={{ marginTop: '4px' }}>
+                    <thead>
+                      <tr>
+                        <th>{propertyType === 'ખેતી ની જમીન' ? 'સર્વે નંબર' : 'TP'}</th>
+                        <th>{propertyType === 'ખેતી ની જમીન' ? 'બ્લોક નંબર' : 'FP'}</th>
+                        <th>Value Zone</th>
+                        <th>મિલકત પ્રકાર</th>
+                        <th>Gender</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{tp || '-'}</td>
+                        <td>{fp || '-'}</td>
+                        <td>{valueZone || '-'}</td>
+                        <td>{propertyType}</td>
+                        <td>{gender === 'male' ? 'પુરુષ (Male)' : 'સ્ત્રી (Female)'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Interactive Screen Inputs */}
+                <div className="screen-input-only">
+                  <Row gutter={[8, 8]} align="middle">
+                    {/* First Row */}
+                    <Col xs={24} sm={12}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ખરીદનાર નું નામ</Text>
+                      <IndicTransliterate
+                        containerClassName="transliterate-wrapper"
+                        renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter name" style={{ padding: '2px 8px', height: '28px' }} />}
+                        value={buyerName}
+                        onChangeText={(text) => setBuyerName(text)}
+                        lang="gu"
+                      />
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની વિગત (Property Details)</Text>
+                      <IndicTransliterate
+                        renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter details" style={{ padding: '2px 8px', height: '28px' }} />}
+                        value={propertyDetails}
+                        onChangeText={(text) => setPropertyDetails(text)}
+                        lang="gu"
+                      />
+                    </Col>
+
+                    {/* Second Row */}
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મોજે. ગામ</Text>
+                      <IndicTransliterate
+                        containerClassName="transliterate-wrapper"
+                        renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Enter village" style={{ padding: '2px 8px', height: '28px' }} />}
+                        value={village}
+                        onChangeText={(text) => setVillage(text)}
+                        lang="gu"
+                      />
+                    </Col>
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
+                        {propertyType === 'ખેતી ની જમીન' ? 'સર્વે નંબર' : 'TP'}
+                      </Text>
+                      <Input
+                        value={tp}
+                        onChange={(e) => setTp(e.target.value)}
+                        placeholder={propertyType === 'ખેતી ની જમીન' ? 'Enter Survey No' : 'Enter TP'}
+                        style={{ height: '28px' }}
+                      />
+                    </Col>
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
+                        {propertyType === 'ખેતી ની જમીન' ? 'બ્લોક નંબર ' : 'FP'}
+                      </Text>
+                      <Input
+                        value={fp}
+                        onChange={(e) => setFp(e.target.value)}
+                        placeholder={propertyType === 'ખેતી ની જમીન' ? 'Enter Block No' : 'Enter FP'}
+                        style={{ height: '28px' }}
+                      />
+                    </Col>
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>Value Zone</Text>
+                      <Input
+                        value={valueZone}
+                        onChange={(e) => setValueZone(e.target.value)}
+                        placeholder="Enter Value Zone"
+                        style={{ height: '28px' }}
+                      />
+                    </Col>
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત પ્રકાર</Text>
+                      <Select
+                        value={propertyType}
+                        onChange={setPropertyType}
+                        style={{ width: '100%', height: '28px' }}
+                        options={[
+                          { value: 'ખુલ્લો પ્લોટ', label: 'મકાન' },
+                          { value: 'ફ્લેટ', label: 'ફ્લેટ' },
+                          { value: 'દુકાન', label: 'દુકાન' },
+                          { value: 'ખેતી ની જમીન', label: 'ખેતી ની જમીન' },
+                        ]}
+                      />
+                    </Col>
+                    <Col xs={12} sm={4}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>Gender</Text>
+                      <Select
+                        value={gender}
+                        onChange={setGender}
+                        style={{ width: '100%', height: '28px' }}
+                        options={[
+                          { value: 'male', label: 'પુરુષ (Male)' },
+                          { value: 'female', label: 'સ્ત્રી (Female)' },
+                        ]}
+                      />
+                    </Col>
+                  </Row>
+                </div>
+              </Card>
+
+              {/* Section 1: Plot Details */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>{getSection1Title()}</span>} style={{ position: 'relative', zIndex: 99 }}>
+                {/* PDF/Print Table View */}
+                <div className="pdf-only-view">
+                  <table className="pdf-section-table">
+                    <thead>
+                      <tr>
+                        <th>ક્ષેત્રફળ ચો.મી (Area)</th>
+                        <th>જંત્રી ભાવ (Rate)</th>
+                        {propertyType === 'ફ્લેટ' && <th>ASR Deduction</th>}
+                        {propertyType === 'ખેતી ની જમીન' && <th>ગુંઠા પસંદગી</th>}
+                        {propertyType === 'ખેતી ની જમીન' && <th>કુલ ગુંઠા</th>}
+                        {propertyType === 'ખેતી ની જમીન' && <th>વીઘા</th>}
+                        {propertyType === 'ખેતી ની જમીન' && <th>ગુંઠા</th>}
+                        <th>{getSection1ValueTitle()}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{plotArea}</td>
+                        <td>{formatMoney(plotRate)}</td>
+                        {propertyType === 'ફ્લેટ' && <td>{asrDeduction}%</td>}
+                        {propertyType === 'ખેતી ની જમીન' && <td>{gunthaSelection}</td>}
+                        {propertyType === 'ખેતી ની જમીન' && <td>{plotArea ? (plotArea / 100) : 0}</td>}
+                        {propertyType === 'ખેતી ની જમીન' && <td>{plotArea ? Math.floor((plotArea / 100) / gunthaSelection) : 0}</td>}
+                        {propertyType === 'ખેતી ની જમીન' && <td>{(plotArea ? ((plotArea / 100) % gunthaSelection) : 0).toFixed(2)}</td>}
+                        <td style={{ fontWeight: 'bold' }}>{formatMoney(plotValue)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Interactive Screen Inputs */}
+                <div className="screen-input-only">
+                  <Row gutter={[8, 8]} align="middle">
+                    <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={plotArea}
+                        onChange={setPlotArea}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={plotRate}
+                        onChange={setPlotRate}
+                        min={0}
+                      />
+                    </Col>
+                    {propertyType === 'ફ્લેટ' && (
+                      <Col xs={24} sm={6}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>એ. એસ. આર. ડિડકશન(%)</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={asrDeduction}
+                          onChange={setAsrDeduction}
+                          min={0}
+                          max={100}
+                          formatter={value => `${value}%`}
+                          parser={value => value.replace('%', '')}
+                        />
+                      </Col>
+                    )}
+                    <Col xs={24} sm={propertyType === 'ફ્લેટ' ? 6 : 8}>
+                      <Statistic
+                        title={<span style={{ fontSize: 12 }}>{getSection1ValueTitle()}</span>}
+                        value={formatMoney(plotValue)}
+                        valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
+                      />
+                    </Col>
+                    {propertyType === 'ખેતી ની જમીન' && (
+                      <>
+                        <Col xs={24} sm={6}>
+                          <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા પસંદગી</Text>
+                          <Select
+                            value={gunthaSelection}
+                            onChange={setGunthaSelection}
+                            style={{ width: '100%', height: '28px' }}
+                            options={[
+                              { value: 16, label: '16' },
+                              { value: 18, label: '18' },
+                              { value: 23.78, label: '23.78' },
+                            ]}
+                          />
+                        </Col>
+                        <Col xs={24} sm={6}>
+                          <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>કુલ ગુંઠા</Text>
+                          <InputNumber
+                            style={{ width: '100%', height: '28px' }}
+                            value={plotArea ? (plotArea / 100) : 0}
+                            disabled
+                          />
+                        </Col>
+                        <Col xs={24} sm={6}>
+                          <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વીઘા</Text>
+                          <InputNumber
+                            style={{ width: '100%', height: '28px' }}
+                            value={plotArea ? Math.floor((plotArea / 100) / gunthaSelection) : 0}
+                            disabled
+                          />
+                        </Col>
+                        <Col xs={24} sm={6}>
+                          <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ગુંઠા</Text>
+                          <InputNumber
+                            style={{ width: '100%', height: '28px' }}
+                            value={plotArea ? ((plotArea / 100) % gunthaSelection) : 0}
+                            precision={2}
+                            disabled
+                          />
+                        </Col>
+                      </>
+                    )}
+                  </Row>
+                </div>
+              </Card>
+
+              {/* Section 2: Construction Details (Show only if not plot/makan and not flat/shop/agri) */}
+              {!isPlotMakan && propertyType !== 'ફ્લેટ' && propertyType !== 'દુકાન' && propertyType !== 'ખેતી ની જમીન' && (
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>બાંધકામ (Construction)</span>} style={{ position: 'relative', zIndex: 98 }}>
+                  {/* PDF/Print Table View */}
+                  <div className="pdf-only-view">
+                    <table className="pdf-section-table">
+                      <thead>
+                        <tr>
+                          <th>ક્ષેત્રફળ ચો.મી (Area)</th>
+                          <th>જંત્રી ભાવ (Rate)</th>
+                          <th>બાંધકામ નો અવેજ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>{buildArea}</td>
+                          <td>{formatMoney(buildRate)}</td>
+                          <td style={{ fontWeight: 'bold' }}>{formatMoney(buildValue)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Interactive Screen Inputs */}
+                  <div className="screen-input-only">
+                    <Row gutter={[8, 8]} align="middle">
+                      <Col xs={24} sm={8}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ક્ષેત્રફળ ચો.મી (Area)</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={buildArea}
+                          onChange={setBuildArea}
+                          min={0}
+                        />
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Rate)</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={buildRate}
+                          onChange={setBuildRate}
+                          min={0}
+                        />
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <Statistic
+                          title={<span style={{ fontSize: 12 }}>બાંધકામ નો અવેજ</span>}
+                          value={formatMoney(buildValue)}
+                          valueStyle={{ color: 'var(--text-primary)', fontSize: 16 }}
+                        />
+                      </Col>
+                    </Row>
+                  </div>
+                </Card>
+              )}
+
+              {/* Section: Parking (Conditional) */}
+              {(propertyType === 'ફ્લેટ' || propertyType === 'દુકાન') && (
+                <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>પાર્કિંગ (Parking)</span>} style={{ position: 'relative', zIndex: 97 }}>
+                  {/* PDF/Print Table View */}
+                  <div className="pdf-only-view">
+                    <table className="pdf-section-table">
+                      <thead>
+                        <tr>
+                          <th>જંત્રી ભાવ (Calculated Rate)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ fontWeight: 'bold' }}>{formatMoney(parkingValue)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Interactive Screen Inputs */}
+                  <div className="screen-input-only">
+                    <Row gutter={[8, 8]} align="middle">
+                      <Col xs={24} sm={8}>
+                        <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>જંત્રી ભાવ (Calculated Rate)</Text>
+                        <InputNumber
+                          style={{ width: '100%', height: '28px' }}
+                          value={parkingValue}
+                          disabled
+                        />
+                      </Col>
+                    </Row>
+                  </div>
+                </Card>
+              )}
+
+              {/* Section 3: Depreciation */}
+              {propertyType !== 'ખેતી ની જમીન' && (
+                <Card
+                  size="small"
+                  className="glass-panel"
+                  bordered={false}
+                  title={
+                    isPlotMakan ? (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ color: currentAccentColor, fontSize: 13, fontWeight: 700 }}>ઘસારો (Depreciation)</span>
+                        <div className="screen-input-only" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>જંત્રી ભાવ (Rate):</Text>
+                            <InputNumber
+                              value={buildRate}
+                              onChange={setBuildRate}
+                              min={0}
+                              style={{ width: 95, height: '28px' }}
+                              placeholder="Rate"
+                            />
+                          </div>
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<Plus size={14} />}
+                            onClick={handleAddFloor}
+                            style={{ backgroundColor: currentAccentColor, height: '28px', whiteSpace: 'nowrap' }}
+                          >
+                            Add Floor
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ color: currentAccentColor, fontSize: 13, width: '40%' }}>ઘસારો (Depreciation)</span>
+                        <span className="pdf-depreciation-total-title" style={{ fontSize: 16, width: '58%', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          કુલ અવેજ: <span style={{ color: currentAccentColor, fontWeight: 700 }}>{formatMoney(totalValue)}</span>
+                        </span>
+                      </div>
+                    )
+                  }
+                  style={{ position: 'relative', zIndex: 96 }}
+                >
+                  {isPlotMakan ? (
+                    <>
+                      {/* PDF/Print Table View for મકાન (Plot) */}
+                      <div className="pdf-only-view">
+                        <div style={{ marginBottom: 4, display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#334155' }}>
+                          <span><strong>જંત્રી ભાવ (Rate):</strong> ₹{formatMoney(buildRate)} / ચો.મી</span>
+                          <span><strong>પ્લોટ નો અવેજ:</strong> ₹{formatMoney(plotValue)}</span>
+                        </div>
+                        <table className="pdf-section-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '12%' }}>Flor</th>
+                              <th style={{ width: '18%' }}>ક્ષેત્રફળ ચો.મી (Area)</th>
+                              <th style={{ width: '20%' }}>બાંધકામ નો અવેજ</th>
+                              <th style={{ width: '12%' }}>Age</th>
+                              <th style={{ width: '18%' }}>ઘસારાની રકમ</th>
+                              <th style={{ width: '20%' }}>ઘસારા બાદ ni rakam</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {floors.map((f) => {
+                              const fArea = Number(f.area) || 0;
+                              const fBuildVal = fArea * (Number(buildRate) || 0);
+                              const fDep = ((Number(f.age) || 0) * fBuildVal * 1.2) / 100;
+                              const fNet = fBuildVal - fDep;
+                              return (
+                                <tr key={f.id}>
+                                  <td style={{ fontWeight: 600 }}>{f.floor}</td>
+                                  <td>{fArea}</td>
+                                  <td>{formatMoney(fBuildVal)}</td>
+                                  <td>{f.age || 0} વર્ષ</td>
+                                  <td>{formatMoney(fDep)}</td>
+                                  <td style={{ fontWeight: 'bold' }}>{formatMoney(fNet)}</td>
+                                </tr>
+                              );
+                            })}
+                            <tr style={{ fontWeight: 'bold', backgroundColor: '#f1f5f9' }}>
+                              <td>કુલ (Total)</td>
+                              <td>{totalFloorArea}</td>
+                              <td>{formatMoney(totalFloorBuildValue)}</td>
+                              <td>-</td>
+                              <td>{formatMoney(totalFloorDepAmount)}</td>
+                              <td style={{ color: currentAccentColor }}>{formatMoney(totalFloorNetValue)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', padding: '4px 8px', background: '#f8fafc', border: '1px solid #c7c7c7', fontSize: 11 }}>
+                          <span>પ્લોટ નો અવેજ: <strong>₹{formatMoney(plotValue)}</strong></span>
+                          <span>+ કુલ બાંધકામ (ઘસારા બાદ): <strong>₹{formatMoney(totalFloorNetValue)}</strong></span>
+                          <span>= અવેજ (Final Value): <strong style={{ color: currentAccentColor }}>₹{formatMoney(calculatedFinalValue)}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Interactive Screen Inputs for મકાન (Plot) */}
+                      <div className="screen-input-only">
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: 12 }}>
+                          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 12 }}>
+                            <thead>
+                              <tr style={{ background: 'rgba(0, 0, 0, 0.03)', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '12%' }}>Flor</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '18%' }}>ક્ષેત્રફળ ચો.મી (Area)</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '18%' }}>બાંધકામ નો અવેજ</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '15%' }}>Age</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '16%' }}>ઘસારાની રકમ</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'center', width: '17%' }}>ઘસારા બાદ ni rakam</th>
+                                <th style={{ padding: '6px 4px', textAlign: 'center', width: '4%' }}></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {floors.map((f) => {
+                                const fArea = Number(f.area) || 0;
+                                const fBuildVal = fArea * (Number(buildRate) || 0);
+                                const fDep = ((Number(f.age) || 0) * fBuildVal * 1.2) / 100;
+                                const fNet = fBuildVal - fDep;
+                                return (
+                                  <tr key={f.id} style={{ borderBottom: '1px solid var(--border-color, #f1f5f9)' }}>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                      <Input
+                                        value={f.floor}
+                                        onChange={(e) => handleUpdateFloor(f.id, 'floor', e.target.value)}
+                                        style={{ width: '100%', height: '28px', textAlign: 'center', fontWeight: 'bold' }}
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px' }}>
+                                      <InputNumber
+                                        value={f.area}
+                                        onChange={(val) => handleUpdateFloor(f.id, 'area', val)}
+                                        min={0}
+                                        style={{ width: '100%', height: '28px' }}
+                                        placeholder="Area"
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 500 }}>
+                                      {formatMoney(fBuildVal)}
+                                    </td>
+                                    <td style={{ padding: '4px 6px' }}>
+                                      <InputNumber
+                                        value={f.age}
+                                        onChange={(val) => handleUpdateFloor(f.id, 'age', val)}
+                                        min={0}
+                                        max={100}
+                                        style={{ width: '100%', height: '28px' }}
+                                        placeholder="Age"
+                                      />
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      {formatMoney(fDep)}
+                                    </td>
+                                    <td style={{ padding: '4px 6px', textAlign: 'center', fontWeight: 'bold', color: currentAccentColor }}>
+                                      {formatMoney(fNet)}
+                                    </td>
+                                    <td style={{ padding: '4px 4px', textAlign: 'center' }}>
+                                      <Button
+                                        type="text"
+                                        danger
+                                        size="small"
+                                        icon={<Trash2 size={15} />}
+                                        onClick={() => handleRemoveFloor(f.id)}
+                                        disabled={floors.length <= 1}
+                                        style={{ padding: 0 }}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              {/* Total Row */}
+                              <tr style={{ background: 'rgba(0, 0, 0, 0.02)', fontWeight: 'bold', borderTop: '2px solid var(--border-color, #e2e8f0)' }}>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>કુલ</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{totalFloorArea}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatMoney(totalFloorBuildValue)}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>-</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>{formatMoney(totalFloorDepAmount)}</td>
+                                <td style={{ padding: '6px 8px', textAlign: 'center', color: currentAccentColor }}>{formatMoney(totalFloorNetValue)}</td>
+                                <td></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <Row gutter={[8, 8]} align="middle">
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>પ્લોટ નો અવેજ</span>}
+                              value={formatMoney(plotValue)}
+                              valueStyle={{ color: 'var(--text-primary)', fontSize: 15 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>કુલ બાંધકામ (ઘસારા બાદ)</span>}
+                              value={formatMoney(totalFloorNetValue)}
+                              valueStyle={{ color: 'var(--text-secondary)', fontSize: 15 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
+                              <Statistic
+                                title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>અવેજ (Final Value)</span>}
+                                value={formatMoney(calculatedFinalValue)}
+                                valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* PDF/Print Table View for Flat/Shop (Unchanged) */}
+                      <div className="pdf-only-view">
+                        <table className="pdf-section-table">
+                          <thead>
+                            <tr>
+                              <th>મિલકત ની ઉંમર (Age)</th>
+                              <th>ઘસારાની રકમ</th>
+                              <th>ઘસારા બાદ નો અવેજ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>{depAge} વર્ષ</td>
+                              <td>{formatMoney(depAmount)}</td>
+                              <td style={{ fontWeight: 'bold' }}>{formatMoney(calculatedFinalValue)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Interactive Screen Inputs for Flat/Shop (Unchanged) */}
+                      <div className="screen-input-only">
+                        <Row gutter={[8, 8]} align="middle">
+                          <Col xs={24} sm={8}>
+                            <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત ની ઉંમર</Text>
+                            <InputNumber
+                              style={{ width: '100%', height: '28px' }}
+                              value={depAge}
+                              onChange={setDepAge}
+                              min={0}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Statistic
+                              title={<span style={{ fontSize: 12 }}>ઘસારાની રકમ</span>}
+                              value={formatMoney(depAmount)}
+                              valueStyle={{ color: 'var(--text-secondary)', fontSize: 16 }}
+                            />
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <div style={{ background: `${currentAccentColor}1A`, padding: '6px 12px', borderRadius: 6, border: `1px solid ${currentAccentColor}33` }}>
+                              <Statistic
+                                title={<span style={{ fontSize: 12, color: currentAccentColor, fontWeight: 600 }}>ઘસારા બાદ નો અવેજ</span>}
+                                value={formatMoney(calculatedFinalValue)}
+                                valueStyle={{ fontSize: 16, color: currentAccentColor, fontWeight: 'bold' }}
+                              />
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+                    </>
+                  )}
+                </Card>
+              )}
+
+              {/* Section 4: Fees and Expenses Inputs */}
+              <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>ખર્ચની વિગત (Additional Details)</span>}>
+                {/* PDF/Print Table View */}
+                <div className="pdf-only-view">
+                  <table className="pdf-section-table">
+                    <thead>
+                      <tr>
+                        <th>અવેજ (Final Value)</th>
+                        <th>રજી. ફી (1%)</th>
+                        <th>રજી. ફી (Final)</th>
+                        <th>ટોટલ પેજ</th>
+                        <th>Administrative Fee</th>
+                        <th>વકીલ ફી</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{formatMoney(finalValue)}</td>
+                        <td>{formatMoney(calculatedRegFee)}</td>
+                        <td>{formatMoney(regFee)}</td>
+                        <td>{totalPages}</td>
+                        <td>{formatMoney(vahiwatFee)}</td>
+                        <td>{formatMoney(vakilFee)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  {customFields.length > 0 && customFields.some(f => f.name) && (
+                    <table className="pdf-section-table" style={{ marginTop: '4px' }}>
+                      <thead>
+                        <tr>
+                          <th>અન્ય ખર્ચ (Extra Expenses)</th>
+                          <th>રકમ (Amount)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customFields.filter(f => f.name).map(f => (
+                          <tr key={f.id}>
+                            <td>{f.name}</td>
+                            <td>{formatMoney(Number(f.value) || 0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* Interactive Screen Inputs */}
+                <div className="screen-input-only">
+                  <Row gutter={[8, 8]}>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>અવેજ (Final Value)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={finalValue}
+                        onChange={setCustomFinalValue}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>રજી. ફી (1%)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={formatMoney(calculatedRegFee)}
+                        disabled
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>રજી. ફી (Final)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={regFee}
+                        onChange={setCustomRegFee}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>ટોટલ પેજ (Total Pages)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={totalPages}
+                        onChange={setTotalPages}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>સબ-રજિસ્ટ્રાર</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={vahiwatFee}
+                        onChange={setVahiwatFee}
+                        min={0}
+                      />
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>વકીલ ફી (Vakil Fee)</Text>
+                      <InputNumber
+                        style={{ width: '100%', height: '28px' }}
+                        value={vakilFee}
+                        onChange={setVakilFee}
+                        min={0}
+                      />
+                    </Col>
+
+                    <Col span={24}>
+                      <Divider style={{ margin: '8px 0' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <Text strong style={{ color: currentAccentColor, fontSize: 13 }}>અન્ય ખર્ચ (Extra Expenses)</Text>
+                        <Button className="no-print" type="dashed" size="small" icon={<Plus size={16} />} onClick={addCustomField}>
+                          Add Field
+                        </Button>
+                      </div>
+                      {customFields.map((field) => (
+                        <Row gutter={8} key={field.id} style={{ marginBottom: 8 }} align="middle">
+                          <Col xs={11}>
+                            <IndicTransliterate
+                              containerClassName="transliterate-wrapper"
+                              renderComponent={(props) => <input {...props} className="custom-transliterate-input" placeholder="Field Name (e.g. Other Exp)" style={{ width: '100%', padding: '2px 8px', height: '28px' }} />}
+                              value={field.name}
+                              onChangeText={(text) => updateCustomField(field.id, 'name', text)}
+                              lang="gu"
+                            />
+                          </Col>
+                          <Col xs={11}>
+                            <Input type="number" placeholder="Value" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} />
+                          </Col>
+                          <Col xs={2}>
+                            <Button className="no-print" type="text" danger icon={<Trash2 size={16} />} onClick={() => removeCustomField(field.id)} />
+                          </Col>
+                        </Row>
+                      ))}
+                    </Col>
+                  </Row>
+                </div>
+              </Card>
+            </div>
+          </Col>
+
+          {/* Right Column: Final Calculation Summary */}
+          <Col xs={24} lg={8} className="main-print-col-right">
+            <Card size="small" className="glass-panel pdf-final-calculation" bordered={false} style={{ position: 'sticky', top: 88, borderTop: `4px solid ${currentAccentColor}` }}>
+              <Title level={5} style={{ marginTop: 0, marginBottom: 12, fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Final Calculation</span>
+                <Button type="primary" size="small" icon={<FileText size={16} />} className="no-print" onClick={() => handleGeneratePDF(true)} style={{ backgroundColor: currentAccentColor }}>Print</Button>
+              </Title>
+
+              <Space direction="vertical" style={{ width: '100%' }} size="small">
+                {/* <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text strong style={{ fontSize: 13 }}>{formatMoney(calculatedFinalValue)}</Text>
+                </div> */}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>અવેજ (Final Value)</Text>
+                  <Text strong style={{ fontSize: 13 }}>{formatMoney(finalValue)}</Text>
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>સ્ટેમ્પ ડયુટી (Stamp Duty)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(stampDuty)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>રજી. ફી (Reg. Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(regFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>પેજ ફી (Page Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(pageFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>ઇન્ડેક્ષ ફી (Index Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(indexFee)}</Text>
+                </div>
+
+                <Divider style={{ margin: '4px 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Administrative Fee</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(vahiwatFee)}</Text>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text type="secondary" style={{ fontSize: 13 }}>વકીલ ફી (Vakil Fee)</Text>
+                  <Text style={{ fontSize: 13 }}>{formatMoney(vakilFee)}</Text>
+                </div>
+                {customFields.map((field) => field.name ? (
+                  <div key={field.id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="secondary" style={{ fontSize: 13 }}>{field.name}</Text>
+                    <Text style={{ fontSize: 13 }}>{formatMoney(Number(field.value) || 0)}</Text>
+                  </div>
+                ) : null)}
+
+                <div className="pdf-total-cost-box" style={{
+                  marginTop: 8,
+                  padding: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  borderRadius: 8,
+                  textAlign: 'center'
+                }}>
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>કુલ ખર્ચ (Total Cost)</Text>
+                  <Text strong style={{ fontSize: 22, color: currentAccentColor }}>
+                    ₹ {formatMoney(totalFee)}
+                  </Text>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* PDF Only Footer
+        <div className="pdf-footer">
+          <div className="pdf-footer-content">
+            <span style={{ fontStyle: 'italic' }}>Generated on: {new Date().toLocaleDateString('en-GB')}</span>
+            <span style={{ fontWeight: 600 }}>Jikadara & Pandav Associates © 2026</span>
+          </div>
+        </div> */}
+
+      </div>
+
+      {/* Save to Database Modal */}
+      <SaveJantriModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={handleSaveCalculation}
+        calculationData={{
+          buyerName,
+          propertyDetails,
+          village,
+          valueZone,
+          tp,
+          fp,
+          propertyType,
+          finalValue,
+          totalFee
+        }}
+        currentDraftTitle={activeCalculationTitle}
+        currentDraftId={activeCalculationId}
+        isSaving={isSaving}
+      />
+
+      {/* Saved Calculations Modal */}
+      <SavedJantriModal
+        visible={savedModalVisible}
+        onClose={() => setSavedModalVisible(false)}
+        onLoadCalculation={handleLoadCalculation}
+        currentCalculationId={activeCalculationId}
+      />
+    </div>
+  );
+}

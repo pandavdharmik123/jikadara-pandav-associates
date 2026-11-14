@@ -6,6 +6,18 @@ import { startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
 
 const router = Router();
 
+function parseAppointmentDateTime(val) {
+  if (!val || !String(val).trim()) return null;
+  const raw = String(val).trim();
+  try {
+    // If date-only (YYYY-MM-DD), anchor to IST start of day; otherwise preserve full date + time
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? startOfDayIST(raw) : new Date(raw);
+    return !isNaN(d.getTime()) ? d : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * GET /api/tasks (query: ?clientId=xxx)
  * List tasks — optionally filtered by clientId
@@ -40,7 +52,7 @@ router.get('/', requireAuth, async (req, res) => {
         client: { select: { id: true, name: true } },
         _count: { select: { transactions: { where: { isDeleted: false } } } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: req.query.appointmentDate ? { appointmentDate: 'asc' } : { createdAt: 'desc' },
     });
 
     res.json({ tasks });
@@ -121,15 +133,7 @@ router.post('/', requireAuth, async (req, res) => {
       }
     }
 
-    let parsedAppointmentDate = null;
-    if (appointmentDate && String(appointmentDate).trim()) {
-      try {
-        const d = startOfDayIST(appointmentDate);
-        if (!isNaN(d.getTime())) parsedAppointmentDate = d;
-      } catch {
-        parsedAppointmentDate = null;
-      }
-    }
+    const parsedAppointmentDate = parseAppointmentDateTime(appointmentDate);
 
     const task = await prisma.task.create({
       data: {
@@ -340,19 +344,9 @@ router.put('/:id', requireAuth, async (req, res) => {
       }
     }
 
-    let parsedAppointmentDate = undefined;
-    if (appointmentDate !== undefined) {
-      if (appointmentDate && String(appointmentDate).trim()) {
-        try {
-          const d = startOfDayIST(appointmentDate);
-          parsedAppointmentDate = !isNaN(d.getTime()) ? d : null;
-        } catch {
-          parsedAppointmentDate = null;
-        }
-      } else {
-        parsedAppointmentDate = null;
-      }
-    }
+    const parsedAppointmentDate = appointmentDate !== undefined
+      ? parseAppointmentDateTime(appointmentDate)
+      : undefined;
 
     let statusUpdateData = {};
     if (status !== undefined) {

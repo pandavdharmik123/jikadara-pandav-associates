@@ -14,11 +14,11 @@ import {
 const REFRESH_RATIO = 0.75;
 
 /**
- * How recently the user must have interacted for the session to count as active.
- * If VITE_SESSION_IDLE_MS is set, it overrides this. Otherwise, scale dynamically
- * with the token lifetime (e.g. 15 minutes for a 1h token, min 2 minutes).
+ * How recently the user must have interacted for a background timer to
+ * proactively refresh the token right away. If the user is idle or on another
+ * tab, we simply wait until they return or interact rather than logging out.
  */
-function getIdleTimeoutMs(token) {
+function getIdleWindowMs(token) {
   const configured = Number(import.meta.env.VITE_SESSION_IDLE_MS);
   if (configured > 0) return configured;
   const lifetime = getTokenLifetime(token);
@@ -26,6 +26,12 @@ function getIdleTimeoutMs(token) {
     return Math.max(2 * 60 * 1000, Math.min(15 * 60 * 1000, Math.round(lifetime * 0.25)));
   }
   return 15 * 60 * 1000;
+}
+
+function isFatalRefreshError(error) {
+  if (!error) return false;
+  if (error.code === 'NO_REFRESH_TOKEN' || error.code === 'SESSION_CLOSED') return true;
+  return error.status === 401 || error.status === 403 || error.status === 400;
 }
 
 const AUTH_STORAGE_KEY = 'auth-storage';
@@ -54,70 +60,81 @@ export default function AuthSessionWatcher() {
     tracker.start();
 
     let refreshTimer = null;
-    let expiryTimer = null;
+    let retryTimer = null;
     let finished = false;
-    let hiddenAt = null;
 
     const clearTimers = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
-      if (expiryTimer) clearTimeout(expiryTimer);
+      if (retryTimer) clearTimeout(retryTimer);
       refreshTimer = null;
-      expiryTimer = null;
+      retryTimer = null;
     };
 
-    const endSession = (reason) => {
+    const endSession = () => {
       if (finished) return;
       finished = true;
       clearTimers();
       tracker.stop();
       logout();
-      message.warning(
-        reason === 'idle'
-          ? 'You were signed out due to inactivity.'
-          : 'Your session has expired. Please log in again.'
-      );
+      message.warning('Your session has expired. Please log in again.');
       navigate('/login', { replace: true });
     };
 
-    const evaluate = async () => {
+    const performRefresh = async () => {
+      if (finished) return;
+
+      if (!hasRefreshToken()) {
+        const currentToken = useAuthStore.getState().token;
+        const expiresAt = getTokenExpirationTime(currentToken);
+        if (!expiresAt || Date.now() >= expiresAt) {
+          endSession();
+        }
+        return;
+      }
+
+      try {
+        await refreshAccessToken();
+        // Store update re-runs this effect and schedules the next 75% timer.
+      } catch (error) {
+        if (finished) return;
+        if (isFatalRefreshError(error)) {
+          endSession();
+          return;
+        }
+        // Transient network / server cold-start error: keep the session alive
+        // and retry in 30 seconds instead of kicking the user out.
+        retryTimer = setTimeout(() => {
+          if (!finished && document.visibilityState === 'visible') {
+            performRefresh();
+          }
+        }, 30 * 1000);
+      }
+    };
+
+    const evaluate = () => {
       if (finished) return;
 
       const currentToken = useAuthStore.getState().token;
       if (!currentToken) return;
 
       const expiresAt = getTokenExpirationTime(currentToken);
-      const idleTimeout = getIdleTimeoutMs(currentToken);
+      const refreshAt = getTokenRefreshTime(currentToken, REFRESH_RATIO);
+      const idleWindow = getIdleWindowMs(currentToken);
 
       if (!expiresAt || Date.now() >= expiresAt) {
-        // If expired (e.g. system sleep/throttle), try refreshing before ending the session
-        if (hasRefreshToken()) {
-          try {
-            await refreshAccessToken();
-            return;
-          } catch {
-            // Refresh failed or revoked
-          }
+        // Access token expired (e.g., computer slept or tab was backgrounded):
+        // silently rotate using the 30-day refresh token if available.
+        performRefresh();
+        return;
+      }
+
+      if (refreshAt && Date.now() >= refreshAt) {
+        // Only proactively refresh in the background if the user is active on
+        // this tab. If idle or hidden, wait until they return/interact rather
+        // than logging them out.
+        if (tracker.isActive(idleWindow)) {
+          performRefresh();
         }
-        endSession('expired');
-        return;
-      }
-
-      // 75% mark reached: no recent browser activity -> end the session.
-      if (!tracker.isActive(idleTimeout)) {
-        endSession('idle');
-        return;
-      }
-
-      // Sessions created before refresh tokens existed keep working until the
-      // access token's hard expiry.
-      if (!hasRefreshToken()) return;
-
-      try {
-        await refreshAccessToken();
-        // The store update re-runs this effect, which clears the old timers and
-        // schedules the next 75% check for the fresh token.
-      } catch {
-        if (!finished) endSession('expired');
       }
     };
 
@@ -132,58 +149,48 @@ export default function AuthSessionWatcher() {
       if (!refreshAt || !expiresAt) return;
 
       const now = Date.now();
-      if (now >= expiresAt) {
+      if (now >= refreshAt) {
         evaluate();
         return;
       }
 
       refreshTimer = setTimeout(evaluate, Math.max(0, refreshAt - now));
-      // Safety net: check expiry and refresh if valid, else end session
-      expiryTimer = setTimeout(evaluate, Math.max(0, expiresAt - now) + 250);
+    };
+
+    const refreshIfDue = () => {
+      if (finished) return;
+      const currentToken = useAuthStore.getState().token;
+      if (!currentToken) return;
+      const refreshAt = getTokenRefreshTime(currentToken, REFRESH_RATIO);
+      if (refreshAt && Date.now() >= refreshAt) {
+        performRefresh();
+      }
     };
 
     const handleVisibility = () => {
-      if (finished) return;
-
-      if (document.visibilityState === 'hidden') {
-        hiddenAt = Date.now();
-        return;
-      }
-
-      const resumedAt = Date.now();
-      const wasHiddenAt = hiddenAt;
-      hiddenAt = null;
+      if (finished || document.visibilityState !== 'visible') return;
       tracker.markActive();
-
-      const currentToken = useAuthStore.getState().token;
-      const refreshAt = getTokenRefreshTime(currentToken, REFRESH_RATIO);
-      if (!refreshAt) return;
-
-      if (resumedAt >= refreshAt) {
-        const idleTimeout = getIdleTimeoutMs(currentToken);
-        // Only treat as idle if the user has truly been inactive for longer than idleTimeout
-        const wasAwayTooLong = wasHiddenAt !== null && (resumedAt - wasHiddenAt > idleTimeout);
-        if (wasAwayTooLong || tracker.getIdleFor() > idleTimeout) {
-          endSession('idle');
-          return;
-        }
-        evaluate();
-        return;
-      }
-
-      schedule();
+      refreshIfDue();
     };
 
     const handleFocus = () => {
       if (finished || document.visibilityState !== 'visible') return;
-      const currentToken = useAuthStore.getState().token;
-      const refreshAt = getTokenRefreshTime(currentToken, REFRESH_RATIO);
-      if (refreshAt && Date.now() >= refreshAt) evaluate();
+      tracker.markActive();
+      refreshIfDue();
+    };
+
+    // If the user was idle past the 75% mark and now clicks/types on the page,
+    // immediately refresh the token so they stay logged in seamlessly.
+    const handleUserWake = () => {
+      if (finished || document.visibilityState !== 'visible') return;
+      refreshIfDue();
     };
 
     schedule();
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('pointerdown', handleUserWake, { passive: true, capture: true });
+    window.addEventListener('keydown', handleUserWake, { passive: true, capture: true });
 
     return () => {
       finished = true;
@@ -191,6 +198,8 @@ export default function AuthSessionWatcher() {
       tracker.stop();
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pointerdown', handleUserWake, { passive: true, capture: true });
+      window.removeEventListener('keydown', handleUserWake, { passive: true, capture: true });
     };
   }, [token, isAuthenticated, logout, navigate]);
 

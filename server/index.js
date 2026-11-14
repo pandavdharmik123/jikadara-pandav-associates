@@ -59,6 +59,15 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
+  // Standalone income-expense app (income-expense-app/): Vite dev + preview.
+  'http://localhost:5180',
+  'http://127.0.0.1:5180',
+  'http://localhost:4180',
+  'http://127.0.0.1:4180',
+  // Capacitor native shells: Android WebView origin and iOS WKWebView origin.
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost',
   'http://127.0.0.1:5173',
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : []),
 ];
