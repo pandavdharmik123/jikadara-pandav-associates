@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Table, Button, Space, Typography, Popconfirm, message, Tag, Input, Segmented } from 'antd';
-import { Trash2, FolderOpen, Copy, Search, RefreshCw, Database } from 'lucide-react';
+import { Drawer, Table, Button, Space, Popconfirm, message, Tag, Input, Segmented, Typography } from 'antd';
+import { Trash2, FolderOpen, Copy, Search, RefreshCw, Calculator, Files } from 'lucide-react';
 import api from '../../../services/api';
-
-const { Text } = Typography;
+import '../../../styles/savedDrawer.scss';
 
 export default function SavedJantriModal({
   visible,
@@ -11,6 +10,7 @@ export default function SavedJantriModal({
   onLoadCalculation,
   currentCalculationId = null
 }) {
+  const { Text } = Typography;
   const [calculations, setCalculations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -235,110 +235,115 @@ export default function SavedJantriModal({
   ];
 
   return (
-    <Modal
-      title={
-        <Space>
-          <Database size={18} style={{ color: '#4f46e5' }} />
-          <span>Saved Jantri Calculations</span>
-        </Space>
-      }
+    <Drawer
       open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={1200}
-      centered
-      destroyOnClose
-      styles={{ body: { padding: '16px 0 0 0' } }}
-      bodyStyle={{ padding: '16px 0 0 0' }}
+      onClose={onClose}
+      placement="right"
+      width={1100}
+      destroyOnClose={false}
+      classNames={{
+        root: 'saved-drawer',
+        section: 'saved-drawer-panel',
+        header: 'saved-drawer-header',
+        body: 'saved-drawer-body'
+      }}
+      title={
+        <div className="saved-drawer-heading">
+          <span className="saved-drawer-heading-icon">
+            <Calculator size={17} />
+          </span>
+          <span className="saved-drawer-heading-text">
+            <span className="saved-drawer-heading-title">Saved Calculations</span>
+            <span className="saved-drawer-heading-sub">Makan/Milkat Jantri</span>
+          </span>
+        </div>
+      }
     >
-      <div>
-        {/* Search & Filter Bar */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 260 }}>
-            <Input
-              placeholder="Search by buyer, village, title..."
-              prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              allowClear
-              style={{ maxWidth: 320 }}
-            />
-
-            <Segmented
-              value={typeFilter}
-              onChange={setTypeFilter}
-              options={[
-                { label: 'All', value: 'ALL' },
-                { label: 'ખુલ્લો પ્લોટ', value: 'ખુલ્લો પ્લોટ' },
-                { label: 'ફ્લેટ', value: 'ફ્લેટ' },
-                { label: 'દુકાન', value: 'દુકાન' },
-                { label: 'ખેતી ની જમીન', value: 'ખેતી ની જમીન' }
-              ]}
-            />
-          </div>
-
-          <Button
-            icon={<RefreshCw size={14} />}
-            onClick={fetchCalculations}
-            loading={loading}
-          >
-            Refresh
-          </Button>
+      {/* Toolbar: count + refresh */}
+      <div className="saved-drawer-toolbar">
+        <div className="saved-drawer-count">
+          <Files size={14} />
+          <span>
+            {filteredCalculations.length} saved calculation{filteredCalculations.length === 1 ? '' : 's'}
+          </span>
         </div>
-
-        {/* Calculations Table - Full width with min-height 500px and footer pinned at end */}
-        <div className="saved-jantri-modal-table" style={{ minHeight: 500, display: 'flex', flexDirection: 'column' }}>
-          <style>{`
-            .saved-jantri-modal-table {
-              min-height: 500px;
-              display: flex;
-              flex-direction: column;
-            }
-            .saved-jantri-modal-table .ant-table-wrapper {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-            }
-            .saved-jantri-modal-table .ant-spin-nested-loading {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-            }
-            .saved-jantri-modal-table .ant-spin-container {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-            }
-            .saved-jantri-modal-table .ant-table {
-              flex: 1;
-            }
-            .saved-jantri-modal-table .ant-table-container {
-              min-height: 500px;
-            }
-            .saved-jantri-modal-table .ant-pagination {
-              margin: 12px 0px 0px 0px !important;
-              padding: 0 24px !important;
-            }
-          `}</style>
-
-          <Table
-            size="middle"
-            rowKey="id"
-            columns={columns}
-            dataSource={filteredCalculations}
-            scroll={{ x: 'max-content', y: 'calc(100vh - 120px)' }}
-            loading={loading}
-            pagination={{
-              pageSize: 8,
-              showSizeChanger: false,
-              showTotal: (total) => <span style={{ color: '#64748b', fontSize: 13 }}>Total <strong>{total}</strong> calculations</span>,
-              style: { margin: '16px 24px 16px 0', marginTop: 'auto' }
-            }}
-            locale={{ emptyText: 'No saved calculations found' }}
-          />
-        </div>
+        <Button
+          type="text"
+          size="small"
+          className="saved-drawer-refresh"
+          icon={<RefreshCw size={14} />}
+          loading={loading}
+          onClick={fetchCalculations}
+        />
       </div>
-    </Modal>
+
+      {/* Search & Filter */}
+      <div className="saved-drawer-filters">
+        <Input
+          className="saved-drawer-search"
+          placeholder="Search by buyer, village, title..."
+          prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          allowClear
+        />
+        <Segmented
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { label: 'All', value: 'ALL' },
+            { label: 'ખુલ્લો પ્લોટ', value: 'ખુલ્લો પ્લોટ' },
+            { label: 'ફ્લેટ', value: 'ફ્લેટ' },
+            { label: 'દુકાન', value: 'દુકાન' },
+            { label: 'ખેતી ની જમીન', value: 'ખેતી ની જમીન' }
+          ]}
+        />
+      </div>
+
+      {/* Saved calculations table */}
+      <div className="saved-drawer-table" style={{ minHeight: 420, display: 'flex', flexDirection: 'column' }}>
+        <style>{`
+          .saved-drawer-table .ant-table-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-spin-nested-loading {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-spin-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-table {
+            flex: 1;
+          }
+          .saved-drawer-table .ant-table-container {
+            min-height: 420px;
+          }
+          .saved-drawer-table .ant-pagination {
+            margin: 12px 0px 0px 0px !important;
+          }
+        `}</style>
+
+        <Table
+          size="middle"
+          rowKey="id"
+          columns={columns}
+          dataSource={filteredCalculations}
+          loading={loading}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 260px)' }}
+          pagination={{
+            pageSize: 8,
+            showSizeChanger: false,
+            showTotal: (total) => <span style={{ color: '#64748b', fontSize: 13 }}>Total <strong>{total}</strong> calculations</span>
+          }}
+          locale={{ emptyText: 'No saved calculations found' }}
+        />
+      </div>
+    </Drawer>
   );
 }

@@ -44,6 +44,18 @@
   padding-bottom: 8px;
 }
 
+/* Stacking order: the Jantri section cards carry inline z-index 100…96
+   (website trick so each card's transliterate dropdown paints above the
+   next card). The sticky header (z-index 20) and fixed bottom nav
+   (z-index 30) must sit above them, otherwise scrolled-under cards cover
+   the app chrome. The dropdowns stay inside their card's stacking
+   context, so they still overlay neighbouring cards — they just slide
+   under the header/nav like everything else. */
+.app-header,
+.bottom-nav {
+  z-index: 300;
+}
+
 .tools-hero {
   display: flex;
   align-items: center;
@@ -236,6 +248,75 @@
 .tool-page-body {
   min-width: 0;
   overflow-x: clip;
+}
+
+/* Indic transliterate inputs (Jantri / Invoice / Rent Agreement).
+   Ported from the website's main.scss — without these the raw <input> keeps
+   its browser-default width and overlaps the neighbouring grid columns. */
+.transliterate-wrapper {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+}
+
+.transliterate-wrapper:focus-within {
+  z-index: 25;
+}
+
+.react-transliterate-dropdown {
+  background: #ffffff !important;
+  border: 1px solid var(--primary) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 4px !important;
+  margin-top: 2px !important;
+  z-index: 10000 !important;
+  list-style: none !important;
+  position: absolute !important;
+  max-height: 240px !important;
+  overflow-y: auto !important;
+  width: auto !important;
+  min-width: 160px !important;
+  text-align: left !important;
+}
+
+.react-transliterate-dropdown-item {
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  color: var(--text-primary) !important;
+  font-family: 'Noto Sans Gujarati', 'Inter', system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  transition: all 0.15s ease !important;
+  text-align: left !important;
+  white-space: nowrap;
+}
+
+.react-transliterate-dropdown-item-active,
+.react-transliterate-dropdown-item:hover {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+.custom-transliterate-input {
+  display: block;
+  width: 100%;
+  padding: 4px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5714285714285714;
+  transition: border-color 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.custom-transliterate-input:focus,
+.custom-transliterate-input:hover {
+  border-color: var(--primary);
 }
 
 /* The shared editor chrome from the website's main.scss. These selectors stay

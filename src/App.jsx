@@ -30,6 +30,7 @@ import AITranslator from './features/AITranslator/AITranslator';
 import UniversalConverter from './features/UniversalConverter/UniversalConverter';
 import JantriCalculator from './features/JantriCalculator/JantriCalculator';
 import RentAgreementCalculator from './features/RentAgreementCalculator/RentAgreementCalculator';
+import MortgageStampDutyCalculator from './features/MortgageStampDuty/MortgageStampDutyCalculator';
 import InvoiceGenerator from './features/InvoiceGenerator/InvoiceGenerator';
 import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWordsConverter';
 import DocumentAI from './features/DocumentAI/DocumentAI';
@@ -300,6 +301,10 @@ export default function App() {
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/rent_agreement" />}>
                     <Route path="rent_agreement" element={<RentAgreementCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/mortgage_stamp_duty" />}>
+                    <Route path="mortgage_stamp_duty" element={<MortgageStampDutyCalculator themeMode={themeMode} currentAccentColor={currentAccentColor} />} />
                   </Route>
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/invoice" />}>

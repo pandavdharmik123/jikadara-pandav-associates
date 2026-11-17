@@ -875,7 +875,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                     </Col>
 
                     {/* Second Row */}
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મોજે. ગામ</Text>
                       <IndicTransliterate
                         containerClassName="transliterate-wrapper"
@@ -885,7 +885,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         lang="gu"
                       />
                     </Col>
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
                         {propertyType === 'ખેતી ની જમીન' ? 'સર્વે નંબર' : 'TP'}
                       </Text>
@@ -896,7 +896,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         style={{ height: '28px' }}
                       />
                     </Col>
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>
                         {propertyType === 'ખેતી ની જમીન' ? 'બ્લોક નંબર ' : 'FP'}
                       </Text>
@@ -907,7 +907,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         style={{ height: '28px' }}
                       />
                     </Col>
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>Value Zone</Text>
                       <Input
                         value={valueZone}
@@ -916,7 +916,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         style={{ height: '28px' }}
                       />
                     </Col>
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>મિલકત પ્રકાર</Text>
                       <Select
                         value={propertyType}
@@ -930,7 +930,7 @@ export default function JantriCalculator({ currentAccentColor }) {
                         ]}
                       />
                     </Col>
-                    <Col xs={12} sm={4}>
+                    <Col xs={24} sm={12} lg={4}>
                       <Text type="secondary" style={{ display: 'block', marginBottom: 2, fontSize: 12 }}>Gender</Text>
                       <Select
                         value={gender}

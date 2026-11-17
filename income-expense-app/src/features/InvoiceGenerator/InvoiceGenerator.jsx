@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space, Tag, Popconfirm } from 'antd';
+import { Card, Col, Row, Typography, Input, InputNumber, Button, Divider, message, DatePicker, Select, Table, Modal, Space, Tag, Popconfirm, Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import { Plus, Trash2, FileSignature, Printer, Eye, Edit, Save, RefreshCw } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
@@ -353,22 +353,24 @@ export default function InvoiceGenerator({ currentAccentColor }) {
       key: 'action',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="text"
-            icon={<Edit size={16} />}
-            onClick={() => handleEditInvoice(record)}
-            style={{ color: currentAccentColor }}
-          >
-            Edit
-          </Button>
-          <Button
-            type="text"
-            icon={<Eye size={16} />}
-            onClick={() => handleViewInvoice(record)}
-            style={{ color: currentAccentColor }}
-          >
-            View
-          </Button>
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<Edit size={16} />}
+              onClick={() => handleEditInvoice(record)}
+              style={{ color: currentAccentColor }}
+              aria-label="Edit invoice"
+            />
+          </Tooltip>
+          <Tooltip title="View">
+            <Button
+              type="text"
+              icon={<Eye size={16} />}
+              onClick={() => handleViewInvoice(record)}
+              style={{ color: currentAccentColor }}
+              aria-label="View invoice"
+            />
+          </Tooltip>
           <Popconfirm
             title="Delete Invoice"
             description="Are you sure you want to delete this invoice?"

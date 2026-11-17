@@ -147,10 +147,9 @@ function PersonFields({
       </div>
 
       <Field
-        label="Residence place (રહેઠાણનું સામાન્ય સ્થળ)"
+        label="Residence place"
         required
         error={err('residence')}
-        hint="Printed in the રહેઠાણનું સામાન્ય સ્થળ line. Long addresses wrap automatically."
       >
         <GujaratiFontInput
           font="nilkanth"
@@ -164,7 +163,7 @@ function PersonFields({
         />
       </Field>
 
-      <Field label="Address (સરનામું)" optional error={err('address')}>
+      <Field label="Address" optional error={err('address')}>
         <GujaratiFontInput
           font="nilkanth"
           value={value.address}
@@ -175,7 +174,7 @@ function PersonFields({
         />
       </Field>
 
-      <Field label="Marital status (લગ્ન સમયે દરજ્જો)" optional>
+      <Field label="Marital status" optional>
         <Select
           value={value.maritalStatus || undefined}
           onChange={(next) => set('maritalStatus', next || '')}
@@ -219,7 +218,7 @@ function PersonFields({
         </Field>
       </div>
       <Field
-        label="Parent / guardian residence place (રહેઠાણનું સામાન્ય સ્થળ)"
+        label="Parent / guardian residence place"
         required
         error={err('parentResidence')}
       >
@@ -323,12 +322,12 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'application',
       icon: FileSignature,
-      title: 'Application (પત્ર)',
+      title: 'Application',
       issueKeys: MARRIAGE_SECTION_KEYS.application,
       children: (
         <>
           <div className="fbs-grid-2">
-            <Field label="Mobile number (મો.)" required error={visibleError('application.mobile')}>
+            <Field label="Mobile number" required error={visibleError('application.mobile')}>
               <MobileInput
                 value={data.application.mobile}
                 onChange={(next) => setApplication('mobile', next)}
@@ -336,7 +335,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
                 error={visibleError('application.mobile')}
               />
             </Field>
-            <Field label="Application place (સ્થળ)" required error={visibleError('application.place')}>
+            <Field label="Application place" required error={visibleError('application.place')}>
               <GujaratiFontInput
                 font="nilkanth"
                 value={data.application.place}
@@ -346,7 +345,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
                 status={visibleError('application.place') ? 'error' : undefined}
               />
             </Field>
-            <Field label="Application date (તારીખ)" required error={visibleError('application.date')}>
+            <Field label="Application date" required error={visibleError('application.date')}>
               <DateInput
                 value={data.application.date}
                 onChange={(next) => setApplication('date', next)}
@@ -361,15 +360,14 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'marriage',
       icon: Heart,
-      title: 'Marriage details (લગ્નની વિગત)',
+      title: 'Marriage details',
       issueKeys: MARRIAGE_SECTION_KEYS.marriage,
       children: (
         <div className="fbs-grid-2">
           <Field
-            label="Marriage date (લગ્નની તારીખ)"
+            label="Marriage date"
             required
             error={visibleError('marriage.date')}
-            hint="Printed on page 1 and page 2."
           >
             <DateInput
               value={data.marriage.date}
@@ -379,10 +377,9 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
             />
           </Field>
           <Field
-            label="Marriage venue (લગ્નનું સ્થળ)"
+            label="Marriage venue"
             required
             error={visibleError('marriage.place')}
-            hint="Used on page 1 and page 2. Long venues flow onto the next line automatically."
             className="fbs-span-2"
           >
             <GujaratiFontInput
@@ -402,7 +399,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'groom',
       icon: User,
-      title: 'Groom (વરરાજા)',
+      title: 'Groom',
       issueKeys: MARRIAGE_SECTION_KEYS.groom,
       children: (
         <PersonFields
@@ -421,7 +418,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'bride',
       icon: User,
-      title: 'Bride (કન્યા)',
+      title: 'Bride',
       issueKeys: MARRIAGE_SECTION_KEYS.bride,
       children: (
         <PersonFields
@@ -440,7 +437,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'officiant',
       icon: BookUser,
-      title: 'Officiant (વિધિ કરાવનાર)',
+      title: 'Officiant',
       issueKeys: MARRIAGE_SECTION_KEYS.officiant,
       children: (
         <>
@@ -463,7 +460,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
                 error={visibleError('officiant.age')}
               />
             </Field>
-            <Field label="Residence place (રહેઠાણનું સ્થળ)" optional>
+            <Field label="Residence place" optional>
               <GujaratiFontInput
                 font="nilkanth"
                 value={data.officiant.residence}
@@ -473,7 +470,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
               />
             </Field>
           </div>
-          <Field label="Address (સરનામું)" required error={visibleError('officiant.address')}>
+          <Field label="Address" required error={visibleError('officiant.address')}>
             <GujaratiFontInput
               font="nilkanth"
               value={data.officiant.address}
@@ -489,7 +486,7 @@ export default function MarriageForm({ data, onChange, errors, showAllErrors }) 
     {
       key: 'witnesses',
       icon: Users,
-      title: 'Witnesses (સાક્ષી)',
+      title: 'Witnesses',
       issueKeys: MARRIAGE_SECTION_KEYS.witnesses,
       children: (
         <>

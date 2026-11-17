@@ -83,12 +83,12 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'application',
       icon: FileSignature,
-      title: 'Application (અરજી)',
+      title: 'Application',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.application,
       children: (
         <>
           <div className="fbs-grid-2">
-            <Field label="Application date (તારીખ)" required error={visibleError('date')}>
+            <Field label="Application date" required error={visibleError('date')}>
               <DateInput
                 value={data.date}
                 onChange={(next) => onChange({ ...data, date: next })}
@@ -97,10 +97,9 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
               />
             </Field>
             <Field
-              label="Mobile No. (મોબાઇલ નં.)"
+              label="Mobile No."
               optional
               error={visibleError('mobile')}
-              hint="Prints as “મો. …” in the top-right corner of the notice."
             >
               <Input
                 value={data.mobile || ''}
@@ -166,12 +165,12 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'owner',
       icon: Home,
-      title: 'Current owner (હાલના માલિક)',
+      title: 'Current owner',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.owner,
       children: (
         <>
           <Field
-            label="Owner name (નોધાયેલું નામ)"
+            label="Owner name"
             required
             error={visibleError('owner.name')}
           >
@@ -185,7 +184,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             />
           </Field>
           <Field
-            label="Owner address (સરનામું)"
+            label="Owner address"
             required
             error={visibleError('owner.address')}
           >
@@ -206,12 +205,12 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'transferee',
       icon: User,
-      title: 'Transferee (નામ ફેરફાર કરાવનાર)',
+      title: 'Transferee',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.transferee,
       children: (
         <>
           <Field
-            label="Transferee full name (પૂરેપૂરું નામ)"
+            label="Transferee full name"
             required
             error={visibleError('transferee.name')}
           >
@@ -225,7 +224,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             />
           </Field>
           <Field
-            label="Transferee address (સરનામું)"
+            label="Transferee address"
             required
             error={visibleError('transferee.address')}
           >
@@ -243,7 +242,6 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
           <Field
             label="Applicant name on the declaration line"
             optional
-            hint="Defaults to the transferee name. Printed on the ‘કું ______’ line."
           >
             <GujaratiFontInput
               font="ghanshyam"
@@ -258,12 +256,12 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'property',
       icon: MapPin,
-      title: 'Property details (મિલકતની વિગતો)',
+      title: 'Property details',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.property,
       children: (
         <>
           <Field
-            label="Division / locality (વિભાગનો લત્તો અથવા પોલ્ટનું નામ)"
+            label="Division / locality"
             required
             error={visibleError('division')}
           >
@@ -277,7 +275,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
             />
           </Field>
           <div className="fbs-grid-2">
-            <Field label="Ward No. (વોર્ડ નં.)" required error={visibleError('numbers.wardNo')}>
+            <Field label="Ward No." required error={visibleError('numbers.wardNo')}>
               <GujaratiFontInput
                 font="ghanshyam"
                 value={numbers.wardNo}
@@ -287,7 +285,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
                 status={visibleError('numbers.wardNo') ? 'error' : undefined}
               />
             </Field>
-            <Field label="Survey No. (નોધ નં.)" required error={visibleError('numbers.surveyNo')}>
+            <Field label="Survey No." required error={visibleError('numbers.surveyNo')}>
               <GujaratiFontInput
                 font="ghanshyam"
                 value={numbers.surveyNo}
@@ -297,7 +295,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
                 status={visibleError('numbers.surveyNo') ? 'error' : undefined}
               />
             </Field>
-            <Field label="R.S. No. (રે. સ. નં.)" required error={visibleError('numbers.rsNo')}>
+            <Field label="R.S. No." required error={visibleError('numbers.rsNo')}>
               <GujaratiFontInput
                 font="ghanshyam"
                 value={numbers.rsNo}
@@ -307,7 +305,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
                 status={visibleError('numbers.rsNo') ? 'error' : undefined}
               />
             </Field>
-            <Field label="Area (ક્ષેત્રફળ)" required error={visibleError('area')}>
+            <Field label="Area" required error={visibleError('area')}>
               <GujaratiFontInput
                 font="ghanshyam"
                 value={data.area}
@@ -324,11 +322,11 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'boundaries',
       icon: Ruler,
-      title: 'Boundaries (ચતુરસી)',
+      title: 'Boundaries',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.boundaries,
       children: (
         <div className="fbs-grid-2">
-          <Field label="East (પૂર્વ)" required error={visibleError('boundaries.east')}>
+          <Field label="East" required error={visibleError('boundaries.east')}>
             <GujaratiFontInput
               font="ghanshyam"
               value={boundaries.east}
@@ -338,7 +336,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
               status={visibleError('boundaries.east') ? 'error' : undefined}
             />
           </Field>
-          <Field label="West (પશ્ચિમ)" required error={visibleError('boundaries.west')}>
+          <Field label="West" required error={visibleError('boundaries.west')}>
             <GujaratiFontInput
               font="ghanshyam"
               value={boundaries.west}
@@ -348,7 +346,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
               status={visibleError('boundaries.west') ? 'error' : undefined}
             />
           </Field>
-          <Field label="North (ઉત્તર)" required error={visibleError('boundaries.north')}>
+          <Field label="North" required error={visibleError('boundaries.north')}>
             <GujaratiFontInput
               font="ghanshyam"
               value={boundaries.north}
@@ -358,7 +356,7 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
               status={visibleError('boundaries.north') ? 'error' : undefined}
             />
           </Field>
-          <Field label="South (દક્ષિણ)" required error={visibleError('boundaries.south')}>
+          <Field label="South" required error={visibleError('boundaries.south')}>
             <GujaratiFontInput
               font="ghanshyam"
               value={boundaries.south}
@@ -374,14 +372,13 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
     {
       key: 'documents',
       icon: FileText,
-      title: 'Documents (પુરાવા)',
+      title: 'Documents',
       issueKeys: PROPERTY_TAX_SECTION_KEYS.documents,
       children: (
         <>
           <Field
-            label="Documents submitted (દસ્તાવેજોની યાદી)"
+            label="Documents submitted"
             optional
-            hint="Printed in row 7. One document per line works best."
           >
             <GujaratiFontInput
               font="ghanshyam"
@@ -392,9 +389,6 @@ export default function PropertyTaxForm({ data, onChange, errors, showAllErrors 
               maxLength={PROPERTY_TAX_LIMITS.documents}
             />
           </Field>
-          <div className="fbs-hint">
-            Page 2 of this form is reserved for corporation office use and prints blank.
-          </div>
         </>
       ),
     },

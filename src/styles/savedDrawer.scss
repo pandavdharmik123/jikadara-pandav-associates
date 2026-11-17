@@ -1,0 +1,288 @@
+// Shared right-side "Saved ..." drawer styles (same look as the Form Builder saved drawer)
+
+.saved-drawer {
+  .ant-drawer-mask {
+    background: rgba(15, 23, 42, 0.34);
+    backdrop-filter: blur(2px);
+  }
+
+  .ant-drawer-close {
+    color: #64748b;
+    border-radius: 8px;
+
+    &:hover {
+      color: #4f46e5;
+      background: #eef2ff;
+    }
+  }
+}
+
+.saved-drawer-panel {
+  top: 12px !important;
+  bottom: 12px !important;
+  height: 100vh !important;
+  max-height: 100vh;
+  max-width: calc(100vw - 24px);
+  border-radius: 22px 0 0 22px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: -24px 0 64px rgba(15, 23, 42, 0.18);
+}
+
+.saved-drawer-header {
+  position: relative;
+  padding: 18px 20px;
+  border-bottom: 1px solid #eef2f7;
+  background: #ffffff;
+
+  .ant-drawer-header-title {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ant-drawer-title {
+    min-width: 0;
+  }
+
+  .ant-drawer-extra {
+    flex: 0 0 auto;
+  }
+}
+
+.saved-drawer-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.saved-drawer-heading-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.saved-drawer-heading-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.saved-drawer-heading-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.saved-drawer-heading-sub {
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saved-drawer-body {
+  padding: 18px 20px 24px;
+  background: #ffffff;
+}
+
+.saved-drawer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.saved-drawer-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.saved-drawer-refresh.ant-btn {
+  border-radius: 8px;
+  color: #64748b;
+
+  &:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+}
+
+.saved-drawer-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.saved-drawer-search.ant-input-affix-wrapper {
+  border-radius: 10px;
+}
+
+.saved-drawer-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.saved-drawer-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 2px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.saved-drawer-row:last-child {
+  border-bottom: 0;
+}
+
+.saved-drawer-row-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.saved-drawer-row-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-drawer-row-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saved-drawer-row-heading h4 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saved-drawer-row.is-active .saved-drawer-row-heading h4 {
+  color: #4f46e5;
+}
+
+.saved-drawer-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 11.5px;
+}
+
+.saved-drawer-row-meta-main {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.saved-drawer-row-meta-amount {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.saved-drawer-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.saved-drawer-open-btn.ant-btn {
+  font-weight: 600;
+}
+
+.saved-drawer-delete-btn.ant-btn {
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
+.saved-drawer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 18px 24px;
+  text-align: center;
+
+  h4 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  p {
+    max-width: 260px;
+    margin: 6px 0 16px;
+    color: #64748b;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+}
+
+.saved-drawer-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+@media (max-width: 520px) {
+  .saved-drawer-panel {
+    top: 8px !important;
+    bottom: 8px !important;
+    max-height: calc(100% - 16px);
+    max-width: calc(100vw - 12px);
+    border-radius: 20px 0 0 20px;
+  }
+
+  .saved-drawer-header {
+    padding: 16px;
+  }
+
+  .saved-drawer-body {
+    padding: 16px 16px 20px;
+  }
+}

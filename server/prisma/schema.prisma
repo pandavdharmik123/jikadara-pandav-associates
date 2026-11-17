@@ -79,6 +79,8 @@ model User {
   upads               Upad[]
   pedhinamus          Pedhinamu[]
   jantriCalculations  JantriCalculation[]
+  mortgageStampDutyCalcs MortgageStampDutyCalculation[]
+  rentAgreementCalcs    RentAgreementCalculation[]
   nondhStatuses       NondhStatus[]
   formBuilderRecords  FormBuilderRecord[]
   verabillEntries     VerabillEntry[]
@@ -391,6 +393,55 @@ model JantriCalculation {
 }
 
 // ─── NondhStatus (Revenue Mutation Entry Status Tracking) ─────
+
+// ─── MortgageStampDutyCalculation (Mortgage / Vaparva Parta Stamp Duty) ─────
+
+model MortgageStampDutyCalculation {
+  id              String    @id @default(uuid())
+  userId          String
+  title           String    @default("Untitled Mortgage Calculation")
+  clientName      String    @default("")
+  propertyDetails String    @default("")
+  loanAmount      Decimal   @default(0) @db.Decimal(14, 2)
+  sanctionDate    DateTime?
+  vakilFee        Decimal   @default(0) @db.Decimal(14, 2)
+  grandTotal      Decimal   @default(0) @db.Decimal(14, 2)
+  calculationData Json
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([deletedAt])
+}
+
+// ─── RentAgreementCalculation (Rent Agreement Stamp Duty & Reg Fee) ─────
+
+model RentAgreementCalculation {
+  id              String    @id @default(uuid())
+  userId          String
+  title           String    @default("Untitled Rent Agreement")
+  clientName      String    @default("")
+  rentAmount      Decimal   @default(0) @db.Decimal(14, 2)
+  years           Int       @default(0)
+  agreementType   String    @default("Residence")
+  totalCost       Decimal   @default(0) @db.Decimal(14, 2)
+  calculationData Json
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([deletedAt])
+}
 
 model NondhStatus {
   id            String    @id @default(uuid())
