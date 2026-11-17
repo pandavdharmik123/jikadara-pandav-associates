@@ -97,11 +97,12 @@ export default function ClientDetail() {
       render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
     },
     {
-      title: 'Appt. Date',
+      title: 'Appt. Date & Time',
       dataIndex: 'appointmentDate',
       key: 'appointmentDate',
       align: 'center',
-      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY') : '-'),
+      width: 165,
+      render: (date) => (date ? dayjs(date).format('DD/MM/YYYY hh:mm A') : '-'),
     },
     {
       title: 'Status',

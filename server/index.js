@@ -19,6 +19,8 @@ import upadRoutes from './routes/upad.js';
 import recycleBinRoutes from './routes/recycleBin.js';
 import pedhinamuRoutes from './routes/pedhinamu.js';
 import jantriRoutes from './routes/jantri.js';
+import mortgageStampDutyRoutes from './routes/mortgageStampDuty.js';
+import rentAgreementRoutes from './routes/rentAgreement.js';
 import verabillRoutes from './routes/verabill.js';
 import notaryHisabRoutes from './routes/notaryHisab.js';
 import nondhStatusRoutes from './routes/nondhStatus.js';
@@ -59,6 +61,15 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
+  // Standalone income-expense app (income-expense-app/): Vite dev + preview.
+  'http://localhost:5180',
+  'http://127.0.0.1:5180',
+  'http://localhost:4180',
+  'http://127.0.0.1:4180',
+  // Capacitor native shells: Android WebView origin and iOS WKWebView origin.
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost',
   'http://127.0.0.1:5173',
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : []),
 ];
@@ -103,6 +114,8 @@ app.use('/api/upad', upadRoutes);
 app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/pedhinamu', pedhinamuRoutes);
 app.use('/api/jantri', jantriRoutes);
+app.use('/api/mortgageStampDuty', mortgageStampDutyRoutes);
+app.use('/api/rentAgreement', rentAgreementRoutes);
 app.use('/api/nondh-status', nondhStatusRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/verabill', verabillRoutes);

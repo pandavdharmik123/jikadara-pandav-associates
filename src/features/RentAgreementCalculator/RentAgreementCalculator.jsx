@@ -10,11 +10,15 @@ import {
   Space,
   Divider,
   Form,
+  Tag,
   message
 } from 'antd';
-import { Download, RefreshCw, Calculator, FileText, Plus, Trash2 } from 'lucide-react';
+import { Download, RefreshCw, Calculator, FileText, Plus, Trash2, Save, FolderOpen } from 'lucide-react';
 import { IndicTransliterate } from "@ai4bharat/indic-transliterate";
 import html2pdf from 'html2pdf.js';
+import api from '../../services/api';
+import SaveRentAgreementModal from './components/SaveRentAgreementModal';
+import SavedRentAgreementModal from './components/SavedRentAgreementModal';
 
 const { Title, Text } = Typography;
 
@@ -22,19 +26,38 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
   const [form] = Form.useForm();
   const componentRef = useRef();
 
-  // State for calculations
-  const [rentAmount, setRentAmount] = useState(0);
-  const [years, setYears] = useState(0);
-  const [increasePercent, setIncreasePercent] = useState(10);
-  const [agreementType, setAgreementType] = useState('Residence');
-  const [deposit, setDeposit] = useState(0);
-  const [gstInput, setGstInput] = useState(0);
-  const [taxInput, setTaxInput] = useState(0);
-  const [noOfPages, setNoOfPages] = useState(0);
-  const [advocateFee, setAdvocateFee] = useState(5000);
-  const [partyName, setPartyName] = useState('');
+  // --- Database Persistence State & Initial Data ---
+  const initialData = React.useRef((() => {
+    try {
+      const saved = localStorage.getItem('rent_agreement_active_data');
+      if (saved) return JSON.parse(saved);
+    } catch (_) { }
+    return {};
+  })()).current;
 
-  const [customFields, setCustomFields] = useState([]);
+  const [activeCalculationId, setActiveCalculationId] = useState(() => {
+    return localStorage.getItem('rent_agreement_active_id') || null;
+  });
+  const [activeCalculationTitle, setActiveCalculationTitle] = useState(() => {
+    return localStorage.getItem('rent_agreement_active_title') || '';
+  });
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // State for calculations
+  const [rentAmount, setRentAmount] = useState(initialData.rentAmount ?? 0);
+  const [years, setYears] = useState(initialData.years ?? 0);
+  const [increasePercent, setIncreasePercent] = useState(initialData.increasePercent ?? 10);
+  const [agreementType, setAgreementType] = useState(initialData.agreementType ?? 'Residence');
+  const [deposit, setDeposit] = useState(initialData.deposit ?? 0);
+  const [gstInput, setGstInput] = useState(initialData.gstInput ?? 0);
+  const [taxInput, setTaxInput] = useState(initialData.taxInput ?? 0);
+  const [noOfPages, setNoOfPages] = useState(initialData.noOfPages ?? 0);
+  const [advocateFee, setAdvocateFee] = useState(initialData.advocateFee ?? 5000);
+  const [partyName, setPartyName] = useState(initialData.partyName ?? '');
+
+  const [customFields, setCustomFields] = useState(initialData.customFields ?? []);
 
   const addCustomField = () => setCustomFields([...customFields, { id: Date.now(), name: '', value: '' }]);
   const updateCustomField = (id, key, val) => setCustomFields(customFields.map(f => f.id === id ? { ...f, [key]: val } : f));
@@ -46,6 +69,25 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
       agreementType: 'Residence',
       advocateFee: 5000
     });
+  }, [form]);
+
+  // Restore persisted draft into the antd Form on first mount
+  useEffect(() => {
+    const hasDraft = Object.keys(initialData).length > 0;
+    if (hasDraft) {
+      form.setFieldsValue({
+        rentAmount: initialData.rentAmount,
+        years: initialData.years,
+        increasePercent: initialData.increasePercent,
+        agreementType: initialData.agreementType,
+        deposit: initialData.deposit,
+        gstInput: initialData.gstInput,
+        taxInput: initialData.taxInput,
+        noOfPages: initialData.noOfPages,
+        advocateFee: initialData.advocateFee
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
 
   const handleValuesChange = (_, allValues) => {
@@ -72,6 +114,114 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
     setNoOfPages(0);
     setAdvocateFee(5000);
     setPartyName('');
+    setCustomFields([]);
+  };
+
+  // --- Calculation management ---
+  const handleNewCalculation = () => {
+    handleReset();
+    setActiveCalculationId(null);
+    setActiveCalculationTitle('');
+    localStorage.removeItem('rent_agreement_active_data');
+    localStorage.removeItem('rent_agreement_active_id');
+    localStorage.removeItem('rent_agreement_active_title');
+    message.success('Started a new Rent Agreement calculation');
+  };
+
+  const handleSaveCalculation = async ({ title, saveAsNew = false }) => {
+    setIsSaving(true);
+    try {
+      const payloadSnapshot = {
+        partyName,
+        rentAmount,
+        years,
+        increasePercent,
+        agreementType,
+        deposit,
+        gstInput,
+        taxInput,
+        noOfPages,
+        advocateFee,
+        customFields,
+        totalStampDuty,
+        regFee,
+        totalCost,
+        savedAt: new Date().toISOString()
+      };
+
+      let res;
+      if (activeCalculationId && !activeCalculationId.startsWith('draft-') && !saveAsNew) {
+        res = await api.put(`/rentAgreement/${activeCalculationId}`, {
+          title,
+          clientName: partyName,
+          rentAmount,
+          years,
+          agreementType,
+          totalCost,
+          calculationData: payloadSnapshot
+        });
+      } else {
+        res = await api.post('/rentAgreement', {
+          title,
+          clientName: partyName,
+          rentAmount,
+          years,
+          agreementType,
+          totalCost,
+          calculationData: payloadSnapshot
+        });
+      }
+
+      const saved = res.data?.calculation;
+      if (saved) {
+        setActiveCalculationId(saved.id);
+        setActiveCalculationTitle(saved.title);
+        localStorage.setItem('rent_agreement_active_id', saved.id);
+        localStorage.setItem('rent_agreement_active_title', saved.title);
+      }
+
+      message.success(
+        activeCalculationId && !saveAsNew
+          ? 'Calculation updated successfully'
+          : 'Calculation saved to database'
+      );
+      setSaveModalVisible(false);
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to save calculation');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLoadCalculation = (calcData, title, id) => {
+    if (!calcData) return;
+    setPartyName(calcData.partyName || '');
+    setRentAmount(parseFloat(calcData.rentAmount) || 0);
+    setYears(parseInt(calcData.years) || 0);
+    setIncreasePercent(parseFloat(calcData.increasePercent) || 0);
+    setAgreementType(calcData.agreementType || 'Residence');
+    setDeposit(parseFloat(calcData.deposit) || 0);
+    setGstInput(parseFloat(calcData.gstInput) || 0);
+    setTaxInput(parseFloat(calcData.taxInput) || 0);
+    setNoOfPages(parseInt(calcData.noOfPages) || 0);
+    setAdvocateFee(parseFloat(calcData.advocateFee) || 0);
+    setCustomFields(Array.isArray(calcData.customFields) ? calcData.customFields : []);
+    form.setFieldsValue({
+      rentAmount: parseFloat(calcData.rentAmount) || 0,
+      years: parseInt(calcData.years) || 0,
+      increasePercent: parseFloat(calcData.increasePercent) || 0,
+      agreementType: calcData.agreementType || 'Residence',
+      deposit: parseFloat(calcData.deposit) || 0,
+      gstInput: parseFloat(calcData.gstInput) || 0,
+      taxInput: parseFloat(calcData.taxInput) || 0,
+      noOfPages: parseInt(calcData.noOfPages) || 0,
+      advocateFee: parseFloat(calcData.advocateFee) || 0
+    });
+    setActiveCalculationId(id || null);
+    setActiveCalculationTitle(title || '');
+    localStorage.setItem('rent_agreement_active_id', id || '');
+    localStorage.setItem('rent_agreement_active_title', title || '');
   };
 
   // Helper for formatting currency (always rounded to integer)
@@ -140,6 +290,30 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
   const administrativeExp = 1000;
   const customFieldsTotal = customFields.reduce((sum, f) => sum + (Number(f.value) || 0), 0);
   const totalCost = totalStampDuty + regFee + pageFeeAmount + indexCopy + administrativeExp + advocateFee + customFieldsTotal;
+
+  // --- Autosave active calculation state to localStorage ---
+  const draftPayload = {
+    partyName,
+    rentAmount,
+    years,
+    increasePercent,
+    agreementType,
+    deposit,
+    gstInput,
+    taxInput,
+    noOfPages,
+    advocateFee,
+    customFields
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('rent_agreement_active_data', JSON.stringify(draftPayload));
+      } catch (_) { /* storage full — ignore */ }
+    }, 400);
+    return () => clearTimeout(timer);
+  });
 
   const handleGeneratePDF = async () => {
     const element = componentRef.current;
@@ -289,21 +463,41 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
 
   return (
     <div style={{ padding: '0', maxWidth: '100%' }}>
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Calculator size={16} style={{ fontSize: 20, color: currentAccentColor }} />
           <Title level={4} style={{ margin: 0, color: 'var(--text-primary)' }}>Rent Agreement Calculator</Title>
+          {activeCalculationTitle && (
+            <Tag color="purple" style={{ fontSize: 11, margin: 0, padding: '0 6px' }}>
+              ☁️ {activeCalculationTitle}
+            </Tag>
+          )}
         </div>
-        <div>
-          {/* <Button
-            type="primary"
-            icon={<RefreshCw size={16} />}
-            onClick={handleReset}
-            style={{ backgroundColor: currentAccentColor }}
+        <Space size={8} wrap>
+          <Button
+            icon={<Plus size={14} />}
+            onClick={handleNewCalculation}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            Reset
-          </Button> */}
-        </div>
+            New Calculation
+          </Button>
+          <Button
+            icon={<FolderOpen size={14} />}
+            onClick={() => setSavedModalVisible(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Saved Calculations
+          </Button>
+          <Button
+            type="default"
+            icon={<Save size={14} style={{ color: currentAccentColor }} />}
+            onClick={() => setSaveModalVisible(true)}
+            loading={isSaving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Save
+          </Button>
+        </Space>
       </div>
 
       <Row gutter={[16, 16]} style={{ position: 'relative', zIndex: 10 }}>
@@ -632,6 +826,28 @@ export default function RentAgreementCalculator({ themeMode, currentAccentColor 
           </Card>
         </Col>
       </Row>
+
+      {/* Save to Database Modal */}
+      <SaveRentAgreementModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+        onSave={handleSaveCalculation}
+        calculationData={{
+          partyName,
+          totalCost
+        }}
+        currentDraftTitle={activeCalculationTitle}
+        currentDraftId={activeCalculationId}
+        isSaving={isSaving}
+      />
+
+      {/* Saved Calculations Drawer */}
+      <SavedRentAgreementModal
+        visible={savedModalVisible}
+        onClose={() => setSavedModalVisible(false)}
+        onLoadCalculation={handleLoadCalculation}
+        currentCalculationId={activeCalculationId}
+      />
     </div>
   );
 }

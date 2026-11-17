@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# Local environment configuration (never commit API URLs/secrets)
+.env
+.env.*
+!.env.example
+
+# Capacitor/native build output is already covered by android/.gitignore
+# and ios/.gitignore; keep this file for environments that extract only this folder.
+.DS_Store

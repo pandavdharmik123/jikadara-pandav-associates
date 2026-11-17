@@ -66,7 +66,7 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
         ...values,
         documentType: trimmedType,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
-        appointmentDate: values.appointmentDate ? values.appointmentDate.format('YYYY-MM-DD') : undefined,
+        appointmentDate: values.appointmentDate ? values.appointmentDate.toISOString() : undefined,
         rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : undefined,
         rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : undefined,
       };
@@ -165,13 +165,14 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
           <Col xs={24} sm={12}>
             <Form.Item
               name="appointmentDate"
-              label="Appointment Date"
+              label="Appointment Date & Time"
             >
               <DatePicker
-                placeholder="Select Appointment Date"
+                showTime={{ format: 'hh:mm A', use12Hours: true }}
+                placeholder="Select Appointment Date & Time"
                 style={{ width: '100%' }}
                 size="large"
-                format="DD/MM/YYYY"
+                format="DD/MM/YYYY hh:mm A"
                 allowClear
               />
             </Form.Item>

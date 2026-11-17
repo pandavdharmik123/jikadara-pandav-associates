@@ -35,6 +35,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/universal', label: 'Universal Converter', description: 'Legacy font converter' },
       { key: '/app/tools/jantri', label: 'Makan/Milkat Jantri', description: 'Government land rate calculator' },
       { key: '/app/tools/rent_agreement', label: 'Rent Agreement', description: 'Stamp duty & registration fees' },
+      { key: '/app/tools/mortgage_stamp_duty', label: 'Mortgage Stamp Duty', description: 'Loan (Vaparva Parta) stamp duty & penalty calculator' },
       { key: '/app/tools/invoice', label: 'Invoice Generator', description: 'Professional legal billing' },
       { key: '/app/tools/number_to_words', label: 'Numbers to Words', description: 'Cheque/legal word formatting' },
       { key: '/app/tools/document-ai', label: 'Document AI & OCR', description: 'Gujarati OCR & text extraction' },

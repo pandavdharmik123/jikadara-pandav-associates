@@ -81,7 +81,7 @@ export default function EditTaskModal({ visible, task, onClose }) {
         status: values.status,
         rrNumber: values.rrNumber !== undefined && values.rrNumber !== null && values.rrNumber !== '' ? Number(values.rrNumber) : null,
         rrDate: values.rrDate ? values.rrDate.format('YYYY-MM-DD') : null,
-        appointmentDate: values.appointmentDate ? values.appointmentDate.format('YYYY-MM-DD') : null,
+        appointmentDate: values.appointmentDate ? values.appointmentDate.toISOString() : null,
         startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : undefined,
         completedDate: values.status === 'DONE' && values.completedDate ? values.completedDate.format('YYYY-MM-DD') : undefined,
       };
@@ -209,12 +209,13 @@ export default function EditTaskModal({ visible, task, onClose }) {
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
-            <Form.Item name="appointmentDate" label="Appointment Date">
+            <Form.Item name="appointmentDate" label="Appointment Date & Time">
               <DatePicker
-                placeholder="Select Appointment Date"
+                showTime={{ format: 'hh:mm A', use12Hours: true }}
+                placeholder="Select Appointment Date & Time"
                 style={{ width: '100%' }}
                 size="large"
-                format="DD/MM/YYYY"
+                format="DD/MM/YYYY hh:mm A"
                 allowClear
               />
             </Form.Item>

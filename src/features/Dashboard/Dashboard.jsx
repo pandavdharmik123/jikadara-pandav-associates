@@ -250,6 +250,18 @@ export default function Dashboard() {
       render: (val) => (val != null ? <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>{val}</span> : '-'),
     },
     {
+      title: 'APPOINTMENT',
+      dataIndex: 'appointmentDate',
+      key: 'appointmentDate',
+      width: 155,
+      align: 'center',
+      render: (val) => (
+        <Text style={{ color: '#334155', fontWeight: 500, fontSize: '12.5px', whiteSpace: 'nowrap' }}>
+          {val ? dayjs(val).format('DD/MM/YYYY hh:mm A') : '-'}
+        </Text>
+      ),
+    },
+    {
       title: 'STATUS',
       dataIndex: 'status',
       key: 'status',

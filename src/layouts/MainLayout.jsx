@@ -30,8 +30,8 @@ import {
   Receipt,
   CloudUpload,
   BookMarked,
-  // Globe,           // AnyRoR portal (temporarily disabled)
-  // Landmark        // AnyRoR portal (temporarily disabled)
+  Landmark,
+  // Globe           // AnyRoR portal (temporarily disabled)
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useFinancialYears } from '../hooks/useFinancialYears';
@@ -161,6 +161,11 @@ export default function MainLayout() {
           key: '/app/tools/rent_agreement',
           icon: <FileSignature size={20} />,
           label: 'Rent Agreement',
+        },
+        {
+          key: '/app/tools/mortgage_stamp_duty',
+          icon: <Landmark size={20} />,
+          label: 'Mortgage Stamp Duty',
         },
       ],
     },

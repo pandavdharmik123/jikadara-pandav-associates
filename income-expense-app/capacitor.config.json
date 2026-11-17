@@ -1,0 +1,38 @@
+{
+  "appId": "com.jikadaraandpandav.accounts",
+  "appName": "J&P Accounts",
+  "webDir": "dist",
+  "backgroundColor": "#f4f6fb",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "allowNavigation": []
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": false,
+      "backgroundColor": "#ffffff",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    },
+    "Keyboard": {
+      "resize": "body"
+    }
+  }
+}

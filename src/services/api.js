@@ -18,6 +18,12 @@ function canRefreshRequest(config) {
   return !NO_REFRESH_PATHS.some((path) => url.includes(path));
 }
 
+function isFatalRefreshError(error) {
+  if (!error) return false;
+  if (error.code === 'NO_REFRESH_TOKEN' || error.code === 'SESSION_CLOSED') return true;
+  return error.status === 401 || error.status === 403 || error.status === 400;
+}
+
 // Request interceptor: attach the current access token, refreshing first if it
 // has already expired (e.g. the machine slept through the 75% timer).
 api.interceptors.request.use(
@@ -27,9 +33,12 @@ api.interceptors.request.use(
     if (token && isTokenExpired(token) && canRefreshRequest(config)) {
       try {
         token = await refreshAccessToken();
-      } catch {
-        useAuthStore.getState().logout();
-        return Promise.reject(new Error('Session expired. Please log in again.'));
+      } catch (err) {
+        if (isFatalRefreshError(err)) {
+          useAuthStore.getState().logout();
+          return Promise.reject(new Error('Session expired. Please log in again.'));
+        }
+        return Promise.reject(err);
       }
     }
 
@@ -58,8 +67,10 @@ api.interceptors.response.use(
           Authorization: `Bearer ${token}`,
         };
         return api(original);
-      } catch {
-        useAuthStore.getState().logout();
+      } catch (err) {
+        if (isFatalRefreshError(err)) {
+          useAuthStore.getState().logout();
+        }
         return Promise.reject(error);
       }
     }
