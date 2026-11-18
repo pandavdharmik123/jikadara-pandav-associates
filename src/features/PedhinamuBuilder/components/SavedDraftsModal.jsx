@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Table, Button, Space, Typography, Popconfirm, message, Tag, Input, Segmented } from 'antd';
-import { Trash2, Download, Upload, FolderOpen, Copy, Search, RefreshCw, Database } from 'lucide-react';
+import { Drawer, Table, Button, Space, Typography, Popconfirm, message, Tag, Input, Segmented } from 'antd';
+import { Trash2, Download, Upload, FolderOpen, Copy, Search, RefreshCw, Database, Files } from 'lucide-react';
 import api from '../../../services/api';
 import { ensureUnicode } from '../utils/unicodeUtils';
+import '../../../styles/savedDrawer.scss';
 
 const { Text } = Typography;
 
@@ -169,10 +170,10 @@ export default function SavedDraftsModal({
         return (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Text strong>{text}</Text>
+              <Text strong style={{ color: isCurrent ? '#4f46e5' : undefined }}>{text}</Text>
               {isCurrent && (
-                <Tag color="purple" style={{ fontSize: 11, padding: '0 4px', lineHeight: '18px' }}>
-                  Open
+                <Tag color="purple" style={{ fontSize: 10, margin: 0, padding: '0 4px' }}>
+                  Active
                 </Tag>
               )}
             </div>
@@ -197,7 +198,7 @@ export default function SavedDraftsModal({
       title: 'Type / પ્રકાર',
       dataIndex: 'pedhinamuType',
       key: 'pedhinamuType',
-      width: 140,
+      width: 150,
       render: (type) => (
         <Tag color={type === 'ALIVE' ? 'success' : 'default'}>
           {type === 'ALIVE' ? '🟢 Alive (હયાતી)' : '🔴 Deceased (સ્વર્ગસ્થ)'}
@@ -221,7 +222,7 @@ export default function SavedDraftsModal({
       title: 'Action',
       key: 'action',
       align: 'right',
-      width: 130,
+      width: 140,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -244,6 +245,7 @@ export default function SavedDraftsModal({
 
           <Popconfirm
             title="Delete this draft?"
+            description="It will be moved to the Recycle Bin."
             onConfirm={() => handleDelete(record)}
             okText="Delete"
             cancelText="Cancel"
@@ -256,56 +258,83 @@ export default function SavedDraftsModal({
   ];
 
   return (
-    <Modal
-      title={
-        <Space>
-          <Database size={18} style={{ color: '#4f46e5' }} />
-          <span>Saved Pedhinamu Drafts / સંગ્રહિત પેઢીનામા</span>
-        </Space>
-      }
+    <Drawer
       open={visible}
-      onCancel={onClose}
-      width={860}
-      footer={[
-        <div key="footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Space>
-            <Button icon={<Download size={14} />} onClick={handleExportJSON}>
-              Export JSON
-            </Button>
-            <label style={{ cursor: 'pointer' }}>
-              <Button
-                icon={<Upload size={14} />}
-                onClick={() => document.getElementById('pedhinamu-json-import-input')?.click()}
-              >
-                Import JSON
-              </Button>
-              <input
-                id="pedhinamu-json-import-input"
-                type="file"
-                accept=".json"
-                style={{ display: 'none' }}
-                onChange={handleImportJSON}
-              />
-            </label>
-            <Button icon={<RefreshCw size={14} />} onClick={fetchDrafts} loading={loading}>
-              Refresh
-            </Button>
-          </Space>
-          <Button onClick={onClose}>Close</Button>
+      onClose={onClose}
+      placement="right"
+      width={1100}
+      destroyOnClose={false}
+      classNames={{
+        root: 'saved-drawer',
+        section: 'saved-drawer-panel',
+        header: 'saved-drawer-header',
+        body: 'saved-drawer-body'
+      }}
+      title={
+        <div className="saved-drawer-heading">
+          <span className="saved-drawer-heading-icon">
+            <Database size={17} />
+          </span>
+          <span className="saved-drawer-heading-text">
+            <span className="saved-drawer-heading-title">Saved Documents</span>
+            <span className="saved-drawer-heading-sub">Pedhinamu Drafts / સંગ્રહિત પેઢીનામા</span>
+          </span>
         </div>
-      ]}
+      }
     >
-      {/* Search & Filter Toolbar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 14, marginTop: 4, flexWrap: 'wrap' }}>
+      {/* Toolbar: count + actions + refresh */}
+      <div className="saved-drawer-toolbar">
+        <div className="saved-drawer-count">
+          <Files size={14} />
+          <span>
+            {filteredDrafts.length} saved document{filteredDrafts.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <Space size={6}>
+          <Button
+            size="small"
+            icon={<Download size={14} />}
+            onClick={handleExportJSON}
+          >
+            Export JSON
+          </Button>
+          <label style={{ cursor: 'pointer', margin: 0 }}>
+            <Button
+              size="small"
+              icon={<Upload size={14} />}
+              onClick={() => document.getElementById('pedhinamu-json-import-input')?.click()}
+            >
+              Import JSON
+            </Button>
+            <input
+              id="pedhinamu-json-import-input"
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              onChange={handleImportJSON}
+            />
+          </label>
+          <Button
+            type="text"
+            size="small"
+            className="saved-drawer-refresh"
+            icon={<RefreshCw size={14} />}
+            loading={loading}
+            onClick={fetchDrafts}
+          />
+        </Space>
+      </div>
+
+      {/* Search & Filter */}
+      <div className="saved-drawer-filters">
         <Input
+          className="saved-drawer-search"
           placeholder="Search by title, applicant, deceased, or village..."
           prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           allowClear
-          style={{ flex: 1, minWidth: 240 }}
         />
-
         <Segmented
           value={typeFilter}
           onChange={setTypeFilter}
@@ -317,14 +346,50 @@ export default function SavedDraftsModal({
         />
       </div>
 
-      <Table
-        dataSource={filteredDrafts}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        size="small"
-        pagination={{ pageSize: 6, showTotal: (total) => `Total ${total} drafts` }}
-      />
-    </Modal>
+      {/* Saved drafts table */}
+      <div className="saved-drawer-table" style={{ minHeight: 420, display: 'flex', flexDirection: 'column' }}>
+        <style>{`
+          .saved-drawer-table .ant-table-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-spin-nested-loading {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-spin-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-table {
+            flex: 1;
+          }
+          .saved-drawer-table .ant-table-container {
+            min-height: 420px;
+          }
+          .saved-drawer-table .ant-pagination {
+            margin: 12px 0px 0px 0px !important;
+          }
+        `}</style>
+
+        <Table
+          size="middle"
+          rowKey="id"
+          columns={columns}
+          dataSource={filteredDrafts}
+          loading={loading}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 260px)' }}
+          pagination={{
+            pageSize: 8,
+            showSizeChanger: false,
+            showTotal: (total) => <span style={{ color: '#64748b', fontSize: 13 }}>Total <strong>{total}</strong> documents</span>
+          }}
+          locale={{ emptyText: 'No saved documents found' }}
+        />
+      </div>
+    </Drawer>
   );
 }

@@ -433,7 +433,7 @@ export default function MortgageStampDutyCalculator({ currentAccentColor }) {
 
               <Divider style={{ margin: '4px 0' }} />
 
-              {summaryRow('5 G  ana Stamp Duty (×5)', `₹ ${formatMoney(fiveDanaDuty)}`)}
+              {summaryRow('5 Dana Stamp Duty (×5)', `₹ ${formatMoney(fiveDanaDuty)}`)}
               {summaryRow('Vakil Fee', `₹ ${formatMoney(vakilFee)}`)}
 
               <div className="pdf-total-cost-box" style={{

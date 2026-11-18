@@ -26,6 +26,7 @@ const Translator = lazy(() => import('./features/Translator/Translator'));
 const AITranslator = lazy(() => import('./features/AITranslator/AITranslator'));
 const UniversalConverter = lazy(() => import('./features/UniversalConverter/UniversalConverter'));
 const JantriCalculator = lazy(() => import('./features/JantriCalculator/JantriCalculator'));
+const MortgageStampDutyCalculator = lazy(() => import('./features/MortgageStampDuty/MortgageStampDutyCalculator'));
 const RentAgreementCalculator = lazy(() => import('./features/RentAgreementCalculator/RentAgreementCalculator'));
 const InvoiceGenerator = lazy(() => import('./features/InvoiceGenerator/InvoiceGenerator'));
 const NumberToWordsConverter = lazy(() => import('./features/NumberToWordsConverter/NumberToWordsConverter'));
@@ -174,6 +175,10 @@ export default function App() {
                 {toolPage(
                   '/app/tools/jantri',
                   <JantriCalculator currentAccentColor={ACCENT} />
+                )}
+                {toolPage(
+                  '/app/tools/mortgage_stamp_duty',
+                  <MortgageStampDutyCalculator currentAccentColor={ACCENT} />
                 )}
                 {toolPage(
                   '/app/tools/rent_agreement',
