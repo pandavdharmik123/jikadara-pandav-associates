@@ -90,9 +90,9 @@ const CONJUNCTS = {
   'જ્': '¶', // 182 \u00b6
   'ણ્': '·', // 183 \u00b7
   'ત્': 'R', // Half ta
-  'થ્': '¹', // 185 \u00b9
-  'ધ્': 'º', // 186 \u00ba
-  'ન્': 'º', // 187 \u00bb
+  'થ્': '¸', // 184 \u00b8
+  'ધ્': '¹', // 185 \u00b9
+  'ન્': 'º', // 186 \u00ba
   'પ્': '¼', // 188 \u00bc
   'ફ્': 'f`', // 189 \u00bd
   'બ્': '¾', // 190 \u00be
@@ -112,8 +112,13 @@ const REPH_CHAR = '<';
 function reorderAndSubstitute(text) {
   let s = text.normalize('NFC');
 
-  // 1. Substitute complex conjuncts first
+  // 1. Substitute standalone 'રૂ' first, but ONLY when NOT preceded by a virama (\u0acd).
+  // When preceded by virama (\u0acd\u0ab0\u0ac2), it is a consonant cluster with ra-vattu + deergh-oo (e.g. ધ્રૂ, ક્રૂ, ભ્રૂ).
+  s = s.replace(/(?<!\u0acd)રૂ/g, '$');
+
+  // Substitute complex conjuncts
   for (const [conj, rep] of Object.entries(CONJUNCTS)) {
+    if (conj === 'રૂ') continue;
     s = s.split(conj).join(rep);
   }
 
@@ -122,16 +127,16 @@ function reorderAndSubstitute(text) {
   const halfConsonant = '(?:[\\u00b1-\\u00c7AOR]|f\\`)';
   const clusterPiece = '(?:' + fullConsonant + '\\u0acd|' + halfConsonant + ')';
 
-  // A complete cluster is zero or more clusterPieces followed by a final full consonant
-  const consRegex = '(' + clusterPiece + '*' + fullConsonant + ')';
+  // A complete cluster is zero or more clusterPieces followed by a final full consonant, optionally with ra-vattu (\\)
+  const consRegex = '(' + clusterPiece + '*' + fullConsonant + '\\\\?)';
   const matraRegex = '([\\u0abe-\\u0acc\\u0a81-\\u0a83]*)';
 
   // 2. Move Reph (\u0ab0\u0acd) AFTER the base consonant and its matras
   let rephRegex = new RegExp('\\u0ab0\\u0acd' + consRegex + matraRegex, 'g');
   s = s.replace(rephRegex, '$1$2' + REPH_CHAR);
 
-  // 3. Move Short I (\u0abf) BEFORE the entire consonant cluster
-  const clusterRegex = '(' + clusterPiece + '*' + fullConsonant + ')';
+  // 3. Move Short I (\u0abf) BEFORE the entire consonant cluster (including any ra-vattu)
+  const clusterRegex = '(' + clusterPiece + '*' + fullConsonant + '\\\\?)';
   let shortIRegex = new RegExp(clusterRegex + '\\u0abf', 'g');
   s = s.replace(shortIRegex, '\u0abf$1');
 

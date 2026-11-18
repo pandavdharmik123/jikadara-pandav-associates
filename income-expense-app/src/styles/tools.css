@@ -876,3 +876,35 @@
     display: none !important;
   }
 }
+
+/* ------------------------- Mortgage Stamp Duty --------------------------- */
+.mortgage-summary-card {
+  position: static;
+}
+
+@media (min-width: 992px) {
+  .mortgage-summary-card {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+@media (max-width: 767px) {
+  .mortgage-stamp-duty-page .ant-card-head {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .mortgage-stamp-duty-page .ant-card-head-title {
+    font-size: 12.5px;
+    white-space: normal;
+  }
+
+  .mortgage-stamp-duty-page .ant-card-body {
+    padding: 12px;
+  }
+
+  .mortgage-stamp-duty-page .ant-space {
+    gap: 8px !important;
+  }
+}

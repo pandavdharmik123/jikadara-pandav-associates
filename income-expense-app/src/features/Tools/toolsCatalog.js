@@ -4,6 +4,7 @@ import {
   FileText,
   GitFork,
   Hash,
+  Landmark,
   Languages,
   Palette,
   ScanText,
@@ -48,6 +49,12 @@ export const TOOL_GROUPS = [
         label: 'Makan/Milkat Jantri',
         description: 'Government land rate & stamp duty calculator',
         icon: Calculator,
+      },
+      {
+        key: '/app/tools/mortgage_stamp_duty',
+        label: 'Mortgage Stamp Duty',
+        description: 'Loan duty, monthly penalty and 5 Dana stamp duty',
+        icon: Landmark,
       },
       {
         key: '/app/tools/rent_agreement',

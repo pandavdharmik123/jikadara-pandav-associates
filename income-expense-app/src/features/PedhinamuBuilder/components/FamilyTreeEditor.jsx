@@ -33,6 +33,7 @@ import {
   deleteNodeFromTree,
   countDescendants
 } from '../utils/treeModel';
+import { ensureUnicode } from '../utils/unicodeUtils';
 import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy';
 import GhanshyamInput from './GhanshyamInput';
 
@@ -455,18 +456,7 @@ export default function FamilyTreeEditor({
 
       {/* ================= ADD NODE MODAL ================= */}
       <Modal
-        title={
-          <span>
-            નવો કુટુંબ સભ્ય ઉમેરો (+ Add Child to "
-            <span
-              className="font-ghanshyam"
-              style={{ fontFamily: "'Ghanshyam', sans-serif" }}
-            >
-              {toFont(selectedNode.name)}
-            </span>
-            ")
-          </span>
-        }
+        title={`નવો કુટુંબ સભ્ય ઉમેરો (+ Add Child to "${ensureUnicode(selectedNode.name)}")`}
         open={addModalVisible}
         onOk={handleAddSubmit}
         onCancel={() => setAddModalVisible(false)}
@@ -479,11 +469,8 @@ export default function FamilyTreeEditor({
             message={
               <span>
                 This person will be added as a direct child of:{' '}
-                <strong
-                  className="font-ghanshyam"
-                  style={{ fontFamily: "'Ghanshyam', sans-serif", fontSize: '15px' }}
-                >
-                  {toFont(selectedNode.name)}
+                <strong>
+                  {ensureUnicode(selectedNode.name)}
                 </strong>
               </span>
             }
@@ -548,18 +535,7 @@ export default function FamilyTreeEditor({
 
       {/* ================= EDIT NODE MODAL ================= */}
       <Modal
-        title={
-          <span>
-            વ્યક્તિ વિગત સુધારો ({''}
-            <span
-              className="font-ghanshyam"
-              style={{ fontFamily: "'Ghanshyam', sans-serif" }}
-            >
-              {toFont(selectedNode.name)}
-            </span>
-            )
-          </span>
-        }
+        title={`વ્યક્તિ વિગત સુધારો (${ensureUnicode(selectedNode.name)})`}
         open={editModalVisible}
         onOk={handleEditSubmit}
         onCancel={() => setEditModalVisible(false)}

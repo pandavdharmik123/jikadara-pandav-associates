@@ -291,19 +291,40 @@
         }
       }
 
-      .btn-sample-data {
-        color: #4f46e5 !important;
-        border-color: rgba(99, 102, 241, 0.25) !important;
-        background: rgba(99, 102, 241, 0.05) !important;
-
-        &:hover {
-          background: rgba(99, 102, 241, 0.12) !important;
-          border-color: #6366f1 !important;
-        }
-      }
-
       .btn-saved-drafts {
         position: relative;
+      }
+
+      // Input language dropdown (header) — affects form inputs only
+      .input-lang-select {
+        height: 33px;
+
+        .ant-select-selector {
+          height: 33px !important;
+          border-radius: 7px !important;
+          border-color: rgba(99, 102, 241, 0.25) !important;
+          background: rgba(99, 102, 241, 0.05) !important;
+        }
+
+        .ant-select-selection-item {
+          line-height: 31px !important;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: #4f46e5 !important;
+        }
+
+        &.ant-select-focused .ant-select-selector {
+          border-color: #6366f1 !important;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+        }
+
+        &:hover .ant-select-selector {
+          border-color: #6366f1 !important;
+        }
+
+        .ant-select-arrow {
+          color: #4f46e5;
+        }
       }
 
       // Unified compact download group
@@ -375,6 +396,32 @@
         .ant-btn:not(.btn-download-pdf) {
           padding: 0 8px !important;
         }
+      }
+    }
+
+    @media (max-width: 768px) {
+      height: auto !important;
+      min-height: 48px !important;
+      padding: 6px 10px !important;
+      gap: 8px !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      white-space: nowrap !important;
+      scrollbar-width: none !important;
+
+      &::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      .pedhinamu-header-left {
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+      }
+
+      .pedhinamu-header-right {
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+        margin-left: auto !important;
       }
     }
   }
@@ -889,6 +936,52 @@ textarea.ant-input.font-ghanshyam {
   }
 }
 
+// Unicode (transliterate) form inputs — phonetic typing with Gujarati suggestions.
+// Mirrors the Ghanshyam input look so switching modes doesn't shift the layout.
+input.pedhinamu-transliterate-input,
+textarea.pedhinamu-transliterate-input {
+  font-family: 'Anek Gujarati', 'Noto Sans Gujarati', system-ui, sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  height: 38px;
+  padding: 6px 11px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  transition: all 0.15s ease !important;
+
+  &:focus,
+  &:hover {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+    outline: none;
+  }
+
+  &::placeholder {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 12.5px !important;
+    color: #94a3b8 !important;
+    opacity: 0.7 !important;
+  }
+}
+
+textarea.pedhinamu-transliterate-input {
+  height: auto;
+  min-height: 60px;
+  padding: 8px 11px !important;
+}
+
+// Keep the suggestions dropdown above form cards / modals
+.transliterate-wrapper {
+  position: relative;
+
+  ul {
+    z-index: 1050 !important;
+  }
+}
 // Family Tree Editor Modern Component Styles
 .family-tree-editor {
   display: flex;
@@ -1659,19 +1752,40 @@ textarea.ant-input.font-ghanshyam {
         }
       }
 
-      .btn-sample-data {
-        color: #4f46e5 !important;
-        border-color: rgba(99, 102, 241, 0.25) !important;
-        background: rgba(99, 102, 241, 0.05) !important;
-
-        &:hover {
-          background: rgba(99, 102, 241, 0.12) !important;
-          border-color: #6366f1 !important;
-        }
-      }
-
       .btn-saved-drafts {
         position: relative;
+      }
+
+      // Input language dropdown (header) — affects form inputs only
+      .input-lang-select {
+        height: 33px;
+
+        .ant-select-selector {
+          height: 33px !important;
+          border-radius: 7px !important;
+          border-color: rgba(99, 102, 241, 0.25) !important;
+          background: rgba(99, 102, 241, 0.05) !important;
+        }
+
+        .ant-select-selection-item {
+          line-height: 31px !important;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: #4f46e5 !important;
+        }
+
+        &.ant-select-focused .ant-select-selector {
+          border-color: #6366f1 !important;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+        }
+
+        &:hover .ant-select-selector {
+          border-color: #6366f1 !important;
+        }
+
+        .ant-select-arrow {
+          color: #4f46e5;
+        }
       }
 
       // Unified compact download group

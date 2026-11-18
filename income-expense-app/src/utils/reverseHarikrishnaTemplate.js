@@ -78,8 +78,10 @@ const REVERSE_CONJUNCTS = {
   '¶': 'જ્',
   '·': 'ણ્',
   'R': 'ત્',
-  '¹': 'થ્',
-  'º': 'ન્', // mapping conflict for º -> ધ્ and ન્. Favoring ન્ due to frequency.
+  '¸': 'થ્',
+  '¹': 'ધ્',
+  'º': 'ન્',
+  '»': 'ન્',
   '¼': 'પ્',
   'f`': 'ફ્',
   '¾': 'બ્',

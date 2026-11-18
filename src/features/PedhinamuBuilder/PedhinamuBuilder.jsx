@@ -17,7 +17,6 @@ import {
   Download,
   FolderOpen,
   RotateCcw,
-  Sparkles,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -25,7 +24,6 @@ import {
   ChevronDown,
   PanelLeft,
   PanelLeftClose,
-  CheckCircle2,
   RefreshCw,
   Copy,
   Cloud,
@@ -43,11 +41,10 @@ import ApplicationDocument from './components/ApplicationDocument';
 import SavedDraftsModal from './components/SavedDraftsModal';
 import SavePedhinamuModal from './components/SavePedhinamuModal';
 import GhanshyamInput from './components/GhanshyamInput';
+import { PedhinamuInputModeContext } from './inputModeContext';
 
 import { DEFAULT_PEDHINAMU_DATA, createBlankPedhinamuData } from './constants/pedhinamuTemplate';
 import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
-import { SAMPLE_HAYATI_DATA } from './constants/sampleHayatiData';
-import { SAMPLE_GHOGHARI_DATA } from './constants/sampleGhoghariData';
 import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions, updateNodeSize, updateNodeFontSize } from './utils/treeModel';
 import { ensureUnicode } from './utils/unicodeUtils';
 import { downloadAllPedhinamuZip, generateA4PortraitPdf } from './utils/exportZipBundle';
@@ -309,47 +306,6 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       };
     });
     message.success('Family Tree auto-arranged to symmetrical layout');
-  };
-
-  // Load sample data based on active mode
-  const handleLoadSample = () => {
-    const isAlive = data.pedhinamuType === 'ALIVE';
-    const sampleToLoad = isAlive ? SAMPLE_HAYATI_DATA : SAMPLE_MADHUBHAI_DATA;
-    const sampleTitle = isAlive
-      ? 'ટાપણીયા છગનભાઇ પીતાંબરભાઇ - હયાતી પેઢીનામું'
-      : 'મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું';
-
-    Modal.confirm({
-      title: isAlive ? 'Load Hayati Reference Sample?' : 'Load Deceased Reference Sample?',
-      content: isAlive
-        ? 'This will load reference data from "Pedhinamu DRAFT - Hayati.pdf" (Shri Chhaganbhai Pitambarbhai, wife, 7 alive heirs, 3 panchas).'
-        : 'This will replace the current form with the Madhubhai Reference Pedhinamu data (Late Madhubhai, 2 wives, 7 children, 3 panchas).',
-      okText: 'Load Sample',
-      onOk: () => {
-        setData(sampleToLoad);
-        setSelectedNodeId('root');
-        setSelectedNodeIds(['root']);
-        setDraftTitle(sampleTitle);
-        message.success(`${isAlive ? 'Hayati' : 'Deceased'} reference sample data loaded!`);
-      }
-    });
-  };
-
-  // Load sample data for Anilbhai Ghoghari (Self-Declaration & Talati Application sample)
-  const handleLoadGhoghariSample = () => {
-    Modal.confirm({
-      title: 'Load Anilbhai Ghoghari Sample Data?',
-      content: 'This will load sample data for "શ્રી ઘોઘારી અનિલકુમાર ધીરૂભાઈ" (with 6 legal heirs, Katargam address, and complete self-declaration details).',
-      okText: 'Load Sample',
-      cancelText: 'Cancel',
-      onOk: () => {
-        setData(SAMPLE_GHOGHARI_DATA);
-        setSelectedNodeId('root');
-        setSelectedNodeIds(['root']);
-        setDraftTitle('ઘોઘારી અનિલકુમાર ધીરૂભાઈ - પેઢીનામું');
-        message.success('Anilbhai Ghoghari sample data loaded!');
-      }
-    });
   };
 
   // Reset to empty template
@@ -815,6 +771,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
     }
   };
   return (
+    <PedhinamuInputModeContext.Provider value={fontMode}>
     <div className="pedhinamu-builder-container">
       {/* Top Header & Actions Bar */}
       <div className="pedhinamu-header-toolbar">
@@ -875,51 +832,18 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         </div>
 
         <div className="pedhinamu-header-right">
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'sample-ghoghari',
-                  icon: <Sparkles size={14} style={{ color: '#4f46e5' }} />,
-                  label: 'શ્રી ઘોઘારી અનિલકુમાર (સ્વ-ઘોષણા + અરજી)',
-                  onClick: handleLoadGhoghariSample
-                },
-                {
-                  key: 'sample-deceased',
-                  icon: <FileCheck size={14} style={{ color: '#dc2626' }} />,
-                  label: 'મધુભાઇ પરશોતમભાઇ જીકાદરા (Deceased)',
-                  onClick: () => {
-                    setData(SAMPLE_MADHUBHAI_DATA);
-                    setSelectedNodeId('root');
-                    setSelectedNodeIds(['root']);
-                    setDraftTitle('મધુભાઇ પરશોતમભાઇ જીકાદરા - પેઢીનામું');
-                    message.success('Madhubhai Jikadara sample loaded!');
-                  }
-                },
-                {
-                  key: 'sample-hayati',
-                  icon: <CheckCircle2 size={14} style={{ color: '#16a34a' }} />,
-                  label: 'ટાપણીયા છગનભાઇ પીતાંબરભાઇ (હયાતી)',
-                  onClick: () => {
-                    setData(SAMPLE_HAYATI_DATA);
-                    setSelectedNodeId('root');
-                    setSelectedNodeIds(['root']);
-                    setDraftTitle('ટાપણીયા છગનભાઇ પીતાંબરભાઇ - હયાતી પેઢીનામું');
-                    message.success('Chhaganbhai Tapaniya sample loaded!');
-                  }
-                }
-              ]
-            }}
-            placement="bottomRight"
-          >
-            <Button
-              className="btn-sample-data"
-              icon={<Sparkles size={14} />}
-            >
-              <span className="btn-label">Sample</span>
-              <ChevronDown size={12} style={{ marginLeft: 3 }} />
-            </Button>
-          </Dropdown>
+          {/* Input Language Selector — single dropdown without label */}
+          <Select
+            size="small"
+            value={fontMode}
+            className="input-lang-select"
+            style={{ width: 115 }}
+            options={[
+              { value: 'ghanshyam', label: 'Ghanshyam' },
+              { value: 'unicode', label: 'Unicode' }
+            ]}
+            onChange={setFontMode}
+          />
 
           <Tooltip title="View saved drafts in database">
             <Button
@@ -1139,23 +1063,6 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
               </>
             )}
 
-            {/* Font Selector (Supported on ALL documents: Pedhinamu, Self-Declaration, Application) */}
-            {/* <div className="dock-group">
-              <Select
-                size="small"
-                value={fontMode}
-                className="dock-select"
-                style={{ width: 175 }}
-                onChange={setFontMode}
-                options={[
-                  { value: 'ghanshyam', label: 'Nilkanth + Ghanshyam' },
-                  { value: 'unicode', label: 'Gujarati Unicode' }
-                ]}
-              />
-            </div> */}
-
-            {/* <div className="dock-divider" /> */}
-
             {/* Zoom Controls */}
             <div className="dock-group">
               <button
@@ -1240,7 +1147,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                         onNodeFontSizeChange={handleNodeFontSizeChange}
                         interactive={true}
                         scale={zoom}
-                        fontMode={fontMode}
+                        fontMode="ghanshyam"
                         activePage={activePage}
                         selectedNodeId={selectedNodeId}
                         selectedNodeIds={selectedNodeIds}
@@ -1272,7 +1179,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                       left: 0
                     }}
                   >
-                    <SelfDeclarationDocument data={data} scale={1} fontMode={fontMode} />
+                    <SelfDeclarationDocument data={data} scale={1} fontMode="ghanshyam" />
                   </div>
                 </div>
               ) : (
@@ -1298,7 +1205,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
                       left: 0
                     }}
                   >
-                    <ApplicationDocument data={data} scale={1} fontMode={fontMode} />
+                    <ApplicationDocument data={data} scale={1} fontMode="ghanshyam" />
                   </div>
                 </div>
               )}
@@ -1314,7 +1221,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           activePage="all"
           interactive={false}
           scale={1}
-          fontMode={fontMode}
+          fontMode="ghanshyam"
         />
       </div>
 
@@ -1341,7 +1248,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             activePage="1"
             interactive={false}
             scale={1}
-            fontMode={fontMode}
+            fontMode="ghanshyam"
           />
         </div>
       </div>
@@ -1368,7 +1275,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             activePage="2"
             interactive={false}
             scale={1}
-            fontMode={fontMode}
+            fontMode="ghanshyam"
           />
         </div>
       </div>
@@ -1394,7 +1301,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           ref={exportSelfDeclarationRef}
           data={data}
           scale={1}
-          fontMode={fontMode}
+          fontMode="ghanshyam"
         />
       </div>
 
@@ -1418,7 +1325,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
           ref={exportApplicationRef}
           data={data}
           scale={1}
-          fontMode={fontMode}
+          fontMode="ghanshyam"
         />
       </div>
 
@@ -1442,5 +1349,6 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
         currentDraftId={draftId}
       />
     </div>
+    </PedhinamuInputModeContext.Provider>
   );
 }

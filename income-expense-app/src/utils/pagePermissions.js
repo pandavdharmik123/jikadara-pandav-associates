@@ -34,6 +34,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/ai-translator', label: 'AI Translator', description: 'Gemini-powered English ↔ Gujarati translation' },
       { key: '/app/tools/universal', label: 'Universal Converter', description: 'Legacy font converter' },
       { key: '/app/tools/jantri', label: 'Makan/Milkat Jantri', description: 'Government land rate calculator' },
+      { key: '/app/tools/mortgage_stamp_duty', label: 'Mortgage Stamp Duty', description: 'Loan duty, penalty & stamp duty calculator' },
       { key: '/app/tools/rent_agreement', label: 'Rent Agreement', description: 'Stamp duty & registration fees' },
       { key: '/app/tools/invoice', label: 'Invoice Generator', description: 'Professional legal billing' },
       { key: '/app/tools/number_to_words', label: 'Numbers to Words', description: 'Cheque/legal word formatting' },
