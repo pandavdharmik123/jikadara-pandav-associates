@@ -673,6 +673,15 @@ router.get('/smc-viewbill-proxy', async (req, res) => {
 
 router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async (req, res) => {
   setProxyFrameHeaders(res);
+  const tenementNo = [
+    req.body?.txtWard,
+    req.body?.drpSubWard,
+    req.body?.txtLoaction,
+    req.body?.txtOwner,
+    req.body?.txtSubOwner,
+    req.body?.txtOccupier,
+  ].filter(Boolean).join('-');
+
   try {
     const captchaToken = req.body?.CaptchaDeText;
     let cookieHeader = '';
@@ -727,6 +736,11 @@ router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async
 
     setProxyFrameHeaders(res);
 
+    if (!upstreamRes.ok) {
+      console.warn(`[SMC-Proxy] POST upstream returned status ${upstreamRes.status}`);
+      return res.status(200).send(renderFallbackHtml(tenementNo, null, `SMC portal returned status ${upstreamRes.status}`));
+    }
+
     const contentType = upstreamRes.headers.get('content-type') || '';
 
     // If SMC returns a binary PDF file stream, serve it directly
@@ -747,7 +761,7 @@ router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async
   } catch (err) {
     console.error('Error submitting SMC Enroll form:', err);
     setProxyFrameHeaders(res);
-    return res.status(200).send(renderFallbackHtml('', null, err?.message || 'Error processing request'));
+    return res.status(200).send(renderFallbackHtml(tenementNo, null, err?.message || 'Error processing request'));
   }
 });
 
