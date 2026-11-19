@@ -21,7 +21,7 @@ import {
 import { UserPlus, Edit, Trash2, CheckCircle2, Shield } from 'lucide-react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../../hooks/useUsers';
 import useAuthStore from '../../store/authStore';
-import Loader from '../../components/Loader';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import { AVAILABLE_PAGE_GROUPS, DEFAULT_ALLOWED_PAGES, ALL_AVAILABLE_PAGES } from '../../utils/pagePermissions';
 import dayjs from 'dayjs';
 
@@ -264,11 +264,14 @@ export default function AdminUsers() {
         <Table
           className="modern-admin-table"
           columns={columns}
-          dataSource={users}
+          dataSource={isLoading ? [] : users}
           rowKey="id"
-          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
+          loading={false}
           pagination={false}
           scroll={{ x: 'max-content' }}
+          locale={{
+            emptyText: isLoading ? <TableLoadingSkeleton rows={5} columns={9} /> : null,
+          }}
         />
       </Card>
 

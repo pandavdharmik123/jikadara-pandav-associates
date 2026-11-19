@@ -28,7 +28,7 @@ import {
   Database,
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import Loader from '../../components/Loader';
+import { PageSkeleton, TableLoadingSkeleton } from '../../components/skeletons';
 import { useBackupStatus, useBackupHistory, useRunBackup, useDeleteBackup } from '../../hooks/useBackup';
 
 const { Title, Text } = Typography;
@@ -101,7 +101,7 @@ export default function BackupManager() {
     }
   };
 
-  if (isLoading) return <Loader />;
+  if (isLoading) return <PageSkeleton stats={3} tableRows={5} tableColumns={6} />;
 
   const quota = status?.quota;
   const quotaPercent =
@@ -461,11 +461,13 @@ export default function BackupManager() {
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={history?.items || []}
-          loading={historyLoading}
+          dataSource={historyLoading ? [] : (history?.items || [])}
+          loading={false}
           scroll={{ x: 1000 }}
           locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No backups yet" />,
+            emptyText: historyLoading
+              ? <TableLoadingSkeleton rows={5} columns={6} />
+              : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No backups yet" />,
           }}
           pagination={{
             current: page,

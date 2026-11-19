@@ -8,7 +8,7 @@ import { useDocumentTypes } from '../../hooks/useDocumentTypes';
 import useAuthStore from '../../store/authStore';
 import AddTaskModal from './AddTaskModal';
 import EditTaskModal from './EditTaskModal';
-import Loader from '../../components/Loader';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import dayjs from 'dayjs';
 
@@ -512,15 +512,17 @@ export default function TaskList() {
         <Table
           className="modern-dashboard-table"
           columns={columns}
-          dataSource={displayTasks}
+          dataSource={isLoading ? [] : displayTasks}
           rowKey="id"
           tableLayout="fixed"
-          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
+          loading={false}
           pagination={{ pageSize: 10 }}
           scroll={{ x: 1435, y: 'calc(100vh - 259px)' }}
           size="small"
           locale={{
-            emptyText: (
+            emptyText: isLoading ? (
+              <TableLoadingSkeleton rows={8} columns={10} />
+            ) : (
               <EmptyState
                 icon={NotebookText}
                 title="No tasks found"

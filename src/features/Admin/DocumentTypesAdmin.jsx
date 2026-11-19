@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Typography, Card, Table, Button, Space, Input, Modal, message } from 'antd';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useDocumentTypes, useCreateDocumentType, useUpdateDocumentType, useDeleteDocumentType } from '../../hooks/useDocumentTypes';
-import Loader from '../../components/Loader';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import dayjs from 'dayjs';
 
@@ -126,12 +126,14 @@ export default function DocumentTypesAdmin() {
         <Table
           className="modern-dashboard-table"
           columns={columns}
-          dataSource={documentTypes}
+          dataSource={isLoading ? [] : documentTypes}
           rowKey="id"
-          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
+          loading={false}
           pagination={{ pageSize: 10 }}
           locale={{
-            emptyText: (
+            emptyText: isLoading ? (
+              <TableLoadingSkeleton rows={6} columns={3} />
+            ) : (
               <EmptyState 
                 title="No document types found" 
                 description="Click 'Add New Type' to create one." 

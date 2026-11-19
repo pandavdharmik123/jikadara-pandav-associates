@@ -7,6 +7,7 @@ import html2pdf from 'html2pdf.js';
 import { useTasks } from '../../hooks/useTasks';
 import { useInvoices, useCreateInvoice, useUpdateInvoice, useDeleteInvoice } from '../../hooks/useInvoices';
 import InvoicePrintLayout from './InvoicePrintLayout';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -585,12 +586,15 @@ export default function InvoiceGenerator({ currentAccentColor }) {
         <Col xs={24} lg={12}>
           <Card size="small" className="glass-panel" bordered={false} title={<span style={{ color: currentAccentColor, fontSize: 13 }}>Saved Invoices</span>}>
             <Table
-              dataSource={invoices}
+              dataSource={invoicesLoading ? [] : invoices}
               columns={invoiceColumns}
               rowKey="id"
-              loading={invoicesLoading}
+              loading={false}
               pagination={{ pageSize: 10 }}
               size="small"
+              locale={{
+                emptyText: invoicesLoading ? <TableLoadingSkeleton rows={5} columns={5} /> : null,
+              }}
               rowClassName={(record) => (record.id === editingInvoiceId ? 'ant-table-row-selected' : '')}
             />
           </Card>

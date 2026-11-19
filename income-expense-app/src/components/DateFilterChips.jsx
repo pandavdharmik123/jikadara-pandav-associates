@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { DatePicker, Modal, message } from 'antd';
 import { formatDisplayDate, getPresetRange, dayjs } from '../lib/date';
 
-const { RangePicker } = DatePicker;
-
 export const DATE_PRESETS = [
   { key: 'THIS_FY', label: 'This FY' },
   { key: 'TODAY', label: 'Today' },
@@ -64,6 +62,14 @@ export default function DateFilterChips({ value, onChange, customRange, fyRange 
     return date < fyRange.startDate || date > fyRange.endDate;
   };
 
+  const disabledStart = (current) =>
+    disabledDate(current) ||
+    Boolean(current && draft?.[1] && current.isAfter(draft[1], 'day'));
+
+  const disabledEnd = (current) =>
+    disabledDate(current) ||
+    Boolean(current && draft?.[0] && current.isBefore(draft[0], 'day'));
+
   return (
     <>
       <div className="chip-row" role="group" aria-label="Date range filter">
@@ -97,15 +103,34 @@ export default function DateFilterChips({ value, onChange, customRange, fyRange 
           Dates must stay inside the selected financial year
           {fyRange ? ` (${formatDisplayDate(fyRange.startDate)} – ${formatDisplayDate(fyRange.endDate)})` : ''}.
         </p>
-        <RangePicker
-          value={draft}
-          onChange={setDraft}
-          format="DD/MM/YYYY"
-          disabledDate={disabledDate}
-          allowClear={false}
-          style={{ width: '100%' }}
-          size="large"
-        />
+        <div className="date-filter-fields">
+          <label className="date-filter-field">
+            <span>From</span>
+            <DatePicker
+              value={draft?.[0] || null}
+              onChange={(date) => setDraft([date || null, draft?.[1] || null])}
+              format="DD/MM/YYYY"
+              disabledDate={disabledStart}
+              allowClear={false}
+              placeholder="Start date"
+              style={{ width: '100%' }}
+              size="large"
+            />
+          </label>
+          <label className="date-filter-field">
+            <span>To</span>
+            <DatePicker
+              value={draft?.[1] || null}
+              onChange={(date) => setDraft([draft?.[0] || null, date || null])}
+              format="DD/MM/YYYY"
+              disabledDate={disabledEnd}
+              allowClear={false}
+              placeholder="End date"
+              style={{ width: '100%' }}
+              size="large"
+            />
+          </label>
+        </div>
       </Modal>
     </>
   );

@@ -38,15 +38,26 @@ const PORT = process.env.PORT || 3001; // Updated scanner pool active
 
 // Security headers (QA-11)
 app.use(helmet({
-  contentSecurityPolicy: false, // Set explicitly below for this JSON-only API
+  contentSecurityPolicy: false, // Handled explicitly below
   crossOriginEmbedderPolicy: false,
-  xFrameOptions: { action: 'deny' },
+  xFrameOptions: false, // Handled dynamically below (allowed for SMC viewbill proxy)
   xContentTypeOptions: true,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
-// This service only serves JSON, so no script/style/img sources are needed.
+// Global CSP & frame headers
 app.use((req, res, next) => {
+  // Allow framing for SMC viewbill proxy from authorized frontend origins
+  if (req.path.includes('/smc-viewbill-proxy') || req.path.includes('/smc-api-proxy')) {
+    res.setHeader(
+      'Content-Security-Policy',
+      "frame-ancestors 'self' https://jikadara-and-pandav-associates.vercel.app https://*.vercel.app http://localhost:* http://127.0.0.1:* capacitor://localhost https://localhost"
+    );
+    res.removeHeader('X-Frame-Options');
+    return next();
+  }
+
+  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"

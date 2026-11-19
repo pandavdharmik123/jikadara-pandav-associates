@@ -1,0 +1,250 @@
+/* ==========================================================================
+   Skeleton loading UI (Mobile Application)
+   Shared shimmer placeholders matching the clean, light card theme.
+   ========================================================================== */
+
+.sk {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 25%,
+    #e2e8f0 37%,
+    #f1f5f9 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+  flex: none;
+}
+
+@keyframes sk-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+    background: #e2e8f0;
+  }
+}
+
+.sk-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+.sk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sk-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sk-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Cards ------------------------------------------------------------------- */
+
+.sk-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #f1f5f9);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  min-width: 0;
+}
+
+.sk-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Stats ------------------------------------------------------------------- */
+
+.sk-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.sk-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.sk-stat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Table ------------------------------------------------------------------- */
+
+.sk-table {
+  width: 100%;
+}
+
+.sk-table-head-row,
+.sk-table-row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.sk-table-head-row {
+  border-radius: 8px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 2px;
+}
+
+.sk-table-row {
+  border-bottom: 1px solid #f8fafc;
+}
+
+.sk-table-row:last-child {
+  border-bottom: 0;
+}
+
+.sk-table-row--compact {
+  padding: 8px 12px;
+}
+
+/* Lists ------------------------------------------------------------------- */
+
+.sk-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sk-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-top: 1px solid #f8fafc;
+}
+
+.sk-list-row:first-child {
+  border-top: 0;
+}
+
+.sk-list-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile List / Cards ------------------------------------------------------ */
+
+.sk-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.sk-mobile-card {
+  pointer-events: none !important;
+}
+
+/* Two column layout ------------------------------------------------------- */
+
+.sk-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* Dark Theme Overrides ---------------------------------------------------- */
+
+[data-theme='dark'] {
+  .sk {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.06) 25%,
+      rgba(255, 255, 255, 0.12) 37%,
+      rgba(255, 255, 255, 0.06) 63%
+    );
+  }
+
+  .sk-card {
+    background: #141414;
+    border-color: #303030;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  }
+
+  .sk-table-head-row {
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .sk-table-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .sk-list-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+@media (max-width: 640px) {
+  .sk-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .sk-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sk-stat {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .sk-header {
+    align-items: flex-start;
+  }
+
+  .sk-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .sk-table-head-row,
+  .sk-table-row {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+}

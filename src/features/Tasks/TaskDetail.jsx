@@ -6,7 +6,7 @@ import { useTask, useMarkTaskDone, useReopenTask, useUpdateTaskStatus } from '..
 import useAuthStore from '../../store/authStore';
 import EditableTransactionTable from './EditableTransactionTable';
 import EditTaskModal from './EditTaskModal';
-import Loader from '../../components/Loader';
+import { DetailSkeleton } from '../../components/skeletons';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../../utils/currency';
 
@@ -27,7 +27,7 @@ export default function TaskDetail() {
   const [doneForm] = Form.useForm();
 
   if (isLoading) {
-    return <Loader />;
+    return <DetailSkeleton stats={6} tableRows={5} tableColumns={7} />;
   }
 
   if (!task) {

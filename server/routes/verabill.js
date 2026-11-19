@@ -414,39 +414,265 @@ async function processSmcHtml(html, cookieHeader, tenementData = null) {
   return html;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function setProxyFrameHeaders(res) {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors 'self' https://jikadara-and-pandav-associates.vercel.app https://*.vercel.app http://localhost:* http://127.0.0.1:* capacitor://localhost https://localhost"
+  );
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+}
+
+function renderFallbackHtml(tenementNo = '', tenementData = null, errorMsg = '') {
+  return `<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMC Property Tax Portal</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 85vh;
+      text-align: center;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 30px 22px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    .icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: #eff6ff;
+      color: #2563eb;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: #0f172a;
+    }
+    p {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #64748b;
+      margin: 0 0 18px 0;
+    }
+    .tenement-box {
+      background: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+    .tenement-label {
+      font-size: 11.5px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .tenement-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: 1px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #2563eb;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 10px 16px;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .copy-toast {
+      font-size: 12px;
+      font-weight: 600;
+      color: #16a34a;
+      margin-top: 6px;
+      display: none;
+    }
+    .error-detail {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 14px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+        <path d="M9 22v-4h6v4"></path>
+        <path d="M8 6h.01"></path>
+        <path d="M16 6h.01"></path>
+        <path d="M8 10h.01"></path>
+        <path d="M16 10h.01"></path>
+        <path d="M8 14h.01"></path>
+        <path d="M16 14h.01"></path>
+        <path d="M8 18h.01"></path>
+        <path d="M16 18h.01"></path>
+      </svg>
+    </div>
+    <h2>સુરત મહાનગરપાલિકા (SMC) પોર્ટલ</h2>
+    <p>
+      સરકારી SMC સર્વર અથવા નેટવર્ક પ્રતિબંધના કારણે પેજ સીધા ફ્રેમમાં લોડ થઈ શક્યું નથી. આપ નીચે આપેલ બટન પર ક્લિક કરીને સત્તાવાર પોર્ટલ સીધું ખોલી શકો છો:
+    </p>
+
+    ${tenementNo ? `
+      <div class="tenement-box">
+        <div class="tenement-label">ટેનામેન્ટ નંબર (Tenement No)</div>
+        <div class="tenement-val" id="tNo">${escapeHtml(tenementNo)}</div>
+      </div>
+    ` : ''}
+
+    <a href="${SMC_ENROLL_URL}" target="_blank" rel="noopener noreferrer" class="btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+      સત્તાવાર SMC પોર્ટલ ખોલો (Open SMC Portal)
+    </a>
+
+    ${tenementNo ? `
+      <button type="button" class="btn btn-secondary" onclick="copyTenement()">
+        📋 ટેનામેન્ટ નંબર કોપી કરો (Copy Number)
+      </button>
+      <div id="copyNotice" class="copy-toast">✓ નંબર સફળતાપૂર્વક કોપી થયો!</div>
+    ` : ''}
+
+    <button type="button" class="btn btn-secondary" onclick="window.location.reload()" style="margin-top: 8px;">
+      🔄 ફરી પ્રયાસ કરો (Try Again)
+    </button>
+
+    ${errorMsg ? `<div class="error-detail">તકનીકી નોંધ: ${escapeHtml(errorMsg)}</div>` : ''}
+  </div>
+
+  <script>
+    function copyTenement() {
+      var text = ${JSON.stringify(tenementNo)};
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showToast);
+      } else {
+        var input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast();
+      }
+    }
+    function showToast() {
+      var el = document.getElementById('copyNotice');
+      if (el) {
+        el.style.display = 'block';
+        setTimeout(function() { el.style.display = 'none'; }, 2500);
+      }
+    }
+  </script>
+</body>
+</html>`;
+}
+
 router.get('/smc-viewbill-proxy', async (req, res) => {
+  const tenementNo = req.query.tenementNo || req.query.tenement || '';
+  const tenementData = parseTenementNumber(tenementNo);
+  setProxyFrameHeaders(res);
+
   try {
-    const tenementNo = req.query.tenementNo || req.query.tenement || '';
-    const tenementData = parseTenementNumber(tenementNo);
     console.log('[SMC-Proxy] GET /smc-viewbill-proxy (Enroll) tenement:', tenementNo, tenementData);
 
-    const upstreamRes = await fetch(SMC_ENROLL_URL, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    let upstreamRes;
+    try {
+      upstreamRes = await fetch(SMC_ENROLL_URL, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,gu;q=0.8',
+        },
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!upstreamRes.ok) {
-      return res.status(upstreamRes.status).send('Failed to fetch SMC Property Tax Enroll page');
+      console.warn(`[SMC-Proxy] Upstream responded with status ${upstreamRes.status}`);
+      return res.status(200).send(renderFallbackHtml(tenementNo, tenementData, `SMC portal returned status ${upstreamRes.status}`));
     }
 
     const cookieHeader = extractCookieHeader(upstreamRes);
     let html = await upstreamRes.text();
     html = await processSmcHtml(html, cookieHeader, tenementData);
 
-    res.removeHeader('X-Frame-Options');
-    res.removeHeader('Content-Security-Policy');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    setProxyFrameHeaders(res);
     return res.send(html);
   } catch (err) {
-    console.error('Error proxying SMC Enroll:', err);
-    return res.status(500).send('Error loading Surat Municipal Corporation portal: ' + err.message);
+    console.error('Error proxying SMC Enroll:', err?.message || err);
+    setProxyFrameHeaders(res);
+    return res.status(200).send(renderFallbackHtml(tenementNo, tenementData, err?.message || 'Connection timeout'));
   }
 });
 
 router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async (req, res) => {
+  setProxyFrameHeaders(res);
   try {
     const captchaToken = req.body?.CaptchaDeText;
     let cookieHeader = '';
@@ -477,26 +703,35 @@ router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async
     // Don't forward our custom hidden parameter to SMC
     postParams.delete('__smc_session');
 
-    const upstreamRes = await fetch(SMC_ENROLL_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: cookieHeader,
-        Referer: SMC_ENROLL_URL,
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      body: postParams.toString(),
-      redirect: 'follow',
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    let upstreamRes;
+    try {
+      upstreamRes = await fetch(SMC_ENROLL_URL, {
+        signal: controller.signal,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Cookie: cookieHeader,
+          Referer: SMC_ENROLL_URL,
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+        body: postParams.toString(),
+        redirect: 'follow',
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    setProxyFrameHeaders(res);
 
     const contentType = upstreamRes.headers.get('content-type') || '';
 
     // If SMC returns a binary PDF file stream, serve it directly
     if (contentType.includes('application/pdf') || contentType.includes('octet-stream')) {
       const arrayBuffer = await upstreamRes.arrayBuffer();
-      res.removeHeader('X-Frame-Options');
-      res.removeHeader('Content-Security-Policy');
       res.setHeader('Content-Type', contentType);
       const disposition = upstreamRes.headers.get('content-disposition');
       if (disposition) res.setHeader('Content-Disposition', disposition);
@@ -508,13 +743,11 @@ router.post('/smc-viewbill-proxy', express.urlencoded({ extended: true }), async
     let html = await upstreamRes.text();
     html = await processSmcHtml(html, mergedCookies);
 
-    res.removeHeader('X-Frame-Options');
-    res.removeHeader('Content-Security-Policy');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(html);
   } catch (err) {
     console.error('Error submitting SMC Enroll form:', err);
-    return res.status(500).send('Error processing request: ' + err.message);
+    setProxyFrameHeaders(res);
+    return res.status(200).send(renderFallbackHtml('', null, err?.message || 'Error processing request'));
   }
 });
 

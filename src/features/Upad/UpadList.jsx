@@ -8,7 +8,7 @@ import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
 import useAuthStore from '../../store/authStore';
 import AddEditUpadModal from './AddEditUpadModal';
 import UpadReportPrintLayout from './UpadReportPrintLayout';
-import Loader from '../../components/Loader';
+import { Sk, TableSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/currency';
 import { toISTDateString } from '../../utils/istDate';
@@ -457,7 +457,30 @@ export default function UpadList() {
 
       {/* Main Content: User-wise Dynamic Tables */}
       {isLoading ? (
-        <Loader />
+        <div className="sk-page">
+          {[0, 1].map((index) => (
+            <div key={index} className="sk-card" style={{ padding: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Sk w={34} circle />
+                  <Sk w={150} h={14} r={7} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Sk w={72} h={24} r={8} />
+                  <Sk w={72} h={24} r={8} />
+                </div>
+              </div>
+              <TableSkeleton rows={index === 0 ? 3 : 2} columns={6} showHead />
+            </div>
+          ))}
+        </div>
       ) : groupedData.length === 0 ? (
         <Card
           bordered={false}

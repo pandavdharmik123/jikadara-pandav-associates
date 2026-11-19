@@ -159,9 +159,10 @@ export default function App() {
 
   useEffect(() => {
     document.body.className = 'light-theme';
+    document.documentElement.setAttribute('data-theme', themeMode);
     document.documentElement.style.setProperty('--accent-color', currentAccentColor);
     localStorage.setItem('font-conv-accent', activeColor);
-  }, [activeColor, currentAccentColor]);
+  }, [activeColor, currentAccentColor, themeMode]);
 
   return (
     <QueryClientProvider client={queryClient}>

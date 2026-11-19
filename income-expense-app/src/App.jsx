@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { ConfigProvider, Spin } from 'antd';
+import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AppShell from './components/AppShell';
 import LedgerGate from './components/LedgerGate';
 import ToolGate from './components/ToolGate';
+import AdvocateGate from './components/AdvocateGate';
 import LoginPage from './features/Auth/LoginPage';
 import HomePage from './features/Home/HomePage';
 import TransactionsPage from './features/Transactions/TransactionsPage';
@@ -19,6 +20,7 @@ import ToolPageFrame from './features/Tools/ToolPageFrame';
 import { TOOL_BY_KEY } from './features/Tools/toolsCatalog';
 import useAuthStore from './store/authStore';
 import { canUseOfficeLedger, hasAnyToolAccess } from './lib/permissions';
+import { PageSkeleton } from './components/skeletons';
 
 // Tools pull in heavy PDF/OCR libraries. Loading them on demand keeps the
 // ledger screens (and the native app's first paint) small and fast.
@@ -33,6 +35,19 @@ const NumberToWordsConverter = lazy(() => import('./features/NumberToWordsConver
 const DocumentAI = lazy(() => import('./features/DocumentAI/DocumentAI'));
 const PedhinamuBuilder = lazy(() => import('./features/PedhinamuBuilder/PedhinamuBuilder'));
 const FormBuilderPage = lazy(() => import('./features/FormBuilder/FormBuilderPage'));
+
+// Advocate Management (ported from the website, mobile-adapted)
+const AdvocateHub = lazy(() => import('./features/Advocate/AdvocateHub'));
+const DashboardPage = lazy(() => import('./features/Dashboard/Dashboard'));
+const ClientRoutes = lazy(() => import('./features/Clients/index.jsx'));
+const TaskRoutes = lazy(() => import('./features/Tasks/index.jsx'));
+const ExpenseReportPage = lazy(() => import('./features/Reports/ExpenseReport'));
+const UpadListPage = lazy(() => import('./features/Upad/UpadList'));
+const RecycleBinPage = lazy(() => import('./features/RecycleBin/RecycleBin'));
+const AdminUsersPage = lazy(() => import('./features/Admin/AdminUsers'));
+const BackupManagerPage = lazy(() => import('./features/Admin/BackupManager'));
+const DocumentTypesAdminPage = lazy(() => import('./features/Admin/DocumentTypesAdmin'));
+const ExcelSheetsPage = lazy(() => import('./features/ExcelSheets/ExcelSheetsPage'));
 
 const ACCENT = '#6366f1';
 
@@ -57,9 +72,8 @@ const queryClient = new QueryClient({
 
 function ToolLoading() {
   return (
-    <div style={{ display: 'grid', placeItems: 'center', gap: 10, padding: '56px 0' }}>
-      <Spin size="large" />
-      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Loading tool…</span>
+    <div style={{ padding: '16px 12px', width: '100%', boxSizing: 'border-box' }}>
+      <PageSkeleton stats={2} tableRows={5} />
     </div>
   );
 }
@@ -89,6 +103,19 @@ function toolPage(toolKey, element) {
         }
       />
     </Route>
+  );
+}
+
+function advocatePage({ path, pageKey, adminOnly = false, title, element }) {
+  return (
+    <Route
+      path={path}
+      element={
+        <AdvocateGate pageKey={pageKey} adminOnly={adminOnly} title={title}>
+          <Suspense fallback={<ToolLoading />}>{element}</Suspense>
+        </AdvocateGate>
+      }
+    />
   );
 }
 
@@ -157,6 +184,103 @@ export default function App() {
                 </Route>
 
                 <Route path="profile" element={<ProfilePage />} />
+
+                {/* Advocate Management — mobile office hub and modules */}
+                <Route
+                  path="app/advocate"
+                  element={
+                    <Suspense fallback={<ToolLoading />}>
+                      <AdvocateHub />
+                    </Suspense>
+                  }
+                />
+                {advocatePage({
+                  path: 'app/dashboard',
+                  pageKey: '/app/dashboard',
+                  title: 'Dashboard',
+                  element: <DashboardPage />,
+                })}
+                {advocatePage({
+                  path: 'app/clients/*',
+                  pageKey: '/app/clients',
+                  title: 'Clients',
+                  element: <ClientRoutes />,
+                })}
+                {advocatePage({
+                  path: 'app/tasks/*',
+                  pageKey: '/app/tasks',
+                  title: 'Tasks',
+                  element: <TaskRoutes />,
+                })}
+                {advocatePage({
+                  path: 'app/reports',
+                  pageKey: '/app/reports',
+                  title: 'Reports',
+                  element: <ExpenseReportPage />,
+                })}
+                {advocatePage({
+                  path: 'app/upad',
+                  pageKey: '/app/upad',
+                  title: 'Upad List',
+                  element: <UpadListPage />,
+                })}
+                {advocatePage({
+                  path: 'app/recycle-bin',
+                  pageKey: '/app/recycle-bin',
+                  title: 'Recycle Bin',
+                  element: <RecycleBinPage />,
+                })}
+                {advocatePage({
+                  path: 'app/admin/document-types',
+                  pageKey: '/app/admin/document-types',
+                  title: 'Document Types',
+                  element: <DocumentTypesAdminPage />,
+                })}
+                {advocatePage({
+                  path: 'app/admin/users',
+                  adminOnly: true,
+                  title: 'Admin Panel',
+                  element: <AdminUsersPage />,
+                })}
+                {advocatePage({
+                  path: 'app/admin/backup',
+                  adminOnly: true,
+                  title: 'Database Backups',
+                  element: <BackupManagerPage />,
+                })}
+
+                {/* Excel-sheet registers, each with its own page permission */}
+                <Route path="app/excel-sheets">
+                  <Route index element={<Navigate to="/app/excel-sheets/office-reports" replace />} />
+                </Route>
+                {advocatePage({
+                  path: 'app/excel-sheets/office-reports',
+                  pageKey: '/app/office-expenses',
+                  title: 'Office Reports',
+                  element: <ExcelSheetsPage />,
+                })}
+                {advocatePage({
+                  path: 'app/excel-sheets/nondh-status',
+                  pageKey: '/app/nondh-status',
+                  title: 'Nondh Status',
+                  element: <ExcelSheetsPage />,
+                })}
+                {advocatePage({
+                  path: 'app/excel-sheets/notary-hisab',
+                  pageKey: '/app/notary-hisab',
+                  title: 'Notary Hisab',
+                  element: <ExcelSheetsPage />,
+                })}
+                {advocatePage({
+                  path: 'app/excel-sheets/verabill',
+                  pageKey: '/app/verabill',
+                  title: 'Verabill / Light Bill',
+                  element: <ExcelSheetsPage />,
+                })}
+                <Route path="app/office-expenses" element={<Navigate to="/app/excel-sheets/office-reports" replace />} />
+                <Route path="app/nondh-status" element={<Navigate to="/app/excel-sheets/nondh-status" replace />} />
+                <Route path="app/notary-hisab" element={<Navigate to="/app/excel-sheets/notary-hisab" replace />} />
+                <Route path="app/verabill" element={<Navigate to="/app/excel-sheets/verabill" replace />} />
 
                 <Route path="app/tools" element={<ToolsPage />} />
 

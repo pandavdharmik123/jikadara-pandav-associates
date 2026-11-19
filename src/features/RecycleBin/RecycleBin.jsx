@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Card, Typography, Table, Tag, Button, Space, Tabs, Input, Modal, Popconfirm, message, Badge } from 'antd';
 import { Trash2, RotateCcw, Search, AlertTriangle, Calendar, User, CheckSquare, Receipt, Wallet, FileText, Files, GitFork, Zap, ClipboardList } from 'lucide-react';
 import { useRecycleBin, useRestoreItem, usePermanentDeleteItem, useEmptyRecycleBin } from '../../hooks/useRecycleBin';
-import Loader from '../../components/Loader';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/currency';
 import { formatISTDate } from '../../utils/istDate';
@@ -583,7 +583,7 @@ export default function RecycleBin() {
         />
 
         {isLoading ? (
-          <Loader />
+          <TableLoadingSkeleton rows={7} columns={5} />
         ) : filteredItems.length === 0 ? (
           <div style={{ padding: '40px 0' }}>
             <EmptyState
