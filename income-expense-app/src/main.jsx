@@ -9,6 +9,9 @@ import './lib/browserPolyfills';
 import './lib/transliterationFetch';
 import './styles/global.css';
 import './styles/tools.css';
+import './styles/advocate.scss';
+import './styles/skeletons.scss';
+import './styles/office.css';
 import './styles/pdf-print.scss';
 import App from './App';
 

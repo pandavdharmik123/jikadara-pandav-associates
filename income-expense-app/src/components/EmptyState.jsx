@@ -1,4 +1,6 @@
-export default function EmptyState({ icon: Icon, title, text, action }) {
+export default function EmptyState({ icon: Icon, title, text, description, action }) {
+  const message = text ?? description;
+
   return (
     <div className="empty-state">
       {Icon ? (
@@ -7,7 +9,7 @@ export default function EmptyState({ icon: Icon, title, text, action }) {
         </span>
       ) : null}
       <h2 className="empty-title">{title}</h2>
-      {text ? <p className="empty-text">{text}</p> : null}
+      {message ? <p className="empty-text">{message}</p> : null}
       {action ? <div style={{ marginTop: 14 }}>{action}</div> : null}
     </div>
   );

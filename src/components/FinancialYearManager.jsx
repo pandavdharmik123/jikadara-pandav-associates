@@ -4,8 +4,6 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useFinancialYears, useCreateFinancialYear, useUpdateFinancialYear, useDeleteFinancialYear } from '../hooks/useFinancialYears';
 import dayjs from 'dayjs';
 
-const { RangePicker } = DatePicker;
-
 export default function FinancialYearManager() {
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
@@ -19,7 +17,8 @@ export default function FinancialYearManager() {
     setEditingId(record.id);
     form.setFieldsValue({
       name: record.name,
-      dates: [dayjs(record.startDate), dayjs(record.endDate)],
+      startDate: dayjs(record.startDate),
+      endDate: dayjs(record.endDate),
     });
   };
 
@@ -46,8 +45,8 @@ export default function FinancialYearManager() {
       const values = await form.validateFields();
       const payload = {
         name: values.name,
-        startDate: values.dates[0].format('YYYY-MM-DD'),
-        endDate: values.dates[1].format('YYYY-MM-DD'),
+        startDate: values.startDate.format('YYYY-MM-DD'),
+        endDate: values.endDate.format('YYYY-MM-DD'),
       };
 
       if (editingId) {
@@ -101,12 +100,55 @@ export default function FinancialYearManager() {
     <Card title="Manage Financial Years" className="glass-panel" bordered={false} style={{ marginTop: 24 }}>
       <div style={{ marginBottom: 24 }}>
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
-            <Form.Item name="name" label="Name (e.g. FY 24-25)" rules={[{ required: true }]} style={{ flex: 1, marginBottom: 0 }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <Form.Item name="name" label="Name (e.g. FY 24-25)" rules={[{ required: true }]} style={{ flex: '1 1 220px', marginBottom: 0 }}>
               <Input placeholder="Enter name" />
             </Form.Item>
-            <Form.Item name="dates" label="Date Range" rules={[{ required: true }]} style={{ flex: 2, marginBottom: 0 }}>
-              <RangePicker style={{ width: '100%' }} format="DD MMM YYYY" />
+            <Form.Item
+              name="startDate"
+              label="Start Date"
+              rules={[{ required: true, message: 'Start date is required' }]}
+              style={{ flex: '1 1 170px', marginBottom: 0 }}
+            >
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD MMM YYYY"
+                allowClear={false}
+                onChange={(date) => {
+                  const end = form.getFieldValue('endDate');
+                  if (date && end && end.isBefore(date, 'day')) {
+                    form.setFieldsValue({ endDate: null });
+                  }
+                }}
+              />
+            </Form.Item>
+            <Form.Item
+              name="endDate"
+              label="End Date"
+              dependencies={['startDate']}
+              rules={[
+                { required: true, message: 'End date is required' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    const start = getFieldValue('startDate');
+                    if (!value || !start || !value.isBefore(start, 'day')) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('End date cannot be before the start date'));
+                  },
+                }),
+              ]}
+              style={{ flex: '1 1 170px', marginBottom: 0 }}
+            >
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD MMM YYYY"
+                allowClear={false}
+                disabledDate={(current) => {
+                  const start = form.getFieldValue('startDate');
+                  return Boolean(current && start && current.isBefore(start, 'day'));
+                }}
+              />
             </Form.Item>
             <Button 
               type="primary" 

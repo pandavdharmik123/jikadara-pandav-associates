@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Space } from 'antd';
 import { Globe, RotateCw, ExternalLink } from 'lucide-react';
+import { Sk } from '../../components/skeletons';
 
 /**
  * AnyRoR Portal – full-page view of https://anyror.gujarat.gov.in/
@@ -91,7 +92,20 @@ export default function AnyRoRPortal() {
               pointerEvents: 'none',
             }}
           >
-            <Globe size={32} color="#94a3b8" />
+            <div
+              style={{
+                width: 'min(420px, 78%)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <Sk w={130} h={14} />
+              <Sk w="100%" h={10} />
+              <Sk w="86%" h={10} />
+              <Sk w="64%" h={10} />
+              <Sk w="100%" h={140} r={10} style={{ marginTop: 6 }} />
+            </div>
             <span style={{ color: '#94a3b8', fontWeight: 600 }}>Loading AnyRoR portal…</span>
           </div>
         )}

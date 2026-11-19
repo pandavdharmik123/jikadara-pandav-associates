@@ -55,6 +55,7 @@ import { formatCurrency } from '../../utils/currency';
 import { formatISTDate, toISTDateString } from '../../utils/istDate';
 import TransliterateInput from '../../components/TransliterateInput';
 import EmptyState from '../../components/EmptyState';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import {
   useVerabillEntries,
   useVerabillSummary,
@@ -1040,8 +1041,8 @@ export default function VerabillPage() {
           className="modern-dashboard-table verabill-table"
           rowKey="id"
           columns={columns}
-          dataSource={entries}
-          loading={isLoading}
+          dataSource={isLoading ? [] : entries}
+          loading={false}
           pagination={{
             rootClassName: 'verabill-pagination',
             current: params.page,
@@ -1056,7 +1057,9 @@ export default function VerabillPage() {
           styles={{ body: { minHeight: 'calc(100vh - 380px)' } }}
           size="middle"
           locale={{
-            emptyText: (
+            emptyText: isLoading ? (
+              <TableLoadingSkeleton rows={8} columns={12} />
+            ) : (
               <EmptyState
                 icon={Receipt}
                 title="No Verabill records found"

@@ -11,7 +11,7 @@ import usePrivacyStore from '../../store/privacyStore';
 import PrivacyAmount from '../../components/PrivacyAmount';
 import PinVerificationModal from '../../components/PinVerificationModal';
 import SetPinModal from '../../components/SetPinModal';
-import Loader from '../../components/Loader';
+import { Sk, StatsSkeleton, TableSkeleton, TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import FinancialReportPrintLayout from './FinancialReportPrintLayout';
 import AddIncomeModal from './AddIncomeModal';
@@ -575,7 +575,25 @@ export default function ExpenseReport() {
       </div>
 
       {isLoading ? (
-        <Loader />
+        <div className="sk-page">
+          <StatsSkeleton count={3} />
+          {[0, 1].map((index) => (
+            <div key={index} className="sk-card" style={{ padding: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 18px 12px',
+                }}
+              >
+                <Sk w={index === 0 ? 130 : 168} h={18} r={7} />
+                <Sk w={112} h={34} r={8} />
+              </div>
+              <TableSkeleton rows={index === 0 ? 5 : 4} columns={index === 0 ? 7 : 5} showHead />
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -702,13 +720,19 @@ export default function ExpenseReport() {
             <Table
               className="modern-dashboard-table"
               columns={generalExpenseColumns}
-              dataSource={generalExpenses || []}
+              dataSource={generalExpensesLoading ? [] : (generalExpenses || [])}
               rowKey="id"
               pagination={false}
-              loading={generalExpensesLoading}
+              loading={false}
               scroll={{ x: 'max-content' }}
               size="small"
-              locale={{ emptyText: <Empty description="No general expenses found for this period" /> }}
+              locale={{
+                emptyText: generalExpensesLoading ? (
+                  <TableLoadingSkeleton rows={4} columns={5} />
+                ) : (
+                  <Empty description="No general expenses found for this period" />
+                ),
+              }}
               summary={() => (
                 <Table.Summary>
                   <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>

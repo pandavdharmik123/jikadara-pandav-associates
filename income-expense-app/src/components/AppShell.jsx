@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { Button, Select } from 'antd';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { House, Plus, ReceiptText, UserRound, Wrench } from 'lucide-react';
+import { Briefcase, House, Plus, ReceiptText, UserRound, Wrench } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { useActiveFinancialYear } from '../hooks/useFinancialYears';
 import { COMPANY_NAME, COMPANY_TAGLINE } from '../lib/config';
@@ -20,7 +21,29 @@ export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const activeFinancialYear = useAuthStore((state) => state.activeFinancialYear);
+  const setActiveFinancialYear = useAuthStore((state) => state.setActiveFinancialYear);
   const { financialYears, fy, selectFy } = useActiveFinancialYear();
+
+  // Advocate Management pages (ported from the website) read the active FY
+  // from the auth store. Keep it in sync with the app-wide FY selector.
+  useEffect(() => {
+    if (fy && fy.id !== activeFinancialYear?.id) {
+      setActiveFinancialYear(fy);
+    }
+  }, [fy, activeFinancialYear?.id, setActiveFinancialYear]);
+
+  const isAdvocateRoute = [
+    '/app/advocate',
+    '/app/dashboard',
+    '/app/clients',
+    '/app/tasks',
+    '/app/reports',
+    '/app/upad',
+    '/app/recycle-bin',
+    '/app/admin',
+    '/app/excel-sheets',
+  ].some((prefix) => location.pathname.startsWith(prefix));
 
   const active = location.pathname === '/'
     ? 'home'
@@ -28,11 +51,13 @@ export default function AppShell() {
       ? 'transactions'
       : location.pathname === '/add'
         ? 'add'
-        : location.pathname.startsWith('/app/tools')
-          ? 'tools'
-          : location.pathname === '/profile'
-            ? 'profile'
-            : 'home';
+        : isAdvocateRoute
+          ? 'advocate'
+          : location.pathname.startsWith('/app/tools')
+            ? 'tools'
+            : location.pathname === '/profile'
+              ? 'profile'
+              : 'home';
 
   const isInsideTool = location.pathname.startsWith('/app/tools/') && location.pathname !== '/app/tools';
 
@@ -45,6 +70,12 @@ export default function AppShell() {
       onClick: () => navigate('/transactions'),
     },
     { key: 'add', label: 'Add', isAdd: true, onClick: () => navigate('/add') },
+    {
+      key: 'advocate',
+      label: 'Office',
+      icon: Briefcase,
+      onClick: () => navigate('/app/advocate'),
+    },
     { key: 'tools', label: 'Tools', icon: Wrench, onClick: () => navigate('/app/tools') },
     { key: 'profile', label: 'Profile', icon: UserRound, onClick: () => navigate('/profile') },
   ];

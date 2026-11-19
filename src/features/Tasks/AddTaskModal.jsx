@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, DatePicker, message, Spin, Row, Col } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, DatePicker, message, Row, Col } from 'antd';
+import { Sk } from '../../components/skeletons';
 import { useCreateTask } from '../../hooks/useTasks';
 import { useClients } from '../../hooks/useClients';
 import { useDocumentTypes, useCreateDocumentType } from '../../hooks/useDocumentTypes';
@@ -111,7 +112,15 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
             optionFilterProp="children"
             loading={clientsLoading}
             onChange={handleClientChange}
-            notFoundContent={clientsLoading ? <Spin size="small" /> : null}
+            notFoundContent={
+              clientsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 4px' }}>
+                  <Sk w="72%" h={10} />
+                  <Sk w="54%" h={10} />
+                  <Sk w="63%" h={10} />
+                </div>
+              ) : null
+            }
             disabled={!!initialClientId}
           >
             {clients?.map(client => (

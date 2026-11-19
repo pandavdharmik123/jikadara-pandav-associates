@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { Button, Drawer, Modal, Popconfirm, Spin, Tooltip, message } from 'antd';
+import { Button, Drawer, Modal, Popconfirm, Skeleton, Tooltip, message } from 'antd';
 import {
   Clock,
   FilePlus2,
@@ -561,7 +561,7 @@ export default function FormBuilderPage() {
 
         </div>
 
-        <Spin spinning={drawerLoading}>
+        <Skeleton loading={drawerLoading} active title={false} paragraph={{ rows: 7 }}>
           {savedRecords.length === 0 ? (
             <div className="fb-saved-empty">
               <span className="fb-saved-empty-icon">
@@ -638,7 +638,7 @@ export default function FormBuilderPage() {
               ))}
             </div>
           )}
-        </Spin>
+        </Skeleton>
       </Drawer>
     </div>
   );

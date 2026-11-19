@@ -38,7 +38,7 @@ import {
   useDeleteOfficeLedgerEntry,
   useOfficeLedger,
 } from '../../hooks/useOfficeLedger';
-import Loader from '../../components/Loader';
+import { CardSkeleton, LedgerSkeleton } from '../../components/skeletons';
 import { formatCurrency, formatCurrencyPrecise } from '../../utils/currency';
 import { formatISTDate, getFinancialYearRange, getISTToday } from '../../utils/istDate';
 import AddEditOfficeLedgerModal from './AddEditOfficeLedgerModal';
@@ -733,7 +733,7 @@ function OfficeLedgerPageContent() {
         </div>
 
         {financialYearsLoading ? (
-          <Loader />
+          <CardSkeleton lines={3} />
         ) : (
           <Alert
             type="warning"
@@ -1075,9 +1075,7 @@ function OfficeLedgerPageContent() {
       )}
 
       {isLoading ? (
-        <Card bordered={false} style={{ borderRadius: 12 }}>
-          <Loader />
-        </Card>
+        <LedgerSkeleton />
       ) : (
         <Row gutter={[10, 10]} align="stretch">
           <Col xs={24} lg={12} style={{ display: 'flex', width: '100%' }}>

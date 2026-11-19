@@ -39,6 +39,7 @@ import {
 import { IndicTransliterate } from '@ai4bharat/indic-transliterate';
 import dayjs from 'dayjs';
 import EmptyState from '../../components/EmptyState';
+import { Sk, TableLoadingSkeleton } from '../../components/skeletons';
 import { formatCurrency } from '../../utils/currency';
 
 import {
@@ -967,20 +968,22 @@ export default function NondhStatusList() {
           className="modern-dashboard-table nondh-status-table"
           tableLayout="fixed"
           columns={columns}
-          dataSource={filteredData}
+          dataSource={isLoading ? [] : filteredData}
           rowKey="id"
           rowClassName={(record) =>
             [isEditingRow(record) ? 'nondh-row-editing' : '', getStatusRowClass(record.status)]
               .filter(Boolean)
               .join(' ')
           }
-          loading={isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
+          loading={false}
           pagination={{ pageSize: 15, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries` }}
           scroll={{ x: 1410, y: 'calc(100vh - 320px)' }}
           size="middle"
           bordered
           locale={{
-            emptyText: (
+            emptyText: isLoading ? (
+              <TableLoadingSkeleton rows={8} columns={11} />
+            ) : (
               <EmptyState
                 icon={FileCheck}
                 title="No Nondh entries found"
@@ -1195,7 +1198,20 @@ export default function NondhStatusList() {
                 pointerEvents: 'none',
               }}
             >
-              <Globe size={32} color="#94a3b8" />
+              <div
+                style={{
+                  width: 'min(420px, 78%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <Sk w={130} h={14} />
+                <Sk w="100%" h={10} />
+                <Sk w="86%" h={10} />
+                <Sk w="64%" h={10} />
+                <Sk w="100%" h={140} r={10} style={{ marginTop: 6 }} />
+              </div>
               <span style={{ color: '#94a3b8', fontWeight: 600 }}>Loading AnyRoR portal…</span>
             </div>
           )}

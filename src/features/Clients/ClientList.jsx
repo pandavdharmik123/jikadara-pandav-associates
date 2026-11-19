@@ -7,7 +7,7 @@ import useAuthStore from '../../store/authStore';
 import AddClientModal from './AddClientModal';
 import EditClientModal from './EditClientModal';
 import useDebounce from '../../hooks/useDebounce';
-import Loader from '../../components/Loader';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 
 const { Title, Text } = Typography;
@@ -181,14 +181,16 @@ export default function ClientList() {
         <Table
           className="modern-dashboard-table"
           columns={columns}
-          dataSource={clients}
+          dataSource={isLoading ? [] : clients}
           rowKey="id"
-          loading={{ spinning: isLoading, indicator: <Loader size={60} /> }}
+          loading={false}
           pagination={{ pageSize: 10 }}
           scroll={{ x: 800, y: 'calc(100vh - 296px)' }}
           size="small"
           locale={{
-            emptyText: (
+            emptyText: isLoading ? (
+              <TableLoadingSkeleton rows={8} columns={6} />
+            ) : (
               <EmptyState
                 icon={FolderOpen}
                 title="No clients found"

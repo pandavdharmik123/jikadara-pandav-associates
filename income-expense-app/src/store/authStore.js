@@ -8,6 +8,7 @@ const EMPTY_SESSION = {
   token: null,
   refreshToken: null,
   isAuthenticated: false,
+  activeFinancialYear: null,
 };
 
 const useAuthStore = create(
@@ -27,6 +28,10 @@ const useAuthStore = create(
         })),
 
       clearSession: () => set({ ...EMPTY_SESSION }),
+
+      // The Advocate Management screens are shared with the website and read
+      // the active financial year from the store, so keep that contract here.
+      setActiveFinancialYear: (fy) => set({ activeFinancialYear: fy }),
 
       logout: () => {
         const { refreshToken, token } = get();

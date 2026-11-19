@@ -3,7 +3,7 @@ import { Row, Col, Card, Typography, Table, Tag, Empty, Button, Tooltip, DatePic
 import { Users, CheckSquare, CheckCircle, ArrowRight, ClipboardList, FolderOpen, Eye, EyeOff, Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { formatCurrency } from '../../utils/currency';
 import { useNavigate } from 'react-router-dom';
-import Loader from '../../components/Loader';
+import { DashboardSkeleton, TableLoadingSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import { useDashboardStats, useRecentData } from '../../hooks/useReports';
 import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
@@ -123,7 +123,7 @@ export default function Dashboard() {
   };
 
   if (statsLoading || recentLoading || fyGeLoading || monthlyGeLoading) {
-    return <Loader />;
+    return <DashboardSkeleton />;
   }
 
   const fyGeTotal = (fyGeneralExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
@@ -471,15 +471,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {appointmentTasks.length > 0 ? (
+        {appointmentTasks.length > 0 || apptTasksLoading ? (
           <Table
             className="modern-dashboard-table"
             columns={appointmentTasksColumns}
-            dataSource={appointmentTasks}
+            dataSource={apptTasksLoading ? [] : appointmentTasks}
             rowKey="id"
-            loading={apptTasksLoading}
+            loading={false}
             pagination={appointmentTasks.length > 5 ? { pageSize: 5, size: 'small' } : false}
             scroll={{ x: 750 }}
+            locale={{
+              emptyText: <TableLoadingSkeleton rows={4} columns={7} />,
+            }}
           />
         ) : (
           <div style={{ padding: '24px 0' }}>

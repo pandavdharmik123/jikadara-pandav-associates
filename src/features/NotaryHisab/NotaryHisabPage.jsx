@@ -49,6 +49,7 @@ import NotaryRegisterModal from './NotaryRegisterModal';
 import NotaryUserStatementModal from './NotaryUserStatementModal';
 import NotaryPdfLayout from './NotaryPdfLayout';
 import EmptyState from '../../components/EmptyState';
+import { TableLoadingSkeleton } from '../../components/skeletons';
 
 const { Title, Text } = Typography;
 
@@ -904,8 +905,8 @@ export default function NotaryHisabPage() {
               className="modern-dashboard-table"
               rowKey="id"
               columns={columns}
-              dataSource={filteredEntries}
-              loading={registerLoading}
+              dataSource={registerLoading ? [] : filteredEntries}
+              loading={false}
               rowSelection={{
                 selectedRowKeys,
                 onChange: (keys) => setSelectedRowKeys(keys),
@@ -923,7 +924,9 @@ export default function NotaryHisabPage() {
               size="middle"
               bordered
               locale={{
-                emptyText: (
+                emptyText: registerLoading ? (
+                  <TableLoadingSkeleton rows={8} columns={8} />
+                ) : (
                   <EmptyState
                     icon={BookMarked}
                     title="No serial numbers match"
@@ -946,9 +949,12 @@ export default function NotaryHisabPage() {
             <Table
               rowKey="userId"
               columns={summaryColumns}
-              dataSource={summary}
-              loading={summaryLoading}
+              dataSource={summaryLoading ? [] : summary}
+              loading={false}
               pagination={false}
+              locale={{
+                emptyText: summaryLoading ? <TableLoadingSkeleton rows={4} columns={4} /> : null,
+              }}
               footer={() => (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 8px' }}>
                   <Text strong style={{ color: '#0f172a' }}>

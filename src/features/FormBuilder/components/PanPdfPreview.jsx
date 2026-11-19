@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Spin, Tooltip } from 'antd';
+import { Alert, Button, Tooltip } from 'antd';
 import { ChevronLeft, ChevronRight, Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -410,7 +410,11 @@ export default function PanPdfPreview({
       <div className="fbs-viewport" ref={viewportRef} onScroll={handleScroll}>
         {status === 'loading' && (
           <div className="fbs-preview-state">
-            <Spin />
+            <div
+              className="sk"
+              style={{ width: 'min(420px, 82%)', height: 'min(560px, 62vh)', borderRadius: 10 }}
+              aria-hidden="true"
+            />
             <span>Loading the {templateLabel} template…</span>
           </div>
         )}

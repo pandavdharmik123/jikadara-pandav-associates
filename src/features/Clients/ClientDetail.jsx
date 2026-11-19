@@ -5,7 +5,7 @@ import { ArrowLeft, Plus, Phone, User as UserIcon, Calendar, NotebookText, Eye, 
 import { useClient } from '../../hooks/useClients';
 import { useDeleteTask } from '../../hooks/useTasks';
 import dayjs from 'dayjs';
-import Loader from '../../components/Loader';
+import { DetailSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import AddTaskModal from '../Tasks/AddTaskModal';
 import EditTaskModal from '../Tasks/EditTaskModal';
@@ -43,7 +43,7 @@ export default function ClientDetail() {
   };
 
   if (isLoading) {
-    return <Loader />;
+    return <DetailSkeleton stats={3} tableRows={5} tableColumns={8} />;
   }
 
   if (!client) {
