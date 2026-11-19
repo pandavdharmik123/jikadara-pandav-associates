@@ -68,6 +68,7 @@ app.use((req, res, next) => {
 // CORS configuration (QA-01)
 const allowedOrigins = [
   'https://jikadara-and-pandav-associates.vercel.app',
+  'https://jikadara-pandav-associates-india.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
@@ -87,16 +88,18 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow non-browser requests (curl, server-to-server, mobile)
+    // Allow non-browser requests (curl, server-to-server, mobile native requests)
     if (!origin) return callback(null, true);
 
     const isExplicitlyAllowed = allowedOrigins.includes(origin);
     const isVercelPreview = /^https:\/\/jikadara-.*\.vercel\.app$/.test(origin);
+    const isRenderDomain = /^https:\/\/.*\.onrender\.com$/.test(origin);
 
-    if (isExplicitlyAllowed || isVercelPreview) {
+    if (isExplicitlyAllowed || isVercelPreview || isRenderDomain) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Reject origin gracefully without throwing an unhandled Error that triggers a 500 crash
+      callback(null, false);
     }
   },
   credentials: true,
@@ -147,6 +150,10 @@ app.get('/api/health', async (req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
+  if (err?.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'Not allowed by CORS' });
+  }
+
   if (err?.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Request body is too large' });
   }
