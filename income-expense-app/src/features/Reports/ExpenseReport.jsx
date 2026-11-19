@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Modal, Form, Input, message, Tooltip, Grid } from 'antd';
-import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Modal, Form, Input, message, Tooltip, Grid, Tag } from 'antd';
+import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff, TrendingUp, TrendingDown, Wallet, NotebookText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { useMonthlyReport, useYearlyReport } from '../../hooks/useReports';
 import { useGeneralExpenses, useCreateGeneralExpense, useUpdateGeneralExpense, useDeleteGeneralExpense } from '../../hooks/useGeneralExpenses';
@@ -601,57 +601,161 @@ export default function ExpenseReport() {
             </Button>
           </div>
           {hasData ? (
-            <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
-              {reportType === 'MONTHLY' ? (
-                <Table
-                  className="modern-dashboard-table"
-                  columns={monthlyColumns}
-                  dataSource={monthlyData.tasks}
-                  rowKey="id"
-                  pagination={false}
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 600px)' }}
-                  size="small"
-                  summary={() => (
-                    <Table.Summary fixed={true}>
-                      <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                        <Table.Summary.Cell index={0} colSpan={6}>
-                          <Text strong>Total</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={1} align="right">
-                          <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={2}></Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    </Table.Summary>
-                  )}
-                />
-              ) : (
-                <Table
-                  className="modern-dashboard-table"
-                  columns={yearlyColumns}
-                  dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
-                  rowKey="key"
-                  pagination={false}
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 600px)', scroll: 'auto' }}
-                  size="small"
-                  summary={() => (
-                    <Table.Summary>
-                      <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                        <Table.Summary.Cell index={0} colSpan={2}>
-                          <Text strong>Total</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={1} align="center">
-                          <Text strong>{yearlyData?.yearlyTotals?.taskCount || 0}</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={2} align="right">
-                          <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    </Table.Summary>
-                  )}
-                />
-              )}
-            </Card>
+            isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                {reportType === 'MONTHLY' ? (
+                  monthlyData.tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="adv-mobile-card"
+                      style={{ margin: 0 }}
+                      onClick={() => !task.isDirectIncome && navigate(`/app/tasks/${task.id}`)}
+                    >
+                      <div className="adv-mobile-card-main">
+                        <span className="adv-mobile-avatar">
+                          <NotebookText size={18} />
+                        </span>
+                        <div className="adv-mobile-copy" style={{ minWidth: 0, flex: 1 }}>
+                          <div className="adv-mobile-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <span className="adv-mobile-title" style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {task.documentType || '-'}
+                            </span>
+                            {task.isDirectIncome ? (
+                              <Tag color="blue" style={{ margin: 0, borderRadius: 12, fontSize: 11 }}>Direct</Tag>
+                            ) : (
+                              <Tag color="green" style={{ margin: 0, borderRadius: 12, fontSize: 11 }}>Task</Tag>
+                            )}
+                          </div>
+
+                          <div className="adv-mobile-meta" style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                            <span>{dayjs(task.completedDate || task.startDate).format('DD/MM/YYYY')}</span>
+                            {task.place && <span style={{ marginLeft: 6 }}>• {task.place}</span>}
+                            {(task.client?.name || task.clientName) && (
+                              <span style={{ marginLeft: 6 }}>• {task.client?.name || task.clientName}</span>
+                            )}
+                          </div>
+
+                          {task.referenceName && (
+                            <div className="adv-mobile-meta" style={{ marginTop: 2, fontSize: 11, color: '#94a3b8' }}>
+                              Ref: {task.referenceName}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 6, borderTop: '1px solid #f1f5f9' }}>
+                            <PrivacyAmount
+                              amount={task.netAmount}
+                              color={Number(task.netAmount) >= 0 ? '#16a34a' : '#dc2626'}
+                              style={{ fontSize: 13, fontWeight: 700 }}
+                            />
+                            {task.isDirectIncome && (
+                              <Space size="small" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<Edit size={15} />}
+                                  onClick={() => {
+                                    setEditingIncome(task);
+                                    setIsIncomeModalVisible(true);
+                                  }}
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<Trash2 size={15} />}
+                                  onClick={() => handleDeleteDirectIncome(task)}
+                                />
+                              </Space>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  yearlyData.months.filter(m => m.taskCount > 0).map((month) => (
+                    <div key={month.key} className="adv-mobile-card" style={{ margin: 0 }}>
+                      <div className="adv-mobile-card-main">
+                        <span className="adv-mobile-avatar">
+                          <BarChart2 size={18} />
+                        </span>
+                        <div className="adv-mobile-copy" style={{ minWidth: 0, flex: 1 }}>
+                          <div className="adv-mobile-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span className="adv-mobile-title" style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                              {month.monthName}
+                            </span>
+                            <PrivacyAmount
+                              amount={month.netAmount}
+                              color={Number(month.netAmount) >= 0 ? '#16a34a' : '#dc2626'}
+                              style={{ fontSize: 13, fontWeight: 700 }}
+                            />
+                          </div>
+                          <div className="adv-mobile-meta" style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                            Tasks completed: <Text strong>{month.taskCount}</Text>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', marginTop: 4 }}>
+                  <Text strong style={{ fontSize: 13 }}>Total Income Tasks</Text>
+                  <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontSize: 14, fontWeight: 700 }} />
+                </div>
+              </div>
+            ) : (
+              <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', marginBottom: 24 }} styles={{ body: { padding: 0 } }}>
+                {reportType === 'MONTHLY' ? (
+                  <Table
+                    className="modern-dashboard-table"
+                    columns={monthlyColumns}
+                    dataSource={monthlyData.tasks}
+                    rowKey="id"
+                    pagination={false}
+                    scroll={{ x: 'max-content', y: 'calc(100vh - 600px)' }}
+                    size="small"
+                    summary={() => (
+                      <Table.Summary fixed={true}>
+                        <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
+                          <Table.Summary.Cell index={0} colSpan={6}>
+                            <Text strong>Total</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={1} align="right">
+                            <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                        </Table.Summary.Row>
+                      </Table.Summary>
+                    )}
+                  />
+                ) : (
+                  <Table
+                    className="modern-dashboard-table"
+                    columns={yearlyColumns}
+                    dataSource={yearlyData.months.filter(m => m.taskCount > 0)}
+                    rowKey="key"
+                    pagination={false}
+                    scroll={{ x: 'max-content', y: 'calc(100vh - 600px)', scroll: 'auto' }}
+                    size="small"
+                    summary={() => (
+                      <Table.Summary>
+                        <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
+                          <Table.Summary.Cell index={0} colSpan={2}>
+                            <Text strong>Total</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={1} align="center">
+                            <Text strong>{yearlyData?.yearlyTotals?.taskCount || 0}</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2} align="right">
+                            <PrivacyAmount amount={tasksNetProfit} color={Number(tasksNetProfit) >= 0 ? '#16a34a' : '#dc2626'} style={{ fontWeight: 700 }} />
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                      </Table.Summary>
+                    )}
+                  />
+                )}
+              </Card>
+            )
           ) : (
             <Card className="glass-panel" bordered={false} style={{ marginBottom: 24 }}>
               <EmptyState
@@ -669,32 +773,71 @@ export default function ExpenseReport() {
             </Button>
           </div>
 
-          <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
-            <Table
-              className="modern-dashboard-table"
-              columns={generalExpenseColumns}
-              dataSource={generalExpenses || []}
-              rowKey="id"
-              pagination={false}
-              loading={generalExpensesLoading}
-              scroll={{ x: 'max-content' }}
-              size="small"
-              locale={{ emptyText: <div className="office-empty">No general expenses for this period.</div> }}
-              summary={() => (
-                <Table.Summary>
-                  <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                    <Table.Summary.Cell index={0} colSpan={3}>
-                      <Text strong>Total</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} align="right">
-                      <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2}></Table.Summary.Cell>
-                  </Table.Summary.Row>
-                </Table.Summary>
-              )}
-            />
-          </Card>
+          {isMobile ? (
+            generalExpenses && generalExpenses.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                {generalExpenses.map((exp) => (
+                  <div key={exp.id} className="adv-mobile-card" style={{ margin: 0 }}>
+                    <div className="adv-mobile-card-main">
+                      <span className="adv-mobile-avatar" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
+                        <TrendingDown size={18} />
+                      </span>
+                      <div className="adv-mobile-copy" style={{ minWidth: 0, flex: 1 }}>
+                        <div className="adv-mobile-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <span className="adv-mobile-title" style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+                            {exp.description}
+                          </span>
+                          <PrivacyAmount amount={exp.amount} color="#dc2626" style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }} />
+                        </div>
+                        <div className="adv-mobile-meta" style={{ marginTop: 4, fontSize: 12, color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>{dayjs(exp.date).format('DD/MM/YYYY')}</span>
+                          <Space size="small">
+                            <Button type="text" size="small" icon={<Edit size={14} />} onClick={() => handleOpenExpenseModal(exp)} />
+                            <Button type="text" size="small" danger icon={<Trash2 size={14} />} onClick={() => handleDeleteExpense(exp.id)} />
+                          </Space>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', marginTop: 4 }}>
+                  <Text strong style={{ fontSize: 13 }}>Total Expenses</Text>
+                  <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontSize: 14, fontWeight: 700 }} />
+                </div>
+              </div>
+            ) : (
+              <div className="office-empty" style={{ padding: '24px', textAlign: 'center', background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', marginBottom: 24 }}>
+                No general expenses for this period.
+              </div>
+            )
+          ) : (
+            <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
+              <Table
+                className="modern-dashboard-table"
+                columns={generalExpenseColumns}
+                dataSource={generalExpenses || []}
+                rowKey="id"
+                pagination={false}
+                loading={generalExpensesLoading}
+                scroll={{ x: 'max-content' }}
+                size="small"
+                locale={{ emptyText: <div className="office-empty">No general expenses for this period.</div> }}
+                summary={() => (
+                  <Table.Summary>
+                    <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
+                      <Table.Summary.Cell index={0} colSpan={3}>
+                        <Text strong>Total</Text>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1} align="right">
+                        <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </Card>
+          )}
         </>
       )}
 
@@ -716,6 +859,7 @@ export default function ExpenseReport() {
         onOk={handleExpenseSubmit}
         confirmLoading={createExpenseMutation.isPending || updateExpenseMutation.isPending}
         okText="Save"
+        width="min(440px, calc(100vw - 20px))"
       >
         <Form form={expenseForm} layout="vertical">
           <Form.Item

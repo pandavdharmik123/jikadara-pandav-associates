@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tag, Table, Space, Avatar, Modal, message } from 'antd';
+import { Card, Typography, Button, Tag, Table, Space, Avatar, Modal, message, Grid } from 'antd';
 import { ArrowLeft, Plus, Phone, User as UserIcon, Calendar, NotebookText, Eye, Edit, Trash2 } from 'lucide-react';
 import { useClient } from '../../hooks/useClients';
 import { useDeleteTask } from '../../hooks/useTasks';
@@ -17,10 +17,39 @@ const { Title, Text } = Typography;
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
   const { user, activeFinancialYear } = useAuthStore();
   const { data: client, isLoading } = useClient(id, activeFinancialYear?.startDate, activeFinancialYear?.endDate);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'IN_PROGRESS':
+        return {
+          label: 'In Progress',
+          bg: '#eff6ff',
+          color: '#2563eb',
+          border: '#dbeafe',
+        };
+      case 'DONE':
+        return {
+          label: 'Done',
+          bg: '#f0fdf4',
+          color: '#16a34a',
+          border: '#dcfce7',
+        };
+      case 'ACTIVE':
+      default:
+        return {
+          label: 'Active',
+          bg: '#fff7ed',
+          color: '#ea580c',
+          border: '#ffedd5',
+        };
+    }
+  };
 
   const deleteTaskMutation = useDeleteTask();
 
@@ -173,89 +202,331 @@ export default function ClientDetail() {
 
   return (
     <div className="advocate-module">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
-        <Space align="center" size="middle">
-          <Button
-            type="text"
-            icon={<ArrowLeft size={20} />}
+      <div className="office-header" style={{ marginBottom: 18 }}>
+        <div className="office-header-main" style={{ alignItems: 'center' }}>
+          <button
+            type="button"
+            className="office-back-button"
             onClick={() => navigate('/app/clients')}
-          />
-          <Avatar size={56} style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', fontWeight: 600, fontSize: 20 }}>
+            aria-label="Back to Clients"
+          >
+            <ArrowLeft size={19} strokeWidth={2.2} />
+          </button>
+          <Avatar
+            size={isMobile ? 42 : 48}
+            style={{
+              backgroundColor: '#e0e7ff',
+              color: '#4f46e5',
+              fontWeight: 700,
+              fontSize: isMobile ? 16 : 18,
+              flexShrink: 0,
+              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.15)',
+            }}
+          >
             {initials}
           </Avatar>
-          <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>{client.name}</Title>
-        </Space>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setIsAddModalVisible(true)}
-          style={{ borderRadius: '8px', height: 40, boxShadow: 'none' }}
-        >
-          Add New Task
-        </Button>
+          <div className="office-header-copy" style={{ minWidth: 0, flex: 1 }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: isMobile ? '18px' : '22px',
+                fontWeight: 800,
+                color: '#0f172a',
+                lineHeight: 1.25,
+                wordBreak: 'break-word',
+              }}
+            >
+              {client.name}
+            </h1>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+              Client Details &bull; {client.tasks?.length || 0} Task{client.tasks?.length === 1 ? '' : 's'}
+            </p>
+          </div>
+        </div>
+        <div className="office-header-actions" style={{ marginTop: isMobile ? 4 : 0 }}>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsAddModalVisible(true)}
+            style={{
+              borderRadius: 10,
+              height: 38,
+              fontWeight: 600,
+              boxShadow: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            Add New Task
+          </Button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
+          gap: 10,
+          marginBottom: 20,
+        }}
+      >
+        <Card
+          bordered={false}
+          style={{ borderRadius: 12, boxShadow: '0 2px 5px rgba(0,0,0,0.04)' }}
+          styles={{ body: { padding: '12px 14px' } }}
+        >
+          <Space align="center" size="small">
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                flexShrink: 0,
+                borderRadius: '9px',
+                backgroundColor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#2563eb',
+              }}
+            >
               <Phone size={16} />
             </div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Mobile</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{client.mobileNumber || 'N/A'}</Text>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>
+                Mobile
+              </Text>
+              {client.mobileNumber ? (
+                <a
+                  href={`tel:${client.mobileNumber}`}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#2563eb',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                  }}
+                >
+                  {client.mobileNumber}
+                </a>
+              ) : (
+                <Text strong style={{ fontSize: 13, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                  N/A
+                </Text>
+              )}
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-              <UserIcon size={16} />
-            </div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Reference</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{client.referenceName || 'N/A'}</Text>
-            </div>
-          </Space>
-        </Card>
-
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card
+          bordered={false}
+          style={{ borderRadius: 12, boxShadow: '0 2px 5px rgba(0,0,0,0.04)' }}
+          styles={{ body: { padding: '12px 14px' } }}
+        >
+          <Space align="center" size="small">
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                flexShrink: 0,
+                borderRadius: '9px',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+              }}
+            >
               <Calendar size={16} />
             </div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Created</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{dayjs(client.createdAt).format('DD MMM YYYY')}</Text>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>
+                Created
+              </Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', display: 'block' }}>
+                {dayjs(client.createdAt).format('DD MMM YYYY')}
+              </Text>
+            </div>
+          </Space>
+        </Card>
+
+        <Card
+          bordered={false}
+          style={{
+            borderRadius: 12,
+            boxShadow: '0 2px 5px rgba(0,0,0,0.04)',
+            gridColumn: isMobile ? '1 / -1' : 'auto',
+          }}
+          styles={{ body: { padding: '12px 14px' } }}
+        >
+          <Space align="center" size="small">
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                flexShrink: 0,
+                borderRadius: '9px',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+              }}
+            >
+              <UserIcon size={16} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>
+                Reference
+              </Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block' }}>
+                {client.referenceName || 'Self / Direct'}
+              </Text>
             </div>
           </Space>
         </Card>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>Tasks</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <Space align="center" size="small">
+          <Title level={4} style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: 16 }}>
+            Tasks
+          </Title>
+          <Tag style={{ borderRadius: 10, fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', fontSize: 11 }}>
+            {client.tasks?.length || 0}
+          </Tag>
+        </Space>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
-        <Table
-          className="modern-dashboard-table"
-          columns={columns}
-          dataSource={client.tasks || []}
-          rowKey="id"
-          pagination={false}
-          scroll={{ x: 1060 }}
-          locale={{
-            emptyText: (
-              <EmptyState
-                icon={NotebookText}
-                title="No tasks yet"
-                description="Add a task for this client to get started."
-              />
-            )
-          }}
-        />
-      </Card>
+      {isMobile ? (
+        client.tasks && client.tasks.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {client.tasks.map((task) => {
+              const status = getStatusConfig(task.status);
+              const net = Number(task.netAmount) || 0;
+              return (
+                <div
+                  key={task.id}
+                  className="adv-mobile-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/app/tasks/${task.id}`)}
+                  style={{ cursor: 'pointer', margin: 0 }}
+                >
+                  <div className="adv-mobile-card-main">
+                    <span className="adv-mobile-avatar">
+                      <NotebookText size={18} />
+                    </span>
+                    <div className="adv-mobile-copy" style={{ minWidth: 0, flex: 1 }}>
+                      <div className="adv-mobile-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <span className="adv-mobile-title" style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {task.documentType}
+                        </span>
+                        <Tag
+                          style={{
+                            margin: 0,
+                            borderRadius: 12,
+                            padding: '0 8px',
+                            fontWeight: 600,
+                            fontSize: 11,
+                            backgroundColor: status.bg,
+                            color: status.color,
+                            border: `1px solid ${status.border}`,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {status.label}
+                        </Tag>
+                      </div>
+
+                      <div className="adv-mobile-meta" style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                        <span>{dayjs(task.startDate).format('DD/MM/YYYY')}</span>
+                        {task.place && (
+                          <span style={{ marginLeft: 6 }}>
+                            • {task.place}
+                          </span>
+                        )}
+                        {task.referenceName && (
+                          <span style={{ marginLeft: 6 }}>
+                            • Ref: {task.referenceName}
+                          </span>
+                        )}
+                      </div>
+
+                      {(task.rrNumber != null || task.appointmentDate) && (
+                        <div className="adv-mobile-meta" style={{ marginTop: 2, fontSize: 11, color: '#94a3b8' }}>
+                          {task.rrNumber != null && <span>RR: #{task.rrNumber}</span>}
+                          {task.rrNumber != null && task.appointmentDate && <span> • </span>}
+                          {task.appointmentDate && (
+                            <span>Appt: {dayjs(task.appointmentDate).format('DD/MM/YYYY hh:mm A')}</span>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid #f1f5f9' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: net >= 0 ? '#16a34a' : '#dc2626' }}>
+                          {formatCurrency(net)}
+                        </span>
+                        <Space size="small" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<Eye size={15} />}
+                            onClick={() => navigate(`/app/tasks/${task.id}`)}
+                            title="View"
+                          />
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<Edit size={15} />}
+                            onClick={() => setEditingTask({ ...task, client: { name: client.name, id: client.id } })}
+                            title="Edit"
+                          />
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<Trash2 size={15} />}
+                            onClick={() => handleDeleteTask(task.id)}
+                            title="Delete"
+                          />
+                        </Space>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            icon={NotebookText}
+            title="No tasks yet"
+            description="Add a task for this client to get started."
+          />
+        )
+      ) : (
+        <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
+          <Table
+            className="modern-dashboard-table"
+            columns={columns}
+            dataSource={client.tasks || []}
+            rowKey="id"
+            pagination={false}
+            scroll={{ x: 1060 }}
+            locale={{
+              emptyText: (
+                <EmptyState
+                  icon={NotebookText}
+                  title="No tasks yet"
+                  description="Add a task for this client to get started."
+                />
+              )
+            }}
+          />
+        </Card>
+      )}
 
       <AddTaskModal
         visible={isAddModalVisible}

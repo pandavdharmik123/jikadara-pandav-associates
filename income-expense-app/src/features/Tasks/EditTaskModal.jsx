@@ -106,7 +106,7 @@ export default function EditTaskModal({ visible, task, onClose }) {
       confirmLoading={updateTaskMutation.isPending}
       okText="Save Changes"
       cancelText="Cancel"
-      width={600}
+      width="min(600px, calc(100vw - 20px))"
     >
       <Form
         form={form}

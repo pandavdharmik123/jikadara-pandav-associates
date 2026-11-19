@@ -93,6 +93,7 @@ export default function AddTaskModal({ visible, onClose, initialClientId }) {
       confirmLoading={createTaskMutation.isPending}
       okText="Save"
       cancelText="Cancel"
+      width="min(600px, calc(100vw - 20px))"
     >
       <Form
         form={form}

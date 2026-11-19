@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker, Dropdown } from 'antd';
+import { Card, Typography, Button, Tag, Space, Modal, message, Row, Col, Alert, Form, DatePicker, Dropdown, Grid } from 'antd';
 import { ArrowLeft, CheckCircle, RefreshCw, NotebookText, User, Bookmark, Calendar, Edit, Hash, ChevronDown } from 'lucide-react';
 import { useTask, useMarkTaskDone, useReopenTask, useUpdateTaskStatus } from '../../hooks/useTasks';
 import useAuthStore from '../../store/authStore';
@@ -15,6 +15,8 @@ const { Title, Text } = Typography;
 export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
   const { user } = useAuthStore();
 
   const { data: task, isLoading } = useTask(id);
@@ -138,18 +140,18 @@ export default function TaskDetail() {
 
   return (
     <div className="advocate-module">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <Space align="center" size="middle">
           <Button
             type="text"
             icon={<ArrowLeft size={18} />}
             onClick={() => navigate(-1)}
           />
-          <div style={{ width: 44, height: 44, borderRadius: '12px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+          <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: '12px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
             <NotebookText size={20} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>{task.documentType}</Title>
               <Tag
                 style={{
@@ -169,11 +171,11 @@ export default function TaskDetail() {
           </div>
         </Space>
 
-        <Space>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
           <Button
             icon={<Edit size={16} />}
             onClick={() => setIsEditModalVisible(true)}
-            style={{ borderRadius: '8px', height: 40 }}
+            style={{ borderRadius: '8px', height: 38, flex: isMobile ? '1 1 auto' : 'none' }}
           >
             Edit Task
           </Button>
@@ -206,7 +208,7 @@ export default function TaskDetail() {
               }}
               trigger={['click']}
             >
-              <Button style={{ borderRadius: '8px', height: 40 }}>
+              <Button style={{ borderRadius: '8px', height: 38, flex: isMobile ? '1 1 auto' : 'none' }}>
                 Status: {statusCfg.label} <ChevronDown size={14} style={{ marginLeft: 4 }} />
               </Button>
             </Dropdown>
@@ -219,28 +221,28 @@ export default function TaskDetail() {
               icon={isTaskDone ? <RefreshCw size={16} /> : <CheckCircle size={16} />}
               onClick={isTaskDone ? handleReopenTask : handleOpenMarkDoneModal}
               loading={markDoneMutation.isPending || reopenMutation.isPending || updateStatusMutation.isPending}
-              style={{ borderRadius: '8px', height: 40, boxShadow: 'none' }}
+              style={{ borderRadius: '8px', height: 38, boxShadow: 'none', flex: isMobile ? '1 1 auto' : 'none' }}
             >
               {isTaskDone ? 'Reopen' : 'Mark Done'}
             </Button>
           )}
-        </Space>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Card bordered={false} style={{ width: 'fit-content', minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 10, marginBottom: 16 }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <User size={16} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Client</Text>
               {task.client?.id ? (
-                <a onClick={() => navigate(`/app/clients/${task.client.id}`)} style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5' }}>
+                <a onClick={() => navigate(`/app/clients/${task.client.id}`)} style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {task.client.name}
                 </a>
               ) : (
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {task.clientName || 'N/A'}
                 </span>
               )}
@@ -248,120 +250,120 @@ export default function TaskDetail() {
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Bookmark size={16} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Reference</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.referenceName || 'N/A'}</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.referenceName || 'N/A'}</Text>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Place</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.place || 'N/A'}</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.place || 'N/A'}</Text>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Hash size={16} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>RR Number</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.rrNumber != null ? task.rrNumber : 'N/A'}</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.rrNumber != null ? task.rrNumber : 'N/A'}</Text>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Calendar size={16} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>RR Date</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.rrDate ? dayjs(task.rrDate).format('DD MMM YYYY') : 'N/A'}</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.rrDate ? dayjs(task.rrDate).format('DD MMM YYYY') : 'N/A'}</Text>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Calendar size={16} />
             </div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Appointment Date & Time</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{task.appointmentDate ? dayjs(task.appointmentDate).format('DD MMM YYYY, hh:mm A') : 'N/A'}</Text>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Appointment</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.appointmentDate ? dayjs(task.appointmentDate).format('DD MMM, hh:mm A') : 'N/A'}</Text>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
-          <Space align="center" size="middle">
-            <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
+          <Space align="center" size="small">
+            <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
               <Calendar size={16} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500 }}>Start Date</Text>
-              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>{dayjs(task.startDate).format('DD MMM YYYY')}</Text>
+              <Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dayjs(task.startDate).format('DD MMM YYYY')}</Text>
             </div>
           </Space>
         </Card>
 
         {isTaskDone && (
-          <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#f0fdf4' }} styles={{ body: { padding: '12px 16px' } }}>
-            <Space align="center" size="middle">
-              <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', backgroundColor: '#f0fdf4' }} styles={{ body: { padding: '12px 14px' } }}>
+            <Space align="center" size="small">
+              <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '8px', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
                 <CheckCircle size={16} />
               </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500, color: '#16a34a' }}>Completion Date</Text>
-                <Text strong style={{ fontSize: 13, color: '#15803d' }}>{dayjs(task.completedDate || task.startDate).format('DD MMM YYYY')}</Text>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 500, color: '#16a34a' }}>Completion</Text>
+                <Text strong style={{ fontSize: 13, color: '#15803d', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dayjs(task.completedDate || task.startDate).format('DD MMM YYYY')}</Text>
               </div>
             </Space>
           </Card>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
           <Space align="center" size="small">
-            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: 16, fontWeight: 600 }}>₹</div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Income</Text>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>{formatCurrency(displayIncome)}</div>
+            <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: '10px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 10.5, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Income</Text>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>{formatCurrency(displayIncome)}</div>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
           <Space align="center" size="small">
-            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Expense</Text>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626' }}>{formatCurrency(displayExpense)}</div>
+            <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: '10px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 10.5, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Expense</Text>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#dc2626', whiteSpace: 'nowrap' }}>{formatCurrency(displayExpense)}</div>
             </div>
           </Space>
         </Card>
 
-        <Card bordered={false} style={{ flex: 1, minWidth: 150, borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 16px' } }}>
+        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: '12px 14px' } }}>
           <Space align="center" size="small">
-            <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: displayNet >= 0 ? '#eff6ff' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: displayNet >= 0 ? '#2563eb' : '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Amount</Text>
-              <div style={{ fontSize: 16, fontWeight: 700, color: displayNet >= 0 ? '#2563eb' : '#dc2626' }}>{formatCurrency(displayNet)}</div>
+            <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: '10px', backgroundColor: displayNet >= 0 ? '#eff6ff' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: displayNet >= 0 ? '#2563eb' : '#dc2626', fontSize: 16, fontWeight: 600 }}>₹</div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <Text type="secondary" style={{ fontSize: 10.5, display: 'block', marginBottom: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Net Amount</Text>
+              <div style={{ fontSize: 15, fontWeight: 700, color: displayNet >= 0 ? '#2563eb' : '#dc2626', whiteSpace: 'nowrap' }}>{formatCurrency(displayNet)}</div>
             </div>
           </Space>
         </Card>
@@ -396,7 +398,7 @@ export default function TaskDetail() {
         confirmLoading={markDoneMutation.isPending}
         okText="Confirm & Mark Done"
         cancelText="Cancel"
-        width={440}
+        width="min(440px, calc(100vw - 20px))"
       >
         <div style={{ marginTop: 8, marginBottom: 16 }}>
           <Text style={{ color: '#4b5563', fontSize: 14 }}>

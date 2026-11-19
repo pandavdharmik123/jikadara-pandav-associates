@@ -221,7 +221,7 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <Space align="center" size="small">
           <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: type === 'INCOME' ? '#f0fdf4' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: type === 'INCOME' ? '#16a34a' : '#dc2626' }}>
             {type === 'INCOME' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}

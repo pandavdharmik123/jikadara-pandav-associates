@@ -10,6 +10,8 @@ import {
   Alert,
   message,
   Popconfirm,
+  Row,
+  Col,
 } from 'antd';
 import { Plus, Trash2, Save } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -46,7 +48,7 @@ export default function NotaryRegisterModal({
       open={open}
       onCancel={onClose}
       footer={null}
-      width={620}
+      width="min(620px, calc(100vw - 20px))"
       destroyOnHidden
       title={<div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{title}</div>}
     >
@@ -175,36 +177,42 @@ function NotaryRegisterForm({ isEdit, editRegister, onClose, onCreated }) {
       )}
 
       <Form form={form} layout="vertical" initialValues={initialValues}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Form.Item
-            label="Month"
-            name="month"
-            rules={[{ required: true, message: 'Select month' }]}
-          >
-            <Select options={monthOptions} placeholder="Month" />
-          </Form.Item>
-          <Form.Item
-            label="Year"
-            name="year"
-            rules={[{ required: true, message: 'Select year' }]}
-          >
-            <Select options={yearOptions} placeholder="Year" />
-          </Form.Item>
-          <Form.Item
-            label="Per Entry Amount (₹)"
-            name="ratePerEntry"
-            rules={[{ required: true, message: 'Enter per-entry amount' }]}
-            extra="Default ₹150. Totals recalculate when changed."
-          >
-            <InputNumber
-              min={0}
-              max={10000000}
-              precision={2}
-              style={{ width: '100%' }}
-              placeholder="150"
-            />
-          </Form.Item>
-        </div>
+        <Row gutter={[12, 0]}>
+          <Col xs={12} sm={8}>
+            <Form.Item
+              label="Month"
+              name="month"
+              rules={[{ required: true, message: 'Select month' }]}
+            >
+              <Select options={monthOptions} placeholder="Month" />
+            </Form.Item>
+          </Col>
+          <Col xs={12} sm={8}>
+            <Form.Item
+              label="Year"
+              name="year"
+              rules={[{ required: true, message: 'Select year' }]}
+            >
+              <Select options={yearOptions} placeholder="Year" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Form.Item
+              label="Per Entry Amount (₹)"
+              name="ratePerEntry"
+              rules={[{ required: true, message: 'Enter per-entry amount' }]}
+              extra="Default ₹150. Totals recalculate when changed."
+            >
+              <InputNumber
+                min={0}
+                max={10000000}
+                precision={2}
+                style={{ width: '100%' }}
+                placeholder="150"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <Title level={5} style={{ margin: 0 }}>
