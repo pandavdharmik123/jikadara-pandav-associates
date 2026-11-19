@@ -144,7 +144,7 @@ export default function AddIncomeModal({ visible, onClose, editingIncome = null 
       confirmLoading={createDirectIncomeMutation.isPending || updateDirectIncomeMutation.isPending}
       okText={editingIncome ? 'Update Income' : 'Save Income'}
       cancelText="Cancel"
-      width={600}
+      width="min(600px, calc(100vw - 20px))"
     >
       <Form
         form={form}
