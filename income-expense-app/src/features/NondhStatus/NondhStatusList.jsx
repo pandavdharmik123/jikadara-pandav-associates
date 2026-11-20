@@ -19,6 +19,7 @@ import {
   Tooltip,
   Badge,
   Drawer,
+  Pagination,
 } from 'antd';
 import {
   Plus,
@@ -41,7 +42,7 @@ import OfficePageHeader from '../../components/office/OfficePageHeader';
 import OfficeFilterSheet from '../../components/office/OfficeFilterSheet';
 import dayjs from 'dayjs';
 import EmptyState from '../../components/EmptyState';
-import { TableLoadingSkeleton } from '../../components/skeletons';
+import { TableLoadingSkeleton, MobileListSkeleton } from '../../components/skeletons';
 import { formatCurrency } from '../../utils/currency';
 
 import {
@@ -205,6 +206,7 @@ export default function NondhStatusList() {
 
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
+  const [mobilePage, setMobilePage] = useState(1);
 
   // Curated document types for the dropdown
   const documentTypeOptions = DEFAULT_DOCUMENT_TYPES;
@@ -985,41 +987,219 @@ export default function NondhStatusList() {
         </div>
       </OfficeFilterSheet>
 
-      {/* Main Table */}
-      <Card
-        bordered={false}
-        style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', position: 'relative', zIndex: 1 }}
-        styles={{ body: { padding: 0 } }}
-      >
-        <Table
-          className="modern-dashboard-table nondh-status-table"
-          tableLayout="fixed"
-          columns={columns}
-          dataSource={isLoading ? [] : filteredData}
-          rowKey="id"
-          rowClassName={(record) =>
-            [isEditingRow(record) ? 'nondh-row-editing' : '', getStatusRowClass(record.status)]
-              .filter(Boolean)
-              .join(' ')
-          }
-          loading={false}
-          pagination={{ pageSize: 15, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries` }}
-          scroll={{ x: 1410, y: filteredData.length ? 'calc(100vh - 320px)' : undefined }}
-          size="middle"
-          bordered
-          locale={{
-            emptyText: isLoading ? (
-              <TableLoadingSkeleton rows={8} columns={11} />
-            ) : (
-              <EmptyState
-                icon={FileCheck}
-                title="No Nondh entries found"
-                description="Click 'Add New Entry' to record a new mutation entry."
-              />
-            ),
-          }}
-        />
-      </Card>
+      {/* Main Content (Cards on mobile, Table on desktop) */}
+      {isMobile ? (
+        isLoading ? (
+          <MobileListSkeleton count={5} />
+        ) : filteredData.length === 0 ? (
+          <Card bordered={false} style={{ borderRadius: 16, marginBottom: 16 }}>
+            <EmptyState
+              icon={FileCheck}
+              title="No Nondh entries found"
+              description="Click 'Add New Entry' to record a new mutation entry."
+            />
+          </Card>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {filteredData.slice((mobilePage - 1) * 15, mobilePage * 15).map((record) => {
+              const isCertified = record.status === 'પ્રમાણિત';
+              const isRejected = record.status === 'નામંજૂર';
+              const isDispute = record.status === 'તકરારી નોંધ';
+
+              return (
+                <div
+                  key={record.id}
+                  className="adv-mobile-card"
+                  style={{
+                    margin: 0,
+                    padding: '14px',
+                    borderRadius: 14,
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+                  }}
+                >
+                  {/* Top row: Number, Nondh Number & Status Tag */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                        #{record.number} {record.nondhNumber ? `• નોંધ: ${record.nondhNumber}` : ''}
+                      </div>
+                      {(record.documentType || record.placeName) && (
+                        <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 3 }}>
+                          {[record.documentType, record.placeName].filter(Boolean).join(' • ')}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
+                      {record.status && (
+                        <Tag
+                          color={isCertified ? 'success' : isRejected ? 'error' : isDispute ? 'warning' : 'processing'}
+                          style={{ borderRadius: 6, fontWeight: 600, margin: 0, fontSize: 11.5 }}
+                        >
+                          {record.status}
+                        </Tag>
+                      )}
+                      {record.doneOrNot === 'Done' && (
+                        <Tag color="success" style={{ borderRadius: 6, fontWeight: 600, margin: 0, fontSize: 11.5 }}>
+                          Done
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Party name if present */}
+                  {record.partyName && (
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1e293b', marginTop: 6 }}>
+                      {record.partyName}
+                    </div>
+                  )}
+
+                  {/* Reference & Date */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: 12, color: '#64748b' }}>
+                    {record.referenceName ? (
+                      <span>
+                        Ref: <strong style={{ color: '#0f172a' }}>{record.referenceName}</strong>
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    {record.date ? <span>તારીખ: {dayjs(record.date).format('DD/MM/YYYY')}</span> : null}
+                  </div>
+
+                  {/* Payment block if any fee or payment date */}
+                  {(record.vahivatFee || record.paymentDate) && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: 8,
+                        padding: '6px 10px',
+                        background: '#f8fafc',
+                        borderRadius: 8,
+                        border: '1px solid #f1f5f9',
+                        fontSize: 12,
+                      }}
+                    >
+                      <span>
+                        Fee:{' '}
+                        <strong style={{ color: '#059669' }}>
+                          {record.vahivatFee ? `₹${Number(record.vahivatFee).toLocaleString('en-IN')}` : '-'}
+                        </strong>
+                      </span>
+                      {record.paymentDate && <span>Paid: {dayjs(record.paymentDate).format('DD/MM/YYYY')}</span>}
+                    </div>
+                  )}
+
+                  {/* Bottom toolbar */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginTop: 10,
+                      paddingTop: 8,
+                      borderTop: '1px solid #f1f5f9',
+                    }}
+                  >
+                    <Button
+                      type="text"
+                      size="middle"
+                      icon={<Edit size={16} color="#2563eb" />}
+                      onClick={() => handleOpenModal(record)}
+                      style={{
+                        borderRadius: 8,
+                        width: 36,
+                        height: 36,
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#eff6ff',
+                      }}
+                      title="Edit"
+                    />
+                    <Popconfirm
+                      title="Delete Entry"
+                      description="Are you sure you want to delete this record?"
+                      onConfirm={() => handleDelete(record.id)}
+                      okText="Yes"
+                      cancelText="No"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button
+                        type="text"
+                        size="middle"
+                        danger
+                        icon={<Trash2 size={16} color="#dc2626" />}
+                        style={{
+                          borderRadius: 8,
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#fef2f2',
+                        }}
+                        title="Delete"
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredData.length > 15 && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                <Pagination
+                  simple
+                  current={mobilePage}
+                  pageSize={15}
+                  total={filteredData.length}
+                  onChange={(p) => setMobilePage(p)}
+                />
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <Card
+          bordered={false}
+          style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', position: 'relative', zIndex: 1 }}
+          styles={{ body: { padding: 0 } }}
+        >
+          <Table
+            className="modern-dashboard-table nondh-status-table"
+            tableLayout="fixed"
+            columns={columns}
+            dataSource={isLoading ? [] : filteredData}
+            rowKey="id"
+            rowClassName={(record) =>
+              [isEditingRow(record) ? 'nondh-row-editing' : '', getStatusRowClass(record.status)]
+                .filter(Boolean)
+                .join(' ')
+            }
+            loading={false}
+            pagination={{ pageSize: 15, showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries` }}
+            scroll={{ x: 1410, y: filteredData.length ? 'calc(100vh - 320px)' : undefined }}
+            size="middle"
+            bordered
+            locale={{
+              emptyText: isLoading ? (
+                <TableLoadingSkeleton rows={8} columns={11} />
+              ) : (
+                <EmptyState
+                  icon={FileCheck}
+                  title="No Nondh entries found"
+                  description="Click 'Add New Entry' to record a new mutation entry."
+                />
+              ),
+            }}
+          />
+        </Card>
+      )}
 
       {/* Add / Edit Modal */}
       <Modal

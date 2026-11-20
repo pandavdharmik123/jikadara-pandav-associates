@@ -20,6 +20,8 @@ import {
   Tooltip,
   Typography,
   message,
+  Grid,
+  Pagination,
 } from 'antd';
 import OfficePageHeader from '../../components/office/OfficePageHeader';
 import OfficeStatGrid from '../../components/office/OfficeStatGrid';
@@ -57,7 +59,7 @@ import { formatCurrency } from '../../utils/currency';
 import { formatISTDate, toISTDateString } from '../../utils/istDate';
 import TransliterateInput from '../../components/TransliterateInput';
 import EmptyState from '../../components/EmptyState';
-import { TableLoadingSkeleton } from '../../components/skeletons';
+import { TableLoadingSkeleton, MobileListSkeleton } from '../../components/skeletons';
 import {
   useVerabillEntries,
   useVerabillSummary,
@@ -75,6 +77,8 @@ import SmcTenementInput, { SmcTenementBadge, formatTenementDisplay } from './Smc
 const { Title, Text } = Typography;
 
 export default function VerabillPage() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
   const [params, setParams] = useState({
     page: 1,
     pageSize: 20,
@@ -945,48 +949,386 @@ export default function VerabillPage() {
         ]}
       />
 
-      {/* ── Main Data Table ── */}
-      <Card
-        className="verabill-table-card"
-        bordered={false}
-        styles={{ body: { padding: 0 } }}
-      >
-        <Table
-          className="modern-dashboard-table verabill-table"
-          rowKey="id"
-          columns={columns}
-          dataSource={isLoading ? [] : entries}
-          loading={false}
-          pagination={{
-            rootClassName: 'verabill-pagination',
-            current: params.page,
-            pageSize: params.pageSize,
-            total,
-            showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (t, r) => `${r[0]}-${r[1]} of ${t} entries`,
-          }}
-          onChange={handleTableChange}
-          scroll={{ x: 1100, y: entries.length ? 'calc(100vh - 380px)' : undefined }}
-          styles={entries.length ? { body: { minHeight: 'calc(100vh - 380px)' } } : undefined}
-          size="middle"
-          locale={{
-            emptyText: isLoading ? (
-              <TableLoadingSkeleton rows={8} columns={8} />
-            ) : (
-              <EmptyState
-                icon={Receipt}
-                title="No Verabill records found"
-                description={
-                  hasActiveFilters
-                    ? 'No records match the current filters. Click "Clear" to reset.'
-                    : 'Click "Add New Entry" or "Import Sheet1" to get started.'
-                }
-              />
-            ),
-          }}
-        />
-      </Card>
+      {/* ── Main Data View (Cards on mobile, Table on desktop) ── */}
+      {isMobile ? (
+        isLoading ? (
+          <MobileListSkeleton count={5} />
+        ) : entries.length === 0 ? (
+          <Card bordered={false} style={{ borderRadius: 16, marginBottom: 16 }}>
+            <EmptyState
+              icon={Receipt}
+              title="No Verabill records found"
+              description={
+                hasActiveFilters
+                  ? 'No records match the current filters. Click "Clear" to reset.'
+                  : 'Click "Add New Entry" or "Import Sheet1" to get started.'
+              }
+            />
+          </Card>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {entries.map((record) => {
+              const wt = record.workType || 'Both';
+              const showVera = wt === 'Vera Bill' || wt === 'Both';
+              const showLight = wt === 'Light Bill' || wt === 'Both';
+              const netVal = Number(record.netBalance) || 0;
+
+              return (
+                <div
+                  key={record.id}
+                  className="adv-mobile-card"
+                  style={{
+                    margin: 0,
+                    padding: '14px',
+                    borderRadius: 14,
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+                  }}
+                >
+                  {/* Top row: Client Name + Work Type Tag */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {record.clientName || 'Untitled Client'}
+                      </div>
+                      {(record.property || record.zone) && (
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
+                          {[record.property, record.zone].filter(Boolean).join(' • ')}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flexShrink: 0 }}>
+                      {wt === 'Vera Bill' && (
+                        <Tag
+                          color="blue"
+                          style={{
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            margin: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <Building2 size={12} /> Vera Bill
+                        </Tag>
+                      )}
+                      {wt === 'Light Bill' && (
+                        <Tag
+                          color="gold"
+                          style={{
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            margin: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <Zap size={12} /> Light Bill
+                        </Tag>
+                      )}
+                      {wt === 'Both' && (
+                        <Tag
+                          color="purple"
+                          style={{
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            margin: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <Building2 size={11} />
+                          <Zap size={11} /> Both
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Identifiers: Tenement / Service No */}
+                  {(record.tenementNo || record.serviceNo) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                      {record.tenementNo && (
+                        <SmcTenementBadge
+                          tenementNo={record.tenementNo}
+                          onClick={() => {
+                            setSelectedTenement(record.tenementNo);
+                            setSmcModalOpen(true);
+                          }}
+                        />
+                      )}
+                      {record.serviceNo && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: '#fef3c7',
+                            border: '1px solid #fde68a',
+                            color: '#92400e',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => {
+                            setSelectedLightBillEntry(record);
+                            setLightBillModalOpen(true);
+                          }}
+                        >
+                          <Zap size={11} color="#d97706" />
+                          <span>{record.serviceNo}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Work description */}
+                  {record.workDescription && (
+                    <div style={{ fontSize: 12.5, color: '#475569', marginTop: 7, lineHeight: 1.35 }}>
+                      {record.workDescription}
+                    </div>
+                  )}
+
+                  {/* Financial summary bar */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 10,
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      borderRadius: 10,
+                      border: '1px solid #f1f5f9',
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: 11, color: '#64748b' }}>Fees: </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>
+                        {formatCurrency(record.totalFees || 0)}
+                      </span>
+                      {Number(record.totalExpenses) > 0 && (
+                        <>
+                          <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>Exp: </span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#dc2626' }}>
+                            {formatCurrency(record.totalExpenses)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 11, color: '#64748b' }}>Net: </span>
+                      <Tag
+                        style={{
+                          fontWeight: 700,
+                          borderRadius: 8,
+                          padding: '2px 8px',
+                          fontSize: 12,
+                          border: 'none',
+                          margin: 0,
+                          backgroundColor: netVal > 0 ? '#ecfdf5' : netVal < 0 ? '#fef2f2' : '#f1f5f9',
+                          color: netVal > 0 ? '#059669' : netVal < 0 ? '#dc2626' : '#64748b',
+                        }}
+                      >
+                        {netVal > 0 ? '+' : ''}
+                        {formatCurrency(netVal)}
+                      </Tag>
+                    </div>
+                  </div>
+
+                  {/* Bottom toolbar: Date on left, touch actions on right */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: 10,
+                      paddingTop: 8,
+                      borderTop: '1px solid #f1f5f9',
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>
+                      {record.startDate ? formatISTDate(record.startDate) : '—'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {showVera && (
+                        <Button
+                          type="text"
+                          size="middle"
+                          icon={<Building2 size={16} color={record.tenementNo ? '#2563eb' : '#64748b'} />}
+                          onClick={() => {
+                            setSelectedTenement(record.tenementNo || '');
+                            setSmcModalOpen(true);
+                          }}
+                          style={{
+                            borderRadius: 8,
+                            width: 36,
+                            height: 36,
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: record.tenementNo ? '#eff6ff' : '#f8fafc',
+                          }}
+                          title={record.tenementNo ? `Check Vera Bill (${record.tenementNo})` : 'Check Vera Bill (SMC)'}
+                        />
+                      )}
+                      {showLight && (
+                        <Button
+                          type="text"
+                          size="middle"
+                          icon={<Zap size={16} color="#d97706" />}
+                          onClick={() => {
+                            setSelectedLightBillEntry(record);
+                            setLightBillModalOpen(true);
+                          }}
+                          style={{
+                            borderRadius: 8,
+                            width: 36,
+                            height: 36,
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#fefce8',
+                          }}
+                          title="Check Light Bill"
+                        />
+                      )}
+                      <Button
+                        type="text"
+                        size="middle"
+                        icon={<Eye size={16} color="#475569" />}
+                        onClick={() => setViewing(record)}
+                        style={{
+                          borderRadius: 8,
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#f8fafc',
+                        }}
+                        title="View details"
+                      />
+                      <Button
+                        type="text"
+                        size="middle"
+                        icon={<Edit size={16} color="#2563eb" />}
+                        onClick={() => openEdit(record)}
+                        style={{
+                          borderRadius: 8,
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#eff6ff',
+                        }}
+                        title="Edit entry"
+                      />
+                      <Popconfirm
+                        title={`Delete record for ${record.clientName}?`}
+                        description="This will permanently delete this client's bill and fee transactions."
+                        onConfirm={() => handleDelete(record)}
+                        okText="Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true }}
+                      >
+                        <Button
+                          type="text"
+                          size="middle"
+                          danger
+                          icon={<Trash2 size={16} color="#dc2626" />}
+                          style={{
+                            borderRadius: 8,
+                            width: 36,
+                            height: 36,
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#fef2f2',
+                          }}
+                          title="Delete entry"
+                        />
+                      </Popconfirm>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {total > params.pageSize && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                <Pagination
+                  simple
+                  current={params.page}
+                  pageSize={params.pageSize}
+                  total={total}
+                  onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
+                />
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <Card
+          className="verabill-table-card"
+          bordered={false}
+          styles={{ body: { padding: 0 } }}
+        >
+          <Table
+            className="modern-dashboard-table verabill-table"
+            rowKey="id"
+            columns={columns}
+            dataSource={isLoading ? [] : entries}
+            loading={false}
+            pagination={{
+              rootClassName: 'verabill-pagination',
+              current: params.page,
+              pageSize: params.pageSize,
+              total,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (t, r) => `${r[0]}-${r[1]} of ${t} entries`,
+            }}
+            onChange={handleTableChange}
+            scroll={{ x: 1100, y: entries.length ? 'calc(100vh - 380px)' : undefined }}
+            styles={entries.length ? { body: { minHeight: 'calc(100vh - 380px)' } } : undefined}
+            size="middle"
+            locale={{
+              emptyText: isLoading ? (
+                <TableLoadingSkeleton rows={8} columns={8} />
+              ) : (
+                <EmptyState
+                  icon={Receipt}
+                  title="No Verabill records found"
+                  description={
+                    hasActiveFilters
+                      ? 'No records match the current filters. Click "Clear" to reset.'
+                      : 'Click "Add New Entry" or "Import Sheet1" to get started.'
+                  }
+                />
+              ),
+            }}
+          />
+        </Card>
+      )}
 
       {/* ── Add / Edit Drawer ── */}
       <Drawer
@@ -2109,6 +2451,8 @@ export default function VerabillPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div
               style={{
+                display: 'flex',
+                flexDirection: 'column',
                 border: '1px solid #fed7aa',
                 borderRadius: 10,
                 padding: '14px 16px',
@@ -2140,6 +2484,8 @@ export default function VerabillPage() {
 
             <div
               style={{
+                display: 'flex',
+                flexDirection: 'column',
                 border: '1px solid #bfdbfe',
                 borderRadius: 10,
                 padding: '14px 16px',

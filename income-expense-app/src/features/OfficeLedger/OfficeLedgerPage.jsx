@@ -321,53 +321,210 @@ function LedgerSection({
         </Button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Table
-          className="office-ledger-table"
-          columns={columns}
-          dataSource={paddedEntries}
-          rowKey="id"
-          loading={loading}
-          size="small"
-          scroll={paddedEntries.length > 0 ? { x: compact ? 330 : 390 } : undefined}
-          pagination={false}
-          rowClassName={(record) => (record.isEmpty ? 'office-ledger-empty-row' : '')}
-          locale={{
-            emptyText: (
-              <div style={{ padding: '20px 8px', textAlign: 'center' }}>
-                <Receipt size={22} style={{ color: '#94a3b8', marginBottom: 6 }} />
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
-                  No {isIncome ? 'income' : 'expenses'} found
-                </div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                  Add {isIncome ? 'income' : 'an expense'} or change filters.
-                </div>
+      {compact ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {entries.length === 0 ? (
+            <div
+              style={{
+                padding: '24px 8px',
+                textAlign: 'center',
+                background: '#ffffff',
+                borderRadius: 10,
+                border: '1px solid #f1f5f9',
+              }}
+            >
+              <Receipt size={24} style={{ color: '#94a3b8', marginBottom: 6 }} />
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>
+                No {isIncome ? 'income' : 'expenses'} found
               </div>
-            ),
-          }}
-          summary={() => (
-            <Table.Summary.Row style={{ background: soft }}>
-              <Table.Summary.Cell index={0} colSpan={2}>
-                <Text
-                  strong
-                  style={{ color: '#334155', fontSize: compact ? 11 : 12 }}
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                Click "Add {singular}" to add a record.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {entries.map((record) => (
+                <div
+                  key={record.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '11px 13px',
+                    background: '#ffffff',
+                    borderRadius: 10,
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                  }}
                 >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {!isIncome && record.expenseType && record.expenseType !== 'અન્ય' ? (
+                          <>
+                            <span style={{ fontWeight: 700, color: accent }}>{record.expenseType}</span>
+                            {record.details && (
+                              <>
+                                <span style={{ color: '#94a3b8' }}> - </span>
+                                <span>{record.details}</span>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          record.details || record.particulars || '—'
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11.5,
+                          color: '#64748b',
+                          marginTop: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <Calendar size={12} style={{ color: '#94a3b8' }} />
+                        <span>
+                          {record.entryDate
+                            ? formatISTDate(record.entryDate)
+                            : record.date
+                              ? dayjs(record.date).format('DD/MM/YYYY')
+                              : '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: accent }}>
+                        {formatCurrency(record.amount)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions row */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: 6,
+                      marginTop: 8,
+                      paddingTop: 6,
+                      borderTop: '1px solid #f8fafc',
+                    }}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<Edit size={14} color="#4f46e5" />}
+                      onClick={() => onEdit(record)}
+                      style={{
+                        borderRadius: 7,
+                        width: 32,
+                        height: 32,
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#eef2ff',
+                      }}
+                      title={`Edit ${isIncome ? 'income' : 'expense'}`}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<Trash2 size={14} color="#dc2626" />}
+                      onClick={() => onDelete(record)}
+                      style={{
+                        borderRadius: 7,
+                        width: 32,
+                        height: 32,
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#fef2f2',
+                      }}
+                      title={`Delete ${isIncome ? 'income' : 'expense'}`}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Total summary card */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  background: soft,
+                  borderRadius: 10,
+                  border: `1px solid ${border}`,
+                  marginTop: 4,
+                }}
+              >
+                <Text strong style={{ color: '#334155', fontSize: 13 }}>
                   Total {label}
                 </Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={2} align="right">
-                <Text
-                  strong
-                  style={{ color: accent, fontSize: compact ? 12 : 13 }}
-                >
+                <Text strong style={{ color: accent, fontSize: 14.5 }}>
                   {formatCurrency(total)}
                 </Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={3} />
-            </Table.Summary.Row>
+              </div>
+            </div>
           )}
-        />
-      </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Table
+            className="office-ledger-table"
+            columns={columns}
+            dataSource={paddedEntries}
+            rowKey="id"
+            loading={loading}
+            size="small"
+            scroll={paddedEntries.length > 0 ? { x: 390 } : undefined}
+            pagination={false}
+            rowClassName={(record) => (record.isEmpty ? 'office-ledger-empty-row' : '')}
+            locale={{
+              emptyText: (
+                <div style={{ padding: '20px 8px', textAlign: 'center' }}>
+                  <Receipt size={22} style={{ color: '#94a3b8', marginBottom: 6 }} />
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                    No {isIncome ? 'income' : 'expenses'} found
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    Add {isIncome ? 'income' : 'an expense'} or change filters.
+                  </div>
+                </div>
+              ),
+            }}
+            summary={() => (
+              <Table.Summary.Row style={{ background: soft }}>
+                <Table.Summary.Cell index={0} colSpan={2}>
+                  <Text strong style={{ color: '#334155', fontSize: 12 }}>
+                    Total {label}
+                  </Text>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} align="right">
+                  <Text strong style={{ color: accent, fontSize: 13 }}>
+                    {formatCurrency(total)}
+                  </Text>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={3} />
+              </Table.Summary.Row>
+            )}
+          />
+        </div>
+      )}
     </Card>
   );
 }

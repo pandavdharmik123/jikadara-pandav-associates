@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, InputNumber, DatePicker, Button, Popconfirm, Form, Typography, Space, message } from 'antd';
-import { Edit, Trash2, Save, X, Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { Table, Input, InputNumber, DatePicker, Button, Popconfirm, Form, Typography, Space, message, Grid } from 'antd';
+import { Edit, Trash2, Save, X, Plus, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '../../hooks/useTasks';
 import { formatCurrency } from '../../utils/currency';
@@ -44,6 +44,8 @@ const EditableCell = ({
 };
 
 export default function EditableTransactionTable({ taskId, type, transactions, isTaskDone }) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
   const [form] = Form.useForm();
   const [data, setData] = useState(transactions || []);
   const [editingKey, setEditingKey] = useState('');
@@ -243,31 +245,271 @@ export default function EditableTransactionTable({ taskId, type, transactions, i
         )}
       </div>
       <Form form={form} component={false}>
-        <Table
-          className="modern-dashboard-table"
-          components={{
-            body: {
-              cell: EditableCell,
-            },
-          }}
-          bordered={false}
-          dataSource={data}
-          columns={mergedColumns}
-          rowClassName="editable-row"
-          rowKey="id"
-          pagination={false}
-          size="small"
-          scroll={{ x: 450 }}
-          summary={() => (
-            <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
-              <Table.Summary.Cell index={0} colSpan={2}>Total {type === 'INCOME' ? 'Income' : 'Expense'}</Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right">
-                <Text type={color}>{formatCurrency(totalAmount)}</Text>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={2}></Table.Summary.Cell>
-            </Table.Summary.Row>
-          )}
-        />
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {data.length === 0 ? (
+              <div
+                style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  background: '#ffffff',
+                  borderRadius: 12,
+                  border: '1px solid #f1f5f9',
+                  color: '#94a3b8',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>
+                  No {type === 'INCOME' ? 'income' : 'expense'} recorded yet
+                </div>
+                {!isTaskDone && (
+                  <div style={{ fontSize: 11.5, marginTop: 4 }}>
+                    Click "Add {type === 'INCOME' ? 'Income' : 'Expense'}" to add a transaction.
+                  </div>
+                )}
+              </div>
+            ) : (
+              data.map((record) => {
+                const editable = isEditing(record);
+                if (editable) {
+                  return (
+                    <div
+                      key={record.id}
+                      style={{
+                        padding: '14px',
+                        background: '#ffffff',
+                        borderRadius: 12,
+                        border: '2px solid #6366f1',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}
+                    >
+                      <Form.Item
+                        name="date"
+                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Date</span>}
+                        style={{ marginBottom: 0 }}
+                        rules={[{ required: true, message: 'Please select date' }]}
+                      >
+                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%', height: 38 }} />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="description"
+                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Description</span>}
+                        style={{ marginBottom: 0 }}
+                        rules={[{ required: true, message: 'Please enter description' }]}
+                      >
+                        <Input placeholder="Enter description" style={{ height: 38 }} />
+                      </Form.Item>
+
+                      <Form.Item
+                        name="amount"
+                        label={<span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Amount (₹)</span>}
+                        style={{ marginBottom: 0 }}
+                        rules={[{ required: true, message: 'Please enter amount' }]}
+                      >
+                        <InputNumber
+                          placeholder="0"
+                          min={0}
+                          style={{ width: '100%', height: 38 }}
+                        />
+                      </Form.Item>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+                        <Popconfirm title="Cancel edit?" onConfirm={cancel}>
+                          <Button size="middle" icon={<X size={15} />}>
+                            Cancel
+                          </Button>
+                        </Popconfirm>
+                        <Button
+                          type="primary"
+                          size="middle"
+                          icon={<Save size={15} />}
+                          onClick={() => save(record.id)}
+                          loading={createTxMutation.isPending || updateTxMutation.isPending}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={record.id}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px 14px',
+                      background: '#ffffff',
+                      borderRadius: 12,
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: 13.5,
+                            fontWeight: 600,
+                            color: '#0f172a',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          {record.description || '—'}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: '#64748b',
+                            marginTop: 4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
+                        >
+                          <Calendar size={12} style={{ color: '#94a3b8' }} />
+                          <span>{dayjs(record.date).format('DD/MM/YYYY')}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 14.5,
+                            fontWeight: 700,
+                            color: type === 'INCOME' ? '#16a34a' : '#dc2626',
+                          }}
+                        >
+                          {formatCurrency(record.amount)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions row */}
+                    {!isTaskDone && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          alignItems: 'center',
+                          gap: 8,
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTop: '1px solid #f8fafc',
+                        }}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<Edit size={14} color="#4f46e5" />}
+                          onClick={() => edit(record)}
+                          disabled={editingKey !== ''}
+                          style={{
+                            borderRadius: 8,
+                            width: 32,
+                            height: 32,
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#eef2ff',
+                          }}
+                          title="Edit"
+                        />
+                        <Popconfirm
+                          title="Delete transaction?"
+                          description="Are you sure you want to delete this transaction?"
+                          onConfirm={() => handleDelete(record.id)}
+                          okText="Yes, Delete"
+                          cancelText="Cancel"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<Trash2 size={14} color="#dc2626" />}
+                            disabled={editingKey !== ''}
+                            style={{
+                              borderRadius: 8,
+                              width: 32,
+                              height: 32,
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#fef2f2',
+                            }}
+                            title="Delete"
+                          />
+                        </Popconfirm>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {/* Total summary card */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '10px 14px',
+                background: type === 'INCOME' ? '#f0fdf4' : '#fef2f2',
+                borderRadius: 10,
+                border: `1px solid ${type === 'INCOME' ? '#bbf7d0' : '#fecaca'}`,
+                marginTop: 4,
+              }}
+            >
+              <Text strong style={{ color: '#334155', fontSize: 13 }}>
+                Total {type === 'INCOME' ? 'Income' : 'Expense'}
+              </Text>
+              <Text
+                strong
+                style={{
+                  color: type === 'INCOME' ? '#16a34a' : '#dc2626',
+                  fontSize: 14.5,
+                }}
+              >
+                {formatCurrency(totalAmount)}
+              </Text>
+            </div>
+          </div>
+        ) : (
+          <Table
+            className="modern-dashboard-table"
+            components={{
+              body: {
+                cell: EditableCell,
+              },
+            }}
+            bordered={false}
+            dataSource={data}
+            columns={mergedColumns}
+            rowClassName="editable-row"
+            rowKey="id"
+            pagination={false}
+            size="small"
+            scroll={{ x: 450 }}
+            summary={() => (
+              <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                <Table.Summary.Cell index={0} colSpan={2}>
+                  Total {type === 'INCOME' ? 'Income' : 'Expense'}
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">
+                  <Text type={color}>{formatCurrency(totalAmount)}</Text>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2}></Table.Summary.Cell>
+              </Table.Summary.Row>
+            )}
+          />
+        )}
       </Form>
       <style>{`
         .editable-row .ant-form-item-explain {

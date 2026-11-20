@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Card, Typography, Button, Table, Space, Avatar, Row, Col, Popconfirm, message, Tag } from 'antd';
-import { Plus, Wallet, TrendingUp, PiggyBank, Edit, Trash2, Calendar, Download } from 'lucide-react';
+import { Card, Typography, Button, Table, Space, Avatar, Row, Col, Popconfirm, message, Tag, Grid } from 'antd';
+import { Plus, Wallet, TrendingUp, PiggyBank, Edit, Trash2, Calendar, Download, NotebookText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { useUpads, useDeleteUpad } from '../../hooks/useUpad';
 import { useDashboardStats } from '../../hooks/useReports';
@@ -8,15 +8,19 @@ import { useGeneralExpenses } from '../../hooks/useGeneralExpenses';
 import useAuthStore from '../../store/authStore';
 import AddEditUpadModal from './AddEditUpadModal';
 import UpadReportPrintLayout from './UpadReportPrintLayout';
-import { Sk, TableSkeleton } from '../../components/skeletons';
+import { CardSkeleton } from '../../components/skeletons';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/currency';
+import OfficePageHeader from '../../components/office/OfficePageHeader';
+import OfficeStatGrid from '../../components/office/OfficeStatGrid';
 import { toISTDateString } from '../../utils/istDate';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 export default function UpadList() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
   const { activeFinancialYear } = useAuthStore();
   const reportPrintRef = useRef(null);
 
@@ -265,221 +269,47 @@ export default function UpadList() {
   const isLoading = upadsLoading || statsLoading || fyGeLoading;
 
   return (
-    <div className="advocate-module" style={{ paddingBottom: 40 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>
-            Upad List
-          </Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            Record of amounts taken by users from net profit
-          </Text>
-        </div>
+    <div className="advocate-module office-page">
+      <OfficePageHeader
+        title="Upad List"
+        subtitle="Amounts withdrawn by users from net profit"
+        icon={Wallet}
+        actions={
+          <>
+            <Button
+              className="office-icon-btn"
+              icon={<Download size={16} />}
+              onClick={handleExportPDF}
+              loading={isGeneratingPDF}
+              aria-label="Export PDF"
+              title="Export PDF"
+            />
+            <Button type="primary" icon={<Plus size={15} />} onClick={handleOpenAddModal}>
+              Add upad
+            </Button>
+          </>
+        }
+      />
 
-        <Space size="middle">
-          <Button
-            icon={<Download size={16} />}
-            onClick={handleExportPDF}
-            loading={isGeneratingPDF}
-            style={{
-              borderRadius: '8px',
-              height: 40,
-              paddingLeft: 16,
-              paddingRight: 16,
-              fontWeight: 600,
-              borderColor: '#cbd5e1',
-              color: '#334155',
-            }}
-          >
-            Export PDF
-          </Button>
-
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={handleOpenAddModal}
-            style={{
-              borderRadius: '8px',
-              height: 40,
-              paddingLeft: 18,
-              paddingRight: 18,
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-            }}
-          >
-            Add Upad
-          </Button>
-        </Space>
-      </div>
-
-      {/* Summary Cards */}
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-
-        {/* Card 2: Net Profit (from Yearly Completed Financials on Dashboard) */}
-        <Col xs={24} sm={8}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 12,
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)',
-              border: '1px solid #dcfce7',
-            }}
-            styles={{ body: { padding: '10px 14px' } }}
-          >
-            <Space align="center" size="small" style={{ gap: 10 }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  backgroundColor: '#16a34a',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                }}
-              >
-                <TrendingUp size={17} />
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#16a34a', display: 'block', lineHeight: 1.2 }}>
-                  Net Profit
-                </Text>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#064e3b', marginTop: 2, lineHeight: 1.2 }}>
-                  {formatCurrency(netProfit)}
-                </div>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-
-        {/* Card 1: Total Upad */}
-        <Col xs={24} sm={8}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 12,
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-              background: 'linear-gradient(135deg, #eef2ff 0%, #ffffff 100%)',
-              border: '1px solid #e0e7ff',
-            }}
-            styles={{ body: { padding: '10px 14px' } }}
-          >
-            <Space align="center" size="small" style={{ gap: 10 }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  backgroundColor: '#4f46e5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                }}
-              >
-                <Wallet size={17} />
-              </div>
-              <div>
-                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6366f1', display: 'block', lineHeight: 1.2 }}>
-                  Total Upad
-                </Text>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#1e1b4b', marginTop: 2, lineHeight: 1.2 }}>
-                  {formatCurrency(totalUpad)}
-                </div>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-
-        {/* Card 3: Remaining Profit (Net Profit - Total Upad) */}
-        <Col xs={24} sm={8}>
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 12,
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-              background: remainingProfit >= 0
-                ? 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)'
-                : 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)',
-              border: remainingProfit >= 0 ? '1px solid #dbeafe' : '1px solid #fee2e2',
-            }}
-            styles={{ body: { padding: '10px 14px' } }}
-          >
-            <Space align="center" size="small" style={{ gap: 10 }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  backgroundColor: remainingProfit >= 0 ? '#2563eb' : '#dc2626',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                }}
-              >
-                <PiggyBank size={17} />
-              </div>
-              <div>
-                <Text
-                  type="secondary"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: remainingProfit >= 0 ? '#2563eb' : '#dc2626',
-                    display: 'block',
-                    lineHeight: 1.2
-                  }}
-                >
-                  Remaining Profit
-                </Text>
-                <div
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 700,
-                    color: remainingProfit >= 0 ? '#1e3a8a' : '#991b1b',
-                    marginTop: 2,
-                    lineHeight: 1.2
-                  }}
-                >
-                  {formatCurrency(remainingProfit)}
-                </div>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+      <OfficeStatGrid
+        items={[
+          { label: 'Net profit', value: formatCurrency(netProfit), icon: TrendingUp, tone: 'income' },
+          { label: 'Total upad', value: formatCurrency(totalUpad), icon: Wallet, tone: 'brand' },
+          {
+            label: 'Remaining',
+            value: formatCurrency(remainingProfit),
+            icon: PiggyBank,
+            tone: remainingProfit >= 0 ? 'cyan' : 'expense',
+          },
+          { label: 'Entries', value: (upads || []).length, icon: NotebookText, tone: 'violet' },
+        ]}
+      />
 
       {/* Main Content: User-wise Dynamic Tables */}
       {isLoading ? (
-        <div className="sk-page">
-          {[0, 1].map((index) => (
-            <div key={index} className="sk-card" style={{ padding: 0 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 18px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Sk w={34} circle />
-                  <Sk w={150} h={14} r={7} />
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Sk w={72} h={24} r={8} />
-                  <Sk w={72} h={24} r={8} />
-                </div>
-              </div>
-              <TableSkeleton rows={index === 0 ? 3 : 2} columns={6} showHead />
-            </div>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
         </div>
       ) : groupedData.length === 0 ? (
         <Card
@@ -491,7 +321,7 @@ export default function UpadList() {
             padding: '40px 20px',
           }}
         >
-          <EmptyState message="No Upad records found" />
+          <EmptyState icon={Wallet} title="No Upad records found" description="Records added from the Upad button will appear here." />
         </Card>
       ) : (
         <Space direction="vertical" size={20} style={{ width: '100%' }}>
@@ -575,15 +405,126 @@ export default function UpadList() {
                   </Tag>
                 </div>
 
-                {/* User Records Table */}
-                <Table
-                  className="modern-dashboard-table"
-                  columns={getColumns()}
-                  dataSource={userGroup.records}
-                  rowKey="id"
-                  pagination={false}
-                  size="middle"
-                />
+                {/* User Records: Mobile Cards vs Desktop Table */}
+                {isMobile ? (
+                  <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {userGroup.records.map((record) => (
+                      <div
+                        key={record.id}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: '12px 14px',
+                          background: '#ffffff',
+                          borderRadius: 12,
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                fontSize: 13.5,
+                                fontWeight: 600,
+                                color: '#0f172a',
+                                wordBreak: 'break-word',
+                                lineHeight: 1.35,
+                              }}
+                            >
+                              {record.description || 'Upad'}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: '#64748b',
+                                marginTop: 4,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                              }}
+                            >
+                              <Calendar size={12} style={{ color: '#94a3b8' }} />
+                              <span>{dayjs(record.date).format('DD/MM/YYYY')}</span>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#4f46e5' }}>
+                              {formatCurrency(record.amount)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions row */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginTop: 8,
+                            paddingTop: 8,
+                            borderTop: '1px solid #f8fafc',
+                          }}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<Edit size={14} color="#4f46e5" />}
+                            onClick={() => handleOpenEditModal(record)}
+                            style={{
+                              borderRadius: 8,
+                              width: 32,
+                              height: 32,
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#eef2ff',
+                            }}
+                            title="Edit"
+                          />
+                          <Popconfirm
+                            title="Delete Upad entry?"
+                            description="Are you sure you want to delete this Upad entry?"
+                            onConfirm={() => handleDelete(record.id)}
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<Trash2 size={14} color="#dc2626" />}
+                              style={{
+                                borderRadius: 8,
+                                width: 32,
+                                height: 32,
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: '#fef2f2',
+                              }}
+                              title="Delete"
+                            />
+                          </Popconfirm>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Table
+                    className="modern-dashboard-table"
+                    columns={getColumns()}
+                    dataSource={userGroup.records}
+                    rowKey="id"
+                    pagination={false}
+                    size="middle"
+                    scroll={{ x: 520 }}
+                  />
+                )}
               </Card>
             );
           })}

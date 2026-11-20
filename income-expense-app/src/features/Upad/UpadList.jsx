@@ -405,16 +405,126 @@ export default function UpadList() {
                   </Tag>
                 </div>
 
-                {/* User Records Table */}
-                <Table
-                  className="modern-dashboard-table"
-                  columns={getColumns()}
-                  dataSource={userGroup.records}
-                  rowKey="id"
-                  pagination={false}
-                  size="middle"
-                  scroll={{ x: 520 }}
-                />
+                {/* User Records: Mobile Cards vs Desktop Table */}
+                {isMobile ? (
+                  <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {userGroup.records.map((record) => (
+                      <div
+                        key={record.id}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: '12px 14px',
+                          background: '#ffffff',
+                          borderRadius: 12,
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                fontSize: 13.5,
+                                fontWeight: 600,
+                                color: '#0f172a',
+                                wordBreak: 'break-word',
+                                lineHeight: 1.35,
+                              }}
+                            >
+                              {record.description || 'Upad'}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: '#64748b',
+                                marginTop: 4,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                              }}
+                            >
+                              <Calendar size={12} style={{ color: '#94a3b8' }} />
+                              <span>{dayjs(record.date).format('DD/MM/YYYY')}</span>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#4f46e5' }}>
+                              {formatCurrency(record.amount)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions row */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginTop: 8,
+                            paddingTop: 8,
+                            borderTop: '1px solid #f8fafc',
+                          }}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<Edit size={14} color="#4f46e5" />}
+                            onClick={() => handleOpenEditModal(record)}
+                            style={{
+                              borderRadius: 8,
+                              width: 32,
+                              height: 32,
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: '#eef2ff',
+                            }}
+                            title="Edit"
+                          />
+                          <Popconfirm
+                            title="Delete Upad entry?"
+                            description="Are you sure you want to delete this Upad entry?"
+                            onConfirm={() => handleDelete(record.id)}
+                            okText="Yes, Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<Trash2 size={14} color="#dc2626" />}
+                              style={{
+                                borderRadius: 8,
+                                width: 32,
+                                height: 32,
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: '#fef2f2',
+                              }}
+                              title="Delete"
+                            />
+                          </Popconfirm>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Table
+                    className="modern-dashboard-table"
+                    columns={getColumns()}
+                    dataSource={userGroup.records}
+                    rowKey="id"
+                    pagination={false}
+                    size="middle"
+                    scroll={{ x: 520 }}
+                  />
+                )}
               </Card>
             );
           })}
