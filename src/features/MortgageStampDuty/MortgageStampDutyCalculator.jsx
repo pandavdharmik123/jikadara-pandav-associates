@@ -58,8 +58,10 @@ export default function MortgageStampDutyCalculator({ currentAccentColor }) {
     return months;
   })();
   const totalMonthlyPenalty = monthlyPenalty * monthsElapsed;
+  const totalMortgageStampDuty = vaparvaDuty + totalMonthlyPenalty;
   const fiveDanaDuty = vaparvaDuty * FIVE_DANA_MULTIPLIER;
   const grandTotal = fiveDanaDuty + (Number(vakilFee) || 0);
+  const grandTotalWithStampDuty = totalMortgageStampDuty + (Number(vakilFee) || 0);
 
   const formatMoney = (val) => {
     if (val === null || val === undefined || isNaN(Number(val))) return '0';
@@ -430,6 +432,7 @@ export default function MortgageStampDutyCalculator({ currentAccentColor }) {
               {summaryRow('Monthly Penalty (2%)', `₹ ${formatMoney(monthlyPenalty)}`)}
               {summaryRow('Months till date', String(monthsElapsed))}
               {summaryRow('Total Monthly Penalty', `₹ ${formatMoney(totalMonthlyPenalty)}`, { strong: true, color: '#dc2626' })}
+              {summaryRow('Total Mortgage Stamp Duty', `₹ ${formatMoney(totalMortgageStampDuty)}`, { strong: true, color: accent })}
 
               <Divider style={{ margin: '4px 0' }} />
 
@@ -438,21 +441,43 @@ export default function MortgageStampDutyCalculator({ currentAccentColor }) {
 
               <div className="pdf-total-cost-box" style={{
                 marginTop: 8,
-                padding: '10px',
+                padding: '12px',
                 backgroundColor: 'rgba(0,0,0,0.04)',
                 borderRadius: 8,
                 textAlign: 'center'
               }}>
-                <Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>
                   કુલ રકમ (Grand Total)
                 </Text>
-                <Text strong style={{ fontSize: 22, color: accent }}>
-                  ₹ {formatMoney(grandTotal)}
-                </Text>
-                <div style={{ marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 11 }}>
-                    = 5 Dana Duty {formatMoney(fiveDanaDuty)} + Vakil Fee {formatMoney(vakilFee)}
+
+                <div style={{ marginBottom: 10 }}>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 11, marginBottom: 2 }}>
+                    Total Mortgage Stamp Duty + Vakil Fee
                   </Text>
+                  <Text strong style={{ fontSize: 20, color: accent }}>
+                    ₹ {formatMoney(grandTotalWithStampDuty)}
+                  </Text>
+                  <div style={{ marginTop: 2 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      = Stamp Duty {formatMoney(totalMortgageStampDuty)} + Vakil Fee {formatMoney(vakilFee)}
+                    </Text>
+                  </div>
+                </div>
+
+                <Divider style={{ margin: '8px 0' }} />
+
+                <div>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 11, marginBottom: 2 }}>
+                    5 Dana Duty + Vakil Fee
+                  </Text>
+                  <Text strong style={{ fontSize: 20, color: accent }}>
+                    ₹ {formatMoney(grandTotal)}
+                  </Text>
+                  <div style={{ marginTop: 2 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      = 5 Dana Duty {formatMoney(fiveDanaDuty)} + Vakil Fee {formatMoney(vakilFee)}
+                    </Text>
+                  </div>
                 </div>
               </div>
             </Space>
