@@ -31,6 +31,15 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 25px rgba(79, 70, 229, 0.08);
+
+  /* Office kit tokens */
+  --brand: #6366f1;
+  --brand-dark: #4f46e5;
+  --brand-soft: #eef2ff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --surface: #ffffff;
 }
 
 [data-theme='light'] {

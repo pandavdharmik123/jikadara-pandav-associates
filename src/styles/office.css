@@ -1,0 +1,1323 @@
+/* ==========================================================================
+   Office (Advocate Management) mobile UI kit
+   Shared by every module under the Office tab.
+   ========================================================================== */
+
+.office-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.office-page > .ant-alert,
+.office-page > .ant-card {
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.office-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.office-header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.office-back-button {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  color: var(--ink, #0f172a);
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: background 0.15s, transform 0.1s;
+  padding: 0;
+}
+
+.office-back-button:active {
+  background: #f1f5f9;
+  transform: scale(0.96);
+}
+
+.office-header-icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 8px 18px -10px rgba(99, 102, 241, 0.9);
+}
+
+.office-header-copy {
+  min-width: 0;
+}
+
+.office-header-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-header-subtitle {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.office-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.office-header-actions .ant-btn {
+  height: 34px;
+  padding-inline: 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.office-header-actions .ant-btn > svg {
+  flex: none;
+}
+
+.office-header-actions .office-icon-btn {
+  width: 34px;
+  padding: 0;
+}
+
+.office-header-extra {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stat tiles                                                                 */
+/* -------------------------------------------------------------------------- */
+
+.office-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.office-stat-grid[data-columns='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.office-stat-grid[data-columns='1'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.office-stat {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-areas:
+    'icon label'
+    'icon value';
+  align-items: center;
+  column-gap: 9px;
+  row-gap: 1px;
+  padding: 10px 11px;
+  min-width: 0;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: var(--shadow-sm);
+  font: inherit;
+  color: inherit;
+}
+
+.office-stat--action {
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.office-stat--action:active {
+  transform: scale(0.985);
+  border-color: #c7d2fe;
+}
+
+.office-stat-icon {
+  grid-area: icon;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.office-stat-label {
+  grid-area: label;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-stat-value {
+  grid-area: value;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-stat-hint {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Toolbar + chips                                                            */
+/* -------------------------------------------------------------------------- */
+
+.office-toolbar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.office-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.office-search {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  border-radius: 11px;
+  font-size: 13px;
+}
+
+.office-search.ant-input-affix-wrapper {
+  padding-inline: 11px;
+}
+
+.office-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  flex: none;
+  padding: 0 12px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.office-filter-btn.is-active {
+  border-color: #c7d2fe;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.office-filter-btn b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.office-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.office-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 25px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.office-chip svg {
+  opacity: 0.7;
+}
+
+.office-chip--clear {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Generic card + list                                                        */
+/* -------------------------------------------------------------------------- */
+
+.office-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.office-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.office-card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+
+.office-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.office-card-body {
+  padding: 12px;
+}
+
+.office-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.office-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid #f1f5f9;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.office-list-row:first-child {
+  border-top: 0;
+}
+
+.office-list-row:active {
+  background: #f8fafc;
+}
+
+.office-list-avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.office-list-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.office-list-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-list-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.office-list-meta span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.office-list-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.office-list-amount {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.office-muted {
+  color: var(--muted);
+}
+
+.office-empty {
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Finance summary                                                            */
+/* -------------------------------------------------------------------------- */
+
+.office-finance-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.office-finance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: #f8fafc;
+  border-left: 3px solid transparent;
+}
+
+.office-finance-row-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.office-finance-row-value {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.office-finance-row--income {
+  border-left-color: #10b981;
+}
+
+.office-finance-row--expense {
+  border-left-color: #ef4444;
+}
+
+.office-finance-row--net {
+  border-left-color: #3b82f6;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Filter bottom sheet                                                        */
+/* -------------------------------------------------------------------------- */
+
+.office-filter-sheet-root .ant-drawer-content {
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.office-filter-sheet-root .ant-drawer-header {
+  padding: 14px 16px 10px;
+  min-height: 0;
+}
+
+.office-filter-sheet-root .ant-drawer-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.office-filter-sheet-root .ant-drawer-body {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.office-sheet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.office-sheet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.office-sheet-field > label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.office-sheet-field .ant-select,
+.office-sheet-field .ant-picker,
+.office-sheet-field .ant-input,
+.office-sheet-field .ant-input-affix-wrapper {
+  width: 100% !important;
+  border-radius: 10px;
+}
+
+.office-sheet-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.office-sheet-actions .ant-btn {
+  height: 40px;
+  border-radius: 11px;
+  font-weight: 700;
+}
+
+.office-sheet-actions .ant-btn:last-child {
+  flex: 1;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Registers / segmented controls                                             */
+/* -------------------------------------------------------------------------- */
+
+.office-register-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 11px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.office-register-bar-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.office-register-bar-top .ant-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.office-register-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.office-segmented {
+  background: #eef2f7;
+  border-radius: 11px;
+  padding: 3px;
+}
+
+.office-segmented .ant-segmented-item {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive tweaks                                                          */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .office-header {
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .office-header-main {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .office-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .office-header-actions .ant-btn {
+    flex: 0 1 auto;
+  }
+
+  .office-header-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .office-stat-value {
+    font-size: 14px;
+  }
+
+  .office-stat-label {
+    font-size: 9.5px;
+  }
+
+  .office-header-title {
+    font-size: 17.5px;
+  }
+
+  .office-filter-btn span {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .office-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .office-stat-grid[data-columns='3'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .office-header-title {
+    font-size: 21px;
+  }
+
+  .office-list-row {
+    padding: 12px 14px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header card helpers                                                        */
+/* -------------------------------------------------------------------------- */
+
+.office-card-copy {
+  min-width: 0;
+}
+
+.office-card-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.office-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.office-eye-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.office-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: none;
+}
+
+.office-date-nav .ant-btn {
+  width: 27px;
+  height: 27px;
+  min-width: 27px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.office-date-nav .ant-picker {
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
+  padding-inline: 7px;
+}
+
+.office-date-today {
+  margin-left: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid #c7d2fe;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.office-dot {
+  color: #cbd5e1;
+}
+
+.office-list-chevron {
+  flex: none;
+  color: #cbd5e1;
+}
+
+@media (max-width: 767px) {
+  .office-appt-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .office-appt-head .office-date-nav {
+    margin-left: auto;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Section head + user cards                                                  */
+/* -------------------------------------------------------------------------- */
+
+.office-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 8px;
+}
+
+.office-list-head h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+
+.office-list-head .ant-btn {
+  height: 30px;
+  padding-inline: 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.office-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.office-user-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.office-user-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px 8px;
+}
+
+.office-you {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 9.5px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+.office-user-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 12px 9px;
+}
+
+.office-user-joined {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.office-user-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 8px 8px;
+  border-top: 1px dashed var(--line);
+  background: #fbfcff;
+}
+
+.office-user-actions .ant-btn {
+  font-size: 12px;
+}
+
+.office-stat-grid[data-columns='3'] .office-stat {
+  grid-template-columns: 26px minmax(0, 1fr);
+  padding: 9px;
+  column-gap: 7px;
+}
+
+.office-stat-grid[data-columns='3'] .office-stat-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.office-stat-grid[data-columns='3'] .office-stat-value {
+  font-size: 13.5px;
+}
+
+.office-stat-grid[data-columns='3'] .office-stat-label {
+  font-size: 9.5px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Search shell + action rows                                                 */
+/* -------------------------------------------------------------------------- */
+
+.office-search-shell {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.office-search-shell .custom-transliterate-input {
+  height: 38px;
+  border-radius: 11px;
+  font-size: 13px;
+}
+
+.office-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.office-action-row .ant-btn {
+  height: 32px;
+  padding-inline: 11px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.office-push-end {
+  margin-left: auto;
+}
+
+.office-toolbar .ant-segmented {
+  flex: none;
+}
+
+.office-toolbar .ant-picker,
+.office-toolbar .ant-select {
+  height: 38px;
+  border-radius: 11px;
+  font-size: 12.5px;
+}
+
+.office-toolbar .ant-select .ant-select-selector {
+  border-radius: 11px !important;
+}
+
+.office-toolbar .ant-picker-suffix {
+  margin-inline-start: 4px;
+}
+
+@media (max-width: 380px) {
+  .office-action-row .ant-btn {
+    padding-inline: 8px;
+    font-size: 11.5px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Recycle bin cards                                                          */
+/* -------------------------------------------------------------------------- */
+
+.office-recycle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.office-recycle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.office-recycle-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.office-recycle-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.office-recycle-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.office-recycle-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.office-recycle-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line);
+}
+
+.office-recycle-actions > span:first-child {
+  margin-right: auto;
+}
+
+.office-recycle-amount {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.office-recycle-actions .ant-btn {
+  height: 27px;
+  padding-inline: 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cards + empty states inside Office modules                                 */
+/* -------------------------------------------------------------------------- */
+
+.advocate-module .ant-card {
+  overflow: hidden;
+}
+
+.advocate-module .ant-card .ant-table-wrapper,
+.advocate-module .ant-card .ant-table {
+  border-radius: 0;
+}
+
+.office-page .ant-empty {
+  margin: 18px 0;
+}
+
+.office-page .ant-empty-image {
+  height: 34px;
+  margin-bottom: 4px;
+}
+
+.office-page .ant-empty-description {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.office-page .ant-tabs-nav {
+  margin-bottom: 10px !important;
+}
+
+.office-page .ant-tabs-tab {
+  padding: 6px 0 !important;
+  font-size: 12.5px;
+}
+
+.office-page .ant-pagination {
+  justify-content: center;
+}
+
+.office-page .ant-card-body > .ant-row:first-child {
+  row-gap: 10px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile tab strip                                                           */
+/* -------------------------------------------------------------------------- */
+
+.office-tab-strip {
+  display: flex;
+  gap: 6px;
+  margin: -2px -2px 10px;
+  padding: 2px 2px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.office-tab-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.office-tab-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.office-tab-chip .ant-badge {
+  transform: scale(0.9);
+}
+
+.office-tab-chip .ant-badge-count {
+  box-shadow: none;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  padding: 0 4px;
+  font-size: 9.5px;
+}
+
+.office-tab-chip.is-active {
+  border-color: transparent;
+  background: var(--brand);
+  color: #fff;
+}
+
+.office-tab-chip.is-active .ant-badge-count {
+  background: rgba(255, 255, 255, 0.28) !important;
+  color: #fff;
+}
+
+.office-tab-chip svg {
+  flex: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Backup history cards                                                       */
+/* -------------------------------------------------------------------------- */
+
+.office-backup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.office-backup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.office-backup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.office-backup-date {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.office-backup-file {
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.office-backup-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+.office-backup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+
+.office-backup-actions .ant-btn {
+  height: 27px;
+  padding-inline: 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Finance head                                                               */
+/* -------------------------------------------------------------------------- */
+
+.office-finance-head .office-card-title {
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .office-finance-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .office-finance-head .office-head-tools {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .office-finance-head .office-segmented {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .office-finance-head .office-segmented .ant-segmented-group {
+    width: 100%;
+  }
+
+  .office-finance-head .office-segmented .ant-segmented-item {
+    flex: 1;
+    text-align: center;
+  }
+
+  .office-eye-btn span {
+    display: none;
+  }
+
+  .office-eye-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dense tables on phones                                                     */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .office-page .modern-dashboard-table .ant-table-thead > tr > th {
+    padding: 8px 10px !important;
+    font-size: 10px !important;
+  }
+
+  .office-page .modern-dashboard-table .ant-table-tbody > tr > td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .office-page .modern-dashboard-table .ant-table-summary > tr > td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .office-page .ant-table-content::-webkit-scrollbar,
+  .office-page .ant-table-body::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+  }
+
+  .office-page .ant-table-content::-webkit-scrollbar-thumb,
+  .office-page .ant-table-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+}
+
+@media (max-width: 420px) {
+  .office-stat-grid[data-columns='3'] .office-stat {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'label'
+      'value';
+    row-gap: 2px;
+    padding: 9px 10px;
+  }
+
+  .office-stat-grid[data-columns='3'] .office-stat-icon {
+    display: none;
+  }
+
+  .office-stat-grid[data-columns='3'] .office-stat-label {
+    font-size: 10px;
+  }
+
+  .office-stat-grid[data-columns='3'] .office-stat-value {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 767px) {
+  .office-page .empty-state {
+    padding: 22px 14px;
+  }
+
+  .office-page .empty-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+
+  .office-page .empty-title {
+    font-size: 13.5px;
+  }
+
+  .office-page .empty-text {
+    font-size: 11.5px;
+  }
+
+  .office-page .ant-table-placeholder .office-empty {
+    padding: 18px 12px;
+  }
+}
