@@ -28,6 +28,7 @@ import translateRoutes from './routes/translate.js';
 // AnyRoR portal integration (temporarily disabled)
 // import anyrorRoutes from './routes/anyror.js';
 import formBuilderRoutes from './routes/formBuilder.js';
+import surfacyRoutes from './routes/surfacy.js';
 import backupRoutes from './routes/backup.js';
 import { startBackupScheduler } from './services/backup/scheduler.js';
 
@@ -109,6 +110,7 @@ app.use(cors({
 // too small for large address blocks / long lists. This parser is registered
 // before the global parser so the larger limit applies only to this module.
 app.use('/api/form-builder', express.json({ limit: '1mb' }), formBuilderRoutes);
+app.use('/api/surfacy', express.json({ limit: '2mb' }), surfacyRoutes);
 
 app.use(express.json());
 

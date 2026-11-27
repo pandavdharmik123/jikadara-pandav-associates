@@ -170,14 +170,17 @@ export function parseListFilters(query = {}) {
   const zone = parseText(query.zone, 'Zone', MAX_SHORT);
   const workType = parseText(query.workType, 'Work type', MAX_SHORT);
 
+  const fyStartDate = query.fyStartDate ? String(query.fyStartDate).trim().slice(0, 10) : '';
+  const fyEndDate = query.fyEndDate ? String(query.fyEndDate).trim().slice(0, 10) : '';
+
   const page = Math.max(1, parseInt(query.page || '1', 10) || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize || '20', 10) || 20));
 
-  const sortBy = ['clientName', 'property', 'zone', 'createdAt', 'updatedAt'].includes(query.sortBy)
+  const sortBy = ['clientName', 'property', 'zone', 'startDate', 'createdAt', 'updatedAt'].includes(query.sortBy)
     ? query.sortBy : 'createdAt';
   const sortDir = query.sortDir === 'asc' ? 'asc' : 'desc';
 
-  return { search, clientName, property, zone, workType, page, pageSize, sortBy, sortDir };
+  return { search, clientName, property, zone, workType, fyStartDate, fyEndDate, page, pageSize, sortBy, sortDir };
 }
 
 export function parseImportPayload(body = {}) {

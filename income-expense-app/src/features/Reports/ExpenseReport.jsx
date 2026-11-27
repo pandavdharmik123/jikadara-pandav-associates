@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Modal, Form, Input, message, Tooltip, Grid, Tag } from 'antd';
 import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff, TrendingUp, TrendingDown, Wallet, NotebookText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
@@ -405,6 +405,55 @@ export default function ExpenseReport() {
   const tasksNetProfit = reportType === 'MONTHLY' ? (monthlyData?.totals?.netAmount || 0) : (yearlyData?.yearlyTotals?.netAmount || 0);
 
   const totalGeneralExpense = (generalExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const yearlyGeneralExpenses = useMemo(() => {
+    if (!generalExpenses || generalExpenses.length === 0) return [];
+    const map = new Map();
+    for (const exp of generalExpenses) {
+      const istStr = toISTDateString(exp.date);
+      const monthKey = istStr ? istStr.slice(0, 7) : dayjs(exp.date).format('YYYY-MM');
+      if (!map.has(monthKey)) {
+        map.set(monthKey, {
+          key: monthKey,
+          monthLabel: dayjs(`${monthKey}-01`).format('MMM YYYY'),
+          entryCount: 0,
+          totalAmount: 0,
+        });
+      }
+      const bucket = map.get(monthKey);
+      bucket.entryCount += 1;
+      bucket.totalAmount += Number(exp.amount || 0);
+    }
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [generalExpenses]);
+
+  const yearlyGeneralExpenseColumns = [
+    {
+      title: 'Sr.',
+      key: 'srNo',
+      width: 55,
+      align: 'center',
+      render: (_, __, index) => <Text style={{ color: '#64748b', fontSize: '13px' }}>{index + 1}</Text>,
+    },
+    {
+      title: 'Month',
+      dataIndex: 'monthLabel',
+      key: 'monthLabel',
+    },
+    {
+      title: 'Entries',
+      dataIndex: 'entryCount',
+      key: 'entryCount',
+      align: 'center',
+    },
+    {
+      title: 'Total Expense',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      align: 'right',
+      render: (val) => <PrivacyAmount amount={val} color="#dc2626" style={{ fontWeight: 700 }} />,
+    },
+  ];
   const finalNetProfit = Number(tasksNetProfit) - totalGeneralExpense;
 
   const handleGeneratePDF = async () => {
@@ -774,7 +823,40 @@ export default function ExpenseReport() {
           </div>
 
           {isMobile ? (
-            generalExpenses && generalExpenses.length > 0 ? (
+            reportType === 'YEARLY' ? (
+              yearlyGeneralExpenses.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                  {yearlyGeneralExpenses.map((m) => (
+                    <div key={m.key} className="adv-mobile-card" style={{ margin: 0 }}>
+                      <div className="adv-mobile-card-main">
+                        <span className="adv-mobile-avatar" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
+                          <TrendingDown size={18} />
+                        </span>
+                        <div className="adv-mobile-copy" style={{ minWidth: 0, flex: 1 }}>
+                          <div className="adv-mobile-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <span className="adv-mobile-title" style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                              {m.monthLabel}
+                            </span>
+                            <PrivacyAmount amount={m.totalAmount} color="#dc2626" style={{ fontSize: 14, fontWeight: 700, flexShrink: 0 }} />
+                          </div>
+                          <div className="adv-mobile-meta" style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                            {m.entryCount} {m.entryCount === 1 ? 'expense entry' : 'expense entries'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', marginTop: 4 }}>
+                    <Text strong style={{ fontSize: 13 }}>Total Expenses</Text>
+                    <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontSize: 14, fontWeight: 700 }} />
+                  </div>
+                </div>
+              ) : (
+                <div className="office-empty" style={{ padding: '24px', textAlign: 'center', background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', marginBottom: 24 }}>
+                  No general expenses for this period.
+                </div>
+              )
+            ) : generalExpenses && generalExpenses.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {generalExpenses.map((exp) => (
                   <div key={exp.id} className="adv-mobile-card" style={{ margin: 0 }}>
@@ -814,9 +896,9 @@ export default function ExpenseReport() {
             <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
               <Table
                 className="modern-dashboard-table"
-                columns={generalExpenseColumns}
-                dataSource={generalExpenses || []}
-                rowKey="id"
+                columns={reportType === 'YEARLY' ? yearlyGeneralExpenseColumns : generalExpenseColumns}
+                dataSource={reportType === 'YEARLY' ? yearlyGeneralExpenses : (generalExpenses || [])}
+                rowKey={reportType === 'YEARLY' ? 'key' : 'id'}
                 pagination={false}
                 loading={generalExpensesLoading}
                 scroll={{ x: 'max-content' }}
@@ -825,13 +907,26 @@ export default function ExpenseReport() {
                 summary={() => (
                   <Table.Summary>
                     <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                      <Table.Summary.Cell index={0} colSpan={3}>
+                      <Table.Summary.Cell index={0} colSpan={reportType === 'YEARLY' ? 2 : 3}>
                         <Text strong>Total</Text>
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1} align="right">
-                        <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                      {reportType === 'YEARLY' ? (
+                        <>
+                          <Table.Summary.Cell index={1} align="center">
+                            <Text strong>{(generalExpenses || []).length}</Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2} align="right">
+                            <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
+                          </Table.Summary.Cell>
+                        </>
+                      ) : (
+                        <>
+                          <Table.Summary.Cell index={1} align="right">
+                            <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                        </>
+                      )}
                     </Table.Summary.Row>
                   </Table.Summary>
                 )}

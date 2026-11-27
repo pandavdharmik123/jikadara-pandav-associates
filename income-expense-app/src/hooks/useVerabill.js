@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 
-export const useVerabillSummary = () =>
+export const useVerabillSummary = (params) =>
   useQuery({
-    queryKey: ['verabill', 'summary'],
+    queryKey: ['verabill', 'summary', params],
     queryFn: async () => {
-      const { data } = await api.get('/verabill/summary');
+      const { data } = await api.get('/verabill/summary', { params });
       return data.summary;
     },
   });
