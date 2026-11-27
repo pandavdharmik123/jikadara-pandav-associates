@@ -25,7 +25,6 @@ import {
   ArrowDown,
   ArrowUp,
   CheckCircle2,
-  FileDown,
   FileText,
   FolderOpen,
   Landmark,
@@ -44,7 +43,6 @@ import {
   updateSurfacyCase,
   generatePreviewDocxBlob,
   downloadSurfacyDocx,
-  downloadSurfacyPdf,
 } from './surfacyApi';
 import {
   buildDefaultPropertyDescription,
@@ -52,9 +50,22 @@ import {
 } from './surfacyValidation';
 import SurfacyPreviewPane from './components/SurfacyPreviewPane';
 import SurfacyCaseListModal from './components/SurfacyCaseListModal';
+import './surfacy.css';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+function Field({ label, required, children }) {
+  return (
+    <div className="surfacy-field">
+      <span className="surfacy-field-label" title={label}>
+        <span>{label}</span>
+        {required && <span className="req">*</span>}
+      </span>
+      {children}
+    </div>
+  );
+}
 
 function toDatePickerVal(str) {
   if (!str) return null;
@@ -81,7 +92,6 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
 
   const [saving, setSaving] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewBuffer, setPreviewBuffer] = useState(null);
   const [caseListOpen, setCaseListOpen] = useState(false);
@@ -129,7 +139,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
           refreshPreview(res.defaultFormData, tpls[0]?.fileName);
         }
       } catch {
-        message.error('Failed to initialize Surfacy Case Filing builder');
+        message.error('Failed to initialize SARFAESI Case Filing builder');
       }
     }
     init();
@@ -174,7 +184,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
       setStatus('DRAFT');
       setHumanVerified(false);
       setFormData(res.defaultFormData);
-      message.info('Started a new Surfacy Case Filing');
+      message.info('Started a new SARFAESI Case Filing');
     } catch {
       message.error('Failed to reset form');
     }
@@ -298,7 +308,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
   if (!formData) {
     return (
       <Card loading bordered={false} style={{ borderRadius: 12 }}>
-        Loading Surfacy Case Filing Builder...
+        Loading SARFAESI Case Filing Builder...
       </Card>
     );
   }
@@ -327,55 +337,61 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
         </div>
       ),
       children: (
-        <Row gutter={[10, 10]}>
-          <Col xs={24} sm={14}>
-            <Text style={{ fontSize: 12 }}>Court Name *</Text>
-            <Input
-              value={formData.court.courtName}
-              onChange={(e) => updateSection('court', { courtName: e.target.value })}
-              placeholder="ADDL. CHIEF JUDICIAL MAGISTRATE"
-            />
+        <Row gutter={[12, 10]}>
+          <Col xs={24} sm={12}>
+            <Field label="Court Name" required>
+              <Input
+                value={formData.court.courtName}
+                onChange={(e) => updateSection('court', { courtName: e.target.value })}
+                placeholder="ADDL. CHIEF JUDICIAL MAGISTRATE"
+              />
+            </Field>
           </Col>
-          <Col xs={24} sm={10}>
-            <Text style={{ fontSize: 12 }}>Court Location *</Text>
-            <Input
-              value={formData.court.courtLocation}
-              onChange={(e) => updateSection('court', { courtLocation: e.target.value })}
-              placeholder="e.g. NAVSARI"
-            />
+          <Col xs={24} sm={12}>
+            <Field label="Court Location" required>
+              <Input
+                value={formData.court.courtLocation}
+                onChange={(e) => updateSection('court', { courtLocation: e.target.value })}
+                placeholder="e.g. NAVSARI"
+              />
+            </Field>
           </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Application Number</Text>
-            <Input
-              value={formData.court.applicationNumber}
-              onChange={(e) => updateSection('court', { applicationNumber: e.target.value })}
-              placeholder="Leave blank if unnumbered"
-            />
+          <Col xs={12} sm={12}>
+            <Field label="Application Number">
+              <Input
+                value={formData.court.applicationNumber}
+                onChange={(e) => updateSection('court', { applicationNumber: e.target.value })}
+                placeholder="Leave blank if unnumbered"
+              />
+            </Field>
           </Col>
-          <Col xs={12} sm={6}>
-            <Text style={{ fontSize: 12 }}>Year *</Text>
-            <Input
-              value={formData.court.applicationYear}
-              onChange={(e) => updateSection('court', { applicationYear: e.target.value })}
-              placeholder="2026"
-            />
+          <Col xs={12} sm={12}>
+            <Field label="Application Year" required>
+              <Input
+                value={formData.court.applicationYear}
+                onChange={(e) => updateSection('court', { applicationYear: e.target.value })}
+                placeholder="2026"
+              />
+            </Field>
           </Col>
-          <Col xs={12} sm={5}>
-            <Text style={{ fontSize: 12 }}>Filing Date</Text>
-            <DatePicker
-              format="DD/MM/YYYY"
-              style={{ width: '100%' }}
-              value={toDatePickerVal(formData.court.filingDate)}
-              onChange={(d) => updateSection('court', { filingDate: fromDatePickerVal(d) })}
-            />
+          <Col xs={12} sm={12}>
+            <Field label="Filing Date">
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: '100%' }}
+                value={toDatePickerVal(formData.court.filingDate)}
+                onChange={(d) => updateSection('court', { filingDate: fromDatePickerVal(d) })}
+              />
+            </Field>
           </Col>
-          <Col xs={12} sm={5}>
-            <Text style={{ fontSize: 12 }}>District *</Text>
-            <Input
-              value={formData.court.district}
-              onChange={(e) => updateSection('court', { district: e.target.value })}
-              placeholder="e.g. Navsari"
-            />
+          <Col xs={12} sm={12}>
+            <Field label="District" required>
+              <Input
+                value={formData.court.district}
+                onChange={(e) => updateSection('court', { district: e.target.value })}
+                placeholder="e.g. Navsari"
+              />
+            </Field>
           </Col>
         </Row>
       ),
@@ -603,6 +619,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
             <Card
               key={loan.id || idx}
               size="small"
+              className="surfacy-subcard"
               title={`Loan Account #${idx + 1}`}
               extra={
                 loans.length > 1 && (
@@ -623,168 +640,200 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
                 )
               }
             >
-              <Row gutter={[8, 8]}>
-                <Col xs={24} sm={12}>
-                  <Text style={{ fontSize: 12 }}>Loan Account Number *</Text>
-                  <Input
-                    value={loan.loanAccountNo}
-                    onChange={(e) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], loanAccountNo: e.target.value };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
+              <Row gutter={[12, 10]}>
+                <Col xs={24}>
+                  <div className="surfacy-subhead" style={{ marginTop: 0 }}>Basic Loan Details</div>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Text style={{ fontSize: 12 }}>Loan Type *</Text>
-                  <Input
-                    value={loan.loanType}
-                    onChange={(e) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], loanType: e.target.value };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                    placeholder="Housing Loan"
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Application Date</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.applicationDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], applicationDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Sanction Date *</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.sanctionDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], sanctionDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Sanctioned Amount (₹) *</Text>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={0}
-                    value={loan.sanctionedAmount ? Number(loan.sanctionedAmount) : null}
-                    onChange={(val) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], sanctionedAmount: val !== null ? String(val) : '' };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Loan Agreement Date</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.loanAgreementDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], loanAgreementDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Deposit of Title Deeds Date</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.depositTitleDeedsDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], depositTitleDeedsDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={24} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Sub-Registrar Office</Text>
-                  <Input
-                    value={loan.mortgageSubRegistrar}
-                    onChange={(e) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], mortgageSubRegistrar: e.target.value };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                    placeholder="e.g. Jalalpor"
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Mortgage Reg. Serial No.</Text>
-                  <Input
-                    value={loan.mortgageSerialNo}
-                    onChange={(e) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], mortgageSerialNo: e.target.value };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                    placeholder="e.g. 7212/2025"
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Mortgage Reg. Date</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.mortgageRegDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], mortgageRegDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text style={{ fontSize: 12 }}>Liability As On Date</Text>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    value={toDatePickerVal(loan.liabilityDate)}
-                    onChange={(d) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], liabilityDate: fromDatePickerVal(d) };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
-                </Col>
-                <Col xs={12} sm={12}>
-                  <Text style={{ fontSize: 12 }}>Outstanding Amount (₹) *</Text>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={0}
-                    value={loan.outstandingAmount ? Number(loan.outstandingAmount) : null}
-                    onChange={(val) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], outstandingAmount: val !== null ? String(val) : '' };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
+                  <Field label="Loan Account Number" required>
+                    <Input
+                      value={loan.loanAccountNo}
+                      placeholder="e.g. 251216205171752"
+                      onChange={(e) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], loanAccountNo: e.target.value };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Text style={{ fontSize: 12 }}>Interest Details</Text>
-                  <Input
-                    value={loan.interestDetails}
-                    onChange={(e) => {
-                      const next = [...loans];
-                      next[idx] = { ...next[idx], interestDetails: e.target.value };
-                      setFormData((p) => ({ ...p, loans: next }));
-                    }}
-                  />
+                  <Field label="Loan Type" required>
+                    <Input
+                      value={loan.loanType}
+                      onChange={(e) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], loanType: e.target.value };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                      placeholder="Housing Loan"
+                    />
+                  </Field>
+                </Col>
+
+                <Col xs={24}>
+                  <div className="surfacy-subhead">Application &amp; Sanction</div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Application Date">
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.applicationDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], applicationDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Sanction Date" required>
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.sanctionDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], sanctionDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Sanctioned Amount (₹)" required>
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      placeholder="e.g. 942000"
+                      value={loan.sanctionedAmount ? Number(loan.sanctionedAmount) : null}
+                      onChange={(val) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], sanctionedAmount: val !== null ? String(val) : '' };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Loan Agreement Date">
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.loanAgreementDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], loanAgreementDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+
+                <Col xs={24}>
+                  <div className="surfacy-subhead">Mortgage Registration</div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Deposit of Title Deeds Date">
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.depositTitleDeedsDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], depositTitleDeedsDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Sub-Registrar Office">
+                    <Input
+                      value={loan.mortgageSubRegistrar}
+                      onChange={(e) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], mortgageSubRegistrar: e.target.value };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                      placeholder="e.g. Jalalpor"
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Mortgage Reg. Serial No.">
+                    <Input
+                      value={loan.mortgageSerialNo}
+                      onChange={(e) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], mortgageSerialNo: e.target.value };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                      placeholder="e.g. 7212/2025"
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Mortgage Reg. Date">
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.mortgageRegDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], mortgageRegDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+
+                <Col xs={24}>
+                  <div className="surfacy-subhead">Current Liability</div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Liability As On Date">
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      style={{ width: '100%' }}
+                      value={toDatePickerVal(loan.liabilityDate)}
+                      onChange={(d) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], liabilityDate: fromDatePickerVal(d) };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Field label="Outstanding Amount (₹)" required>
+                    <InputNumber
+                      style={{ width: '100%' }}
+                      min={0}
+                      placeholder="e.g. 968990"
+                      value={loan.outstandingAmount ? Number(loan.outstandingAmount) : null}
+                      onChange={(val) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], outstandingAmount: val !== null ? String(val) : '' };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
+                </Col>
+                <Col xs={24}>
+                  <Field label="Interest Details">
+                    <Input
+                      value={loan.interestDetails}
+                      placeholder="Rate of interest / remarks (optional)"
+                      onChange={(e) => {
+                        const next = [...loans];
+                        next[idx] = { ...next[idx], interestDetails: e.target.value };
+                        setFormData((p) => ({ ...p, loans: next }));
+                      }}
+                    />
+                  </Field>
                 </Col>
               </Row>
             </Card>
@@ -824,76 +873,103 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
         </div>
       ),
       children: (
-        <Row gutter={[8, 8]}>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Flat / House No.</Text>
-            <Input value={formData.property.flatHouseNo} onChange={(e) => updateSection('property', { flatHouseNo: e.target.value })} />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Built-up Area</Text>
-            <Input value={formData.property.builtUpArea} onChange={(e) => updateSection('property', { builtUpArea: e.target.value })} />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Area Unit</Text>
-            <Select
-              style={{ width: '100%' }}
-              value={formData.property.areaUnit}
-              onChange={(val) => updateSection('property', { areaUnit: val })}
-              options={[
-                { value: 'Sq.fts', label: 'Sq.fts' },
-                { value: 'Sq.mtr', label: 'Sq.mtr' },
-                { value: 'Sq.yds', label: 'Sq.yds' },
-              ]}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Floor Number</Text>
-            <Input value={formData.property.floorNumber} onChange={(e) => updateSection('property', { floorNumber: e.target.value })} />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>New Property No.</Text>
-            <Input value={formData.property.newPropertyNo} onChange={(e) => updateSection('property', { newPropertyNo: e.target.value })} />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Old Property No.</Text>
-            <Input value={formData.property.oldPropertyNo} onChange={(e) => updateSection('property', { oldPropertyNo: e.target.value })} />
+        <Row gutter={[12, 10]}>
+          <Col xs={24}>
+            <div className="surfacy-subhead" style={{ marginTop: 0 }}>Unit &amp; Building Details</div>
           </Col>
           <Col xs={24} sm={12}>
-            <Text style={{ fontSize: 12 }}>Building / Complex Name</Text>
-            <Input value={formData.property.buildingName} onChange={(e) => updateSection('property', { buildingName: e.target.value })} />
+            <Field label="Flat / House No.">
+              <Input value={formData.property.flatHouseNo} placeholder="e.g. Flat No-303" onChange={(e) => updateSection('property', { flatHouseNo: e.target.value })} />
+            </Field>
           </Col>
-          <Col xs={12} sm={6}>
-            <Text style={{ fontSize: 12 }}>Plot No.</Text>
-            <Input value={formData.property.plotNo} onChange={(e) => updateSection('property', { plotNo: e.target.value })} />
+          <Col xs={24} sm={12}>
+            <Field label="Floor Number">
+              <Input value={formData.property.floorNumber} placeholder="e.g. 3rd Floor" onChange={(e) => updateSection('property', { floorNumber: e.target.value })} />
+            </Field>
           </Col>
-          <Col xs={12} sm={6}>
-            <Text style={{ fontSize: 12 }}>Plot Area</Text>
-            <Input value={formData.property.plotArea} onChange={(e) => updateSection('property', { plotArea: e.target.value })} />
+          <Col xs={14} sm={12}>
+            <Field label="Built-up Area">
+              <Input value={formData.property.builtUpArea} placeholder="e.g. 559.52" onChange={(e) => updateSection('property', { builtUpArea: e.target.value })} />
+            </Field>
           </Col>
-          <Col xs={12} sm={12}>
-            <Text style={{ fontSize: 12 }}>Block / Revenue Survey No.</Text>
-            <Input value={formData.property.blockSurveyNo} onChange={(e) => updateSection('property', { blockSurveyNo: e.target.value })} />
+          <Col xs={10} sm={12}>
+            <Field label="Area Unit">
+              <Select
+                style={{ width: '100%' }}
+                value={formData.property.areaUnit}
+                onChange={(val) => updateSection('property', { areaUnit: val })}
+                options={[
+                  { value: 'Sq.fts', label: 'Sq.fts' },
+                  { value: 'Sq.mtr', label: 'Sq.mtr' },
+                  { value: 'Sq.yds', label: 'Sq.yds' },
+                ]}
+              />
+            </Field>
           </Col>
-          <Col xs={12} sm={12}>
-            <Text style={{ fontSize: 12 }}>New Survey No.</Text>
-            <Input value={formData.property.newSurveyNo} onChange={(e) => updateSection('property', { newSurveyNo: e.target.value })} />
+          <Col xs={24} sm={12}>
+            <Field label="New Property No.">
+              <Input value={formData.property.newPropertyNo} placeholder="e.g. 2248" onChange={(e) => updateSection('property', { newPropertyNo: e.target.value })} />
+            </Field>
           </Col>
-          <Col xs={8}>
-            <Text style={{ fontSize: 12 }}>Village / Moje</Text>
-            <Input value={formData.property.villageMoje} onChange={(e) => updateSection('property', { villageMoje: e.target.value })} />
+          <Col xs={24} sm={12}>
+            <Field label="Old Property No.">
+              <Input value={formData.property.oldPropertyNo} placeholder="e.g. 1885" onChange={(e) => updateSection('property', { oldPropertyNo: e.target.value })} />
+            </Field>
           </Col>
-          <Col xs={8}>
-            <Text style={{ fontSize: 12 }}>Taluka / Sub-District</Text>
-            <Input value={formData.property.talukaSubDistrict} onChange={(e) => updateSection('property', { talukaSubDistrict: e.target.value })} />
-          </Col>
-          <Col xs={8}>
-            <Text style={{ fontSize: 12 }}>District</Text>
-            <Input value={formData.property.district} onChange={(e) => updateSection('property', { district: e.target.value })} />
+          <Col xs={24}>
+            <Field label="Building / Complex Name">
+              <Input value={formData.property.buildingName} placeholder="e.g. L.D. Complex" onChange={(e) => updateSection('property', { buildingName: e.target.value })} />
+            </Field>
           </Col>
 
           <Col xs={24}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <Text strong style={{ fontSize: 12 }}>Complete Legal Property Description *</Text>
+            <div className="surfacy-subhead">Land &amp; Survey Details</div>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Plot No.">
+              <Input value={formData.property.plotNo} placeholder="e.g. Plot No-2" onChange={(e) => updateSection('property', { plotNo: e.target.value })} />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Plot Area">
+              <Input value={formData.property.plotArea} placeholder="e.g. 3600.00 Sq.ft" onChange={(e) => updateSection('property', { plotArea: e.target.value })} />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Block / Revenue Survey No.">
+              <Input value={formData.property.blockSurveyNo} placeholder="e.g. 382+383/2 Paikee" onChange={(e) => updateSection('property', { blockSurveyNo: e.target.value })} />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="New Survey No. (After Promulgation)">
+              <Input value={formData.property.newSurveyNo} placeholder="e.g. 1005" onChange={(e) => updateSection('property', { newSurveyNo: e.target.value })} />
+            </Field>
+          </Col>
+
+          <Col xs={24}>
+            <div className="surfacy-subhead">Location</div>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Field label="Village / Moje">
+              <Input value={formData.property.villageMoje} placeholder="e.g. Eru" onChange={(e) => updateSection('property', { villageMoje: e.target.value })} />
+            </Field>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Field label="Taluka / Sub-District">
+              <Input value={formData.property.talukaSubDistrict} placeholder="e.g. Jalalpore" onChange={(e) => updateSection('property', { talukaSubDistrict: e.target.value })} />
+            </Field>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Field label="District">
+              <Input value={formData.property.district} placeholder="e.g. Navsari" onChange={(e) => updateSection('property', { district: e.target.value })} />
+            </Field>
+          </Col>
+
+          <Col xs={24}>
+            <div className="surfacy-subhead" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textTransform: 'none', letterSpacing: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#1e293b' }}>
+                Complete Legal Property Description <span style={{ color: '#dc2626' }}>*</span>
+              </span>
               <Space size={6}>
                 <Text type="secondary" style={{ fontSize: 11 }}>Manual Edit</Text>
                 <Switch
@@ -917,20 +993,21 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
           </Col>
 
           <Col xs={24}>
-            <Divider style={{ margin: '6px 0' }} />
-            <Text strong style={{ fontSize: 12 }}>Property Boundaries (Appears in Application, Prayer & Affidavit)</Text>
+            <div className="surfacy-subhead">Property Boundaries (Application, Prayer &amp; Affidavit)</div>
           </Col>
           {['north', 'south', 'east', 'west'].map((dir) => (
             <Col xs={12} key={dir}>
-              <Text style={{ fontSize: 12, textTransform: 'capitalize' }}>{dir} *</Text>
-              <Input
-                value={formData.property.boundaries?.[dir]}
-                onChange={(e) =>
-                  updateSection('property', {
-                    boundaries: { ...(formData.property.boundaries || {}), [dir]: e.target.value },
-                  })
-                }
-              />
+              <Field label={dir.charAt(0).toUpperCase() + dir.slice(1)} required>
+                <Input
+                  value={formData.property.boundaries?.[dir]}
+                  placeholder={`e.g. ${dir === 'east' ? 'Road' : 'Adj. Property'}`}
+                  onChange={(e) =>
+                    updateSection('property', {
+                      boundaries: { ...(formData.property.boundaries || {}), [dir]: e.target.value },
+                    })
+                  }
+                />
+              </Field>
             </Col>
           ))}
         </Row>
@@ -945,72 +1022,80 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
         </div>
       ),
       children: (
-        <Row gutter={[8, 8]}>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>NPA Classification Date *</Text>
-            <DatePicker
-              format="DD/MM/YYYY"
-              style={{ width: '100%' }}
-              value={toDatePickerVal(formData.proceedings.npaDate)}
-              onChange={(d) => updateSection('proceedings', { npaDate: fromDatePickerVal(d) })}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Demand Notice Date (13(2)) *</Text>
-            <DatePicker
-              format="DD/MM/YYYY"
-              style={{ width: '100%' }}
-              value={toDatePickerVal(formData.proceedings.demandNoticeDate)}
-              onChange={(d) => updateSection('proceedings', { demandNoticeDate: fromDatePickerVal(d) })}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Demand Notice Amount (₹) *</Text>
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              value={formData.proceedings.demandNoticeAmount ? Number(formData.proceedings.demandNoticeAmount) : null}
-              onChange={(val) => updateSection('proceedings', { demandNoticeAmount: val !== null ? String(val) : '' })}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Notice Service Date</Text>
-            <DatePicker
-              format="DD/MM/YYYY"
-              style={{ width: '100%' }}
-              value={toDatePickerVal(formData.proceedings.demandNoticeServiceDate)}
-              onChange={(d) => updateSection('proceedings', { demandNoticeServiceDate: fromDatePickerVal(d) })}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Statutory Notice Period</Text>
-            <Input
-              value={formData.proceedings.statutoryNoticePeriod}
-              onChange={(e) => updateSection('proceedings', { statutoryNoticePeriod: e.target.value })}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <Text style={{ fontSize: 12 }}>Symbolic Possession Date *</Text>
-            <DatePicker
-              format="DD/MM/YYYY"
-              style={{ width: '100%' }}
-              value={toDatePickerVal(formData.proceedings.symbolicPossessionDate)}
-              onChange={(d) => updateSection('proceedings', { symbolicPossessionDate: fromDatePickerVal(d) })}
-            />
+        <Row gutter={[12, 10]}>
+          <Col xs={24} sm={12}>
+            <Field label="NPA Classification Date" required>
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: '100%' }}
+                value={toDatePickerVal(formData.proceedings.npaDate)}
+                onChange={(d) => updateSection('proceedings', { npaDate: fromDatePickerVal(d) })}
+              />
+            </Field>
           </Col>
           <Col xs={24} sm={12}>
-            <Text style={{ fontSize: 12 }}>Newspaper Publication Details</Text>
-            <Input
-              value={formData.proceedings.newspaperPublicationDetails}
-              onChange={(e) => updateSection('proceedings', { newspaperPublicationDetails: e.target.value })}
-            />
+            <Field label="Demand Notice Date (u/s 13(2))" required>
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: '100%' }}
+                value={toDatePickerVal(formData.proceedings.demandNoticeDate)}
+                onChange={(d) => updateSection('proceedings', { demandNoticeDate: fromDatePickerVal(d) })}
+              />
+            </Field>
           </Col>
           <Col xs={24} sm={12}>
-            <Text style={{ fontSize: 12 }}>Police Station Details</Text>
-            <Input
-              value={formData.proceedings.policeStationDetails}
-              onChange={(e) => updateSection('proceedings', { policeStationDetails: e.target.value })}
-            />
+            <Field label="Demand Notice Amount (₹)" required>
+              <InputNumber
+                style={{ width: '100%' }}
+                min={0}
+                value={formData.proceedings.demandNoticeAmount ? Number(formData.proceedings.demandNoticeAmount) : null}
+                onChange={(val) => updateSection('proceedings', { demandNoticeAmount: val !== null ? String(val) : '' })}
+              />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Notice Service Date">
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: '100%' }}
+                value={toDatePickerVal(formData.proceedings.demandNoticeServiceDate)}
+                onChange={(d) => updateSection('proceedings', { demandNoticeServiceDate: fromDatePickerVal(d) })}
+              />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Statutory Notice Period">
+              <Input
+                value={formData.proceedings.statutoryNoticePeriod}
+                onChange={(e) => updateSection('proceedings', { statutoryNoticePeriod: e.target.value })}
+              />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Symbolic Possession Date" required>
+              <DatePicker
+                format="DD/MM/YYYY"
+                style={{ width: '100%' }}
+                value={toDatePickerVal(formData.proceedings.symbolicPossessionDate)}
+                onChange={(d) => updateSection('proceedings', { symbolicPossessionDate: fromDatePickerVal(d) })}
+              />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Newspaper Publication Details">
+              <Input
+                value={formData.proceedings.newspaperPublicationDetails}
+                onChange={(e) => updateSection('proceedings', { newspaperPublicationDetails: e.target.value })}
+              />
+            </Field>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Field label="Police Station Details">
+              <Input
+                value={formData.proceedings.policeStationDetails}
+                onChange={(e) => updateSection('proceedings', { policeStationDetails: e.target.value })}
+              />
+            </Field>
           </Col>
         </Row>
       ),
@@ -1030,64 +1115,72 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
               Sync from Main Application
             </Button>
           </div>
-          <Row gutter={[8, 8]}>
+          <Row gutter={[12, 10]}>
+            <Col xs={24}>
+              <Field label="Authorized Officer Name">
+                <Input
+                  value={formData.affidavit.deponentName}
+                  onChange={(e) => updateSection('affidavit', { deponentName: e.target.value })}
+                />
+              </Field>
+            </Col>
+            <Col xs={12}>
+              <Field label="Age">
+                <Input value={formData.affidavit.age} onChange={(e) => updateSection('affidavit', { age: e.target.value })} />
+              </Field>
+            </Col>
+            <Col xs={12}>
+              <Field label="Occupation">
+                <Input value={formData.affidavit.occupation} onChange={(e) => updateSection('affidavit', { occupation: e.target.value })} />
+              </Field>
+            </Col>
             <Col xs={24} sm={12}>
-              <Text style={{ fontSize: 12 }}>Authorized Officer Name</Text>
-              <Input
-                value={formData.affidavit.deponentName}
-                onChange={(e) => updateSection('affidavit', { deponentName: e.target.value })}
-              />
+              <Field label="Total Claim (₹)">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  value={formData.affidavit.totalOutstandingClaim ? Number(formData.affidavit.totalOutstandingClaim) : null}
+                  onChange={(val) => updateSection('affidavit', { totalOutstandingClaim: val !== null ? String(val) : '' })}
+                />
+              </Field>
             </Col>
-            <Col xs={12} sm={6}>
-              <Text style={{ fontSize: 12 }}>Age</Text>
-              <Input value={formData.affidavit.age} onChange={(e) => updateSection('affidavit', { age: e.target.value })} />
+            <Col xs={24} sm={12}>
+              <Field label="Affidavit NPA Date">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  value={toDatePickerVal(formData.affidavit.npaDate)}
+                  onChange={(d) => updateSection('affidavit', { npaDate: fromDatePickerVal(d) })}
+                />
+              </Field>
             </Col>
-            <Col xs={12} sm={6}>
-              <Text style={{ fontSize: 12 }}>Occupation</Text>
-              <Input value={formData.affidavit.occupation} onChange={(e) => updateSection('affidavit', { occupation: e.target.value })} />
+            <Col xs={24} sm={12}>
+              <Field label="Affidavit Demand Date">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  value={toDatePickerVal(formData.affidavit.demandNoticeDate)}
+                  onChange={(d) => updateSection('affidavit', { demandNoticeDate: fromDatePickerVal(d) })}
+                />
+              </Field>
             </Col>
-            <Col xs={12} sm={8}>
-              <Text style={{ fontSize: 12 }}>Total Claim (₹)</Text>
-              <InputNumber
-                style={{ width: '100%' }}
-                min={0}
-                value={formData.affidavit.totalOutstandingClaim ? Number(formData.affidavit.totalOutstandingClaim) : null}
-                onChange={(val) => updateSection('affidavit', { totalOutstandingClaim: val !== null ? String(val) : '' })}
-              />
+            <Col xs={24} sm={12}>
+              <Field label="Execution Date">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  value={toDatePickerVal(formData.affidavit.executionDate)}
+                  onChange={(d) => updateSection('affidavit', { executionDate: fromDatePickerVal(d) })}
+                />
+              </Field>
             </Col>
-            <Col xs={12} sm={8}>
-              <Text style={{ fontSize: 12 }}>Affidavit NPA Date</Text>
-              <DatePicker
-                format="DD/MM/YYYY"
-                style={{ width: '100%' }}
-                value={toDatePickerVal(formData.affidavit.npaDate)}
-                onChange={(d) => updateSection('affidavit', { npaDate: fromDatePickerVal(d) })}
-              />
-            </Col>
-            <Col xs={12} sm={8}>
-              <Text style={{ fontSize: 12 }}>Affidavit Demand Date</Text>
-              <DatePicker
-                format="DD/MM/YYYY"
-                style={{ width: '100%' }}
-                value={toDatePickerVal(formData.affidavit.demandNoticeDate)}
-                onChange={(d) => updateSection('affidavit', { demandNoticeDate: fromDatePickerVal(d) })}
-              />
-            </Col>
-            <Col xs={12} sm={12}>
-              <Text style={{ fontSize: 12 }}>Execution Date</Text>
-              <DatePicker
-                format="DD/MM/YYYY"
-                style={{ width: '100%' }}
-                value={toDatePickerVal(formData.affidavit.executionDate)}
-                onChange={(d) => updateSection('affidavit', { executionDate: fromDatePickerVal(d) })}
-              />
-            </Col>
-            <Col xs={12} sm={12}>
-              <Text style={{ fontSize: 12 }}>Execution Place</Text>
-              <Input
-                value={formData.affidavit.executionPlace}
-                onChange={(e) => updateSection('affidavit', { executionPlace: e.target.value })}
-              />
+            <Col xs={24} sm={12}>
+              <Field label="Execution Place">
+                <Input
+                  value={formData.affidavit.executionPlace}
+                  onChange={(e) => updateSection('affidavit', { executionPlace: e.target.value })}
+                />
+              </Field>
             </Col>
           </Row>
         </div>
@@ -1281,62 +1374,77 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Top Action Header */}
-      <Card bordered={false} style={{ borderRadius: 12, borderTop: `3px solid ${accent}` }} styles={{ body: { padding: '14px 18px' } }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <Space align="center" size={10}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#eef2ff', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Scale size={20} />
-            </div>
-            <div>
-              <Title level={4} style={{ margin: 0 }}>Surfacy Case Filing</Title>
+    <div className="surfacy-builder">
+      {/* Page Header (matches other tools pages — no card box) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Scale size={20} color="#fff" />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+              SARFAESI Case Filing
+            </Title>
+            {caseTitle ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <Tag color="purple" style={{ fontSize: 11, margin: 0, padding: '0 6px' }}>
+                  {caseTitle}
+                </Tag>
+              </div>
+            ) : (
               <Text type="secondary" style={{ fontSize: 12 }}>
                 SARFAESI Section 14 Application, Affidavit, Vakalatnama &amp; Index Builder
               </Text>
-            </div>
-          </Space>
-
-          <Space wrap>
-            <Button icon={<Plus size={14} />} onClick={handleNewCase}>New Case</Button>
-            <Button icon={<FolderOpen size={14} />} onClick={() => setCaseListOpen(true)}>Saved Cases</Button>
-            <Button icon={<Save size={14} />} loading={saving} onClick={() => handleSaveCase()}>Save Draft</Button>
-            <Button type="primary" icon={<FileText size={14} />} loading={downloadingDocx} onClick={handleDownloadDocx}>
-              Download DOCX
-            </Button>
-            <Button
-              icon={<FileDown size={14} />}
-              loading={downloadingPdf}
-              onClick={handleDownloadPdf}
-              title={pdfConverterAvailable ? 'Convert finalized DOCX to PDF' : 'Requires LibreOffice on server (or use Print in Preview)'}
-            >
-              Download PDF
-            </Button>
-          </Space>
+            )}
+          </div>
         </div>
 
-        <Divider style={{ margin: '12px 0' }} />
+        <Space size={8} wrap>
+          <Button icon={<Plus size={14} />} onClick={handleNewCase}>New Case</Button>
+          <Button icon={<FolderOpen size={14} />} onClick={() => setCaseListOpen(true)}>Saved Cases</Button>
+          <Button icon={<Save size={14} style={{ color: accent }} />} loading={saving} onClick={() => handleSaveCase()}>
+            Save Draft
+          </Button>
+          <Button type="primary" icon={<FileText size={14} />} loading={downloadingDocx} onClick={handleDownloadDocx}>
+            Download DOCX
+          </Button>
+        </Space>
+      </div>
 
-        <Row gutter={[12, 10]} align="middle">
-          <Col xs={24} md={7}>
-            <Text style={{ fontSize: 11.5, color: '#64748b' }}>Case Title</Text>
+      {/* Compact Case Metadata Strip */}
+      <Row gutter={[12, 8]} align="bottom" style={{ paddingBottom: 4 }}>
+        <Col xs={24} md={7}>
+          <Field label="Case Title">
             <Input
               value={caseTitle}
               onChange={(e) => setCaseTitle(e.target.value)}
-              placeholder="Auto-generated from Opponent & Court if blank"
+              placeholder="Auto-generated from Opponent & Court"
             />
-          </Col>
-          <Col xs={24} md={8}>
-            <Text style={{ fontSize: 11.5, color: '#64748b' }}>Document Template</Text>
+          </Field>
+        </Col>
+        <Col xs={24} md={8}>
+          <Field label="Document Template">
             <Select
               style={{ width: '100%' }}
               value={selectedTemplateId}
               onChange={setSelectedTemplateId}
               options={templates.map((t) => ({ value: t.id, label: `${t.name} (v${t.version})` }))}
             />
-          </Col>
-          <Col xs={12} md={4}>
-            <Text style={{ fontSize: 11.5, color: '#64748b' }}>Case Status</Text>
+          </Field>
+        </Col>
+        <Col xs={12} md={4}>
+          <Field label="Case Status">
             <Select
               style={{ width: '100%' }}
               value={status}
@@ -1347,41 +1455,37 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
                 { value: 'FINALIZED', label: 'Finalized', disabled: !humanVerified },
               ]}
             />
-          </Col>
-          <Col xs={12} md={5}>
-            <div style={{ paddingTop: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Checkbox checked={humanVerified} onChange={(e) => setHumanVerified(e.target.checked)}>
-                <Text style={{ fontSize: 12, fontWeight: 600 }}>Advocate Verified</Text>
-              </Checkbox>
-              <span
-                onClick={() => verificationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                style={{ cursor: 'pointer', display: 'inline-flex', gap: 4 }}
-                title="Click to jump to Verification & Discrepancy Checks"
-              >
-                {validation.errors.length > 0 && <Tag color="error" style={{ margin: 0 }}>{validation.errors.length} Missing</Tag>}
-                {validation.warnings.length > 0 && <Tag color="warning" style={{ margin: 0 }}>{validation.warnings.length} Warnings</Tag>}
-                {validation.errors.length === 0 && validation.warnings.length === 0 && <Tag color="success" style={{ margin: 0 }}>Ready</Tag>}
-              </span>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+          </Field>
+        </Col>
+        <Col xs={12} md={5}>
+          <div style={{ height: 36, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Checkbox checked={humanVerified} onChange={(e) => setHumanVerified(e.target.checked)}>
+              <Text style={{ fontSize: 12, fontWeight: 600 }}>Advocate Verified</Text>
+            </Checkbox>
+            <span style={{ display: 'inline-flex', gap: 4 }}>
+              {validation.errors.length > 0 && <Tag color="error" style={{ margin: 0 }}>{validation.errors.length} Missing</Tag>}
+              {validation.warnings.length > 0 && <Tag color="warning" style={{ margin: 0 }}>{validation.warnings.length} Warnings</Tag>}
+              {validation.errors.length === 0 && validation.warnings.length === 0 && <Tag color="success" style={{ margin: 0 }}>Ready</Tag>}
+            </span>
+          </div>
+        </Col>
+      </Row>
 
       {/* Two-Panel Workspace */}
-      <Row gutter={[14, 14]} align="stretch">
+      <Row gutter={[16, 16]} className="surfacy-workspace-row">
         <Col xs={24} lg={11}>
-          <div style={{ maxHeight: '78vh', overflowY: 'auto', paddingRight: 4 }}>
+          <div className="surfacy-form-pane">
             <Collapse
+              className="surfacy-collapse"
               activeKey={activePanels}
               onChange={setActivePanels}
               items={collapseItems}
-              style={{ background: '#ffffff', borderRadius: 12 }}
             />
           </div>
         </Col>
 
         <Col xs={24} lg={13}>
-          <div style={{ height: '78vh' }}>
+          <div className="surfacy-preview-pane">
             <SurfacyPreviewPane
               docxBuffer={previewBuffer}
               loading={previewLoading}
@@ -1391,42 +1495,6 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
           </div>
         </Col>
       </Row>
-
-      {/* Legal Disclaimer & Verification Warnings (below workspace) */}
-      <div ref={verificationRef}>
-        <Alert
-          type={validation.warnings.length > 0 ? 'warning' : 'info'}
-          showIcon
-          icon={validation.warnings.length > 0 ? <AlertTriangle size={18} /> : <ShieldAlert size={18} />}
-          message={
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <span>
-                <strong>Advocate Verification Required:</strong> Generated documents preserve statutory text and require review by the responsible advocate before filing.
-              </span>
-              <Space size={6}>
-                {validation.errors.length > 0 && <Tag color="error">{validation.errors.length} Missing Field(s)</Tag>}
-                {validation.warnings.length > 0 && <Tag color="warning">{validation.warnings.length} Discrepancy Warning(s)</Tag>}
-                {validation.errors.length === 0 && validation.warnings.length === 0 && <Tag color="success">All Checks Passed</Tag>}
-              </Space>
-            </div>
-          }
-          description={
-            (validation.warnings.length > 0 || validation.errors.length > 0) && (
-              <ul style={{ margin: '6px 0 0 18px', padding: 0, fontSize: 12 }}>
-                {validation.warnings.map((w, i) => (
-                  <li key={`w-${i}`} style={{ color: '#b45309' }}><strong>[Discrepancy]</strong> {w.message}</li>
-                ))}
-                {validation.errors.slice(0, 6).map((e, i) => (
-                  <li key={`e-${i}`} style={{ color: '#b91c1c' }}><strong>[Missing]</strong> {e.message}</li>
-                ))}
-                {validation.errors.length > 6 && (
-                  <li style={{ color: '#b91c1c' }}>...and {validation.errors.length - 6} more missing required fields.</li>
-                )}
-              </ul>
-            )
-          }
-        />
-      </div>
 
       <SurfacyCaseListModal
         open={caseListOpen}

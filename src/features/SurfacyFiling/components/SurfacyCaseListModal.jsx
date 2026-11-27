@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Modal,
+  Drawer,
   Table,
   Button,
   Input,
@@ -16,9 +16,11 @@ import {
   FolderOpen,
   Copy,
   Trash2,
-  FileDown,
   FileText,
   Plus,
+  RefreshCw,
+  Scale,
+  Files,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
@@ -26,7 +28,6 @@ import {
   duplicateSurfacyCase,
   deleteSurfacyCase,
   downloadSurfacyDocx,
-  downloadSurfacyPdf,
 } from '../surfacyApi';
 
 const { Text } = Typography;
@@ -57,7 +58,7 @@ export default function SurfacyCaseListModal({
       const res = await fetchSurfacyCases(params);
       setCases(res.cases || []);
     } catch {
-      message.error('Failed to load saved Surfacy filings');
+      message.error('Failed to load saved SARFAESI filings');
     } finally {
       setLoading(false);
     }
@@ -175,15 +176,9 @@ export default function SurfacyCaseListModal({
             title="Download DOCX"
             onClick={() => downloadSurfacyDocx(record.id, record.caseTitle)}
           />
-          <Button
-            size="small"
-            icon={<FileDown size={13} />}
-            title="Download PDF"
-            onClick={() => handleDownloadPdf(record)}
-          />
           <Popconfirm
             title="Delete this filing?"
-            description="This case will be moved out of your active Surfacy filings."
+            description="This case will be moved out of your active SARFAESI filings."
             onConfirm={() => handleDelete(record)}
             okButtonProps={{ danger: true }}
           >
@@ -195,32 +190,52 @@ export default function SurfacyCaseListModal({
   ];
 
   return (
-    <Modal
+    <Drawer
       open={open}
-      onCancel={onClose}
-      title="Saved Surfacy Case Filings"
-      width={1040}
-      footer={[
-        <Button key="close" onClick={onClose}>
-          Close
-        </Button>,
-        <Button
-          key="new"
-          type="primary"
-          icon={<Plus size={14} />}
-          onClick={() => {
-            onCreateNew();
-            onClose();
-          }}
-        >
-          Create New Filing
-        </Button>,
-      ]}
+      onClose={onClose}
+      placement="right"
+      width={1100}
+      destroyOnClose={false}
+      classNames={{
+        root: 'saved-drawer',
+        section: 'saved-drawer-panel',
+        header: 'saved-drawer-header',
+        body: 'saved-drawer-body',
+      }}
+      title={
+        <div className="saved-drawer-heading">
+          <span className="saved-drawer-heading-icon">
+            <Scale size={17} />
+          </span>
+          <span className="saved-drawer-heading-text">
+            <span className="saved-drawer-heading-title">Saved Case Filings</span>
+            <span className="saved-drawer-heading-sub">SARFAESI Section 14</span>
+          </span>
+        </div>
+      }
     >
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="saved-drawer-toolbar">
+        <div className="saved-drawer-count">
+          <Files size={14} />
+          <span>
+            {cases.length} saved filing{cases.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        <Button
+          type="text"
+          size="small"
+          className="saved-drawer-refresh"
+          icon={<RefreshCw size={14} />}
+          loading={loading}
+          onClick={loadCases}
+        />
+      </div>
+
+      <div className="saved-drawer-filters" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <Input
+          className="saved-drawer-search"
           placeholder="Search case title, applicant, opponent, court, application no..."
-          prefix={<Search size={14} color="#94a3b8" />}
+          prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1, minWidth: 240 }}
@@ -239,15 +254,33 @@ export default function SurfacyCaseListModal({
         />
       </div>
 
-      <Table
-        rowKey="id"
-        loading={loading}
-        dataSource={cases}
-        columns={columns}
-        size="small"
-        pagination={{ pageSize: 8 }}
-        scroll={{ x: 850 }}
-      />
-    </Modal>
+      <div className="saved-drawer-table" style={{ minHeight: 420, display: 'flex', flexDirection: 'column' }}>
+        <style>{`
+          .saved-drawer-table .ant-table-wrapper,
+          .saved-drawer-table .ant-spin-nested-loading,
+          .saved-drawer-table .ant-spin-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+          .saved-drawer-table .ant-table {
+            flex: 1;
+          }
+          .saved-drawer-table .ant-pagination {
+            margin-top: auto !important;
+            padding-top: 12px;
+          }
+        `}</style>
+        <Table
+          rowKey="id"
+          loading={loading}
+          dataSource={cases}
+          columns={columns}
+          size="small"
+          pagination={{ pageSize: 8 }}
+          scroll={{ x: 850 }}
+        />
+      </div>
+    </Drawer>
   );
 }

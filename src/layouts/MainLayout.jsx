@@ -206,7 +206,7 @@ export default function MainLayout() {
     {
       key: '/app/tools/surfacy-filing',
       icon: <Scale size={20} />,
-      label: 'Surfacy Case Filing',
+      label: 'SARFAESI Case Filing',
     },
     {
       key: 'form-builder-group',

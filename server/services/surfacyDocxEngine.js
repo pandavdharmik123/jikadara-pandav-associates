@@ -115,6 +115,58 @@ function setParagraphSingleText(doc, pNode, newText) {
   pNode.appendChild(newR);
 }
 
+/**
+ * Replace a paragraph's runs with a bold label run (e.g. "     Address: ")
+ * followed by a normal (non-bold) value run, preserving the paragraph's <w:pPr>
+ * indentation and font size.
+ */
+function setParagraphLabelAndValue(doc, pNode, boldLabel, normalValue) {
+  const runs = Array.from(pNode.getElementsByTagNameNS(W_NS, 'r'));
+  let boldRpr = null;
+  let normalRpr = null;
+
+  for (const r of runs) {
+    const rpr = r.getElementsByTagNameNS(W_NS, 'rPr')[0];
+    if (!rpr) continue;
+    const hasBold = rpr.getElementsByTagNameNS(W_NS, 'b').length > 0;
+    if (hasBold && !boldRpr) {
+      boldRpr = rpr.cloneNode(true);
+    } else if (!hasBold && !normalRpr) {
+      normalRpr = rpr.cloneNode(true);
+    }
+  }
+
+  if (!normalRpr && boldRpr) {
+    normalRpr = boldRpr.cloneNode(true);
+    Array.from(normalRpr.getElementsByTagNameNS(W_NS, 'b')).forEach((b) => normalRpr.removeChild(b));
+    Array.from(normalRpr.getElementsByTagNameNS(W_NS, 'bCs')).forEach((b) => normalRpr.removeChild(b));
+  }
+
+  for (const r of runs) {
+    if (r.parentNode === pNode) {
+      pNode.removeChild(r);
+    }
+  }
+
+  const labelRun = doc.createElementNS(W_NS, 'w:r');
+  if (boldRpr) labelRun.appendChild(boldRpr);
+  const labelT = doc.createElementNS(W_NS, 'w:t');
+  labelT.setAttribute('xml:space', 'preserve');
+  labelT.textContent = boldLabel;
+  labelRun.appendChild(labelT);
+  pNode.appendChild(labelRun);
+
+  if (normalValue) {
+    const valRun = doc.createElementNS(W_NS, 'w:r');
+    if (normalRpr) valRun.appendChild(normalRpr);
+    const valT = doc.createElementNS(W_NS, 'w:t');
+    valT.setAttribute('xml:space', 'preserve');
+    valT.textContent = normalValue;
+    valRun.appendChild(valT);
+    pNode.appendChild(valRun);
+  }
+}
+
 function setCellText(tcNode, newText) {
   const pNodes = tcNode.getElementsByTagNameNS(W_NS, 'p');
   if (pNodes.length === 0) return;
@@ -296,11 +348,12 @@ export async function generateSurfacyDocx(formData = {}, templateFileName = 'sar
   const appTitleIdx = children.findIndex((el) => el.localName === 'p' && getParagraphText(el).includes('APPLICATION UNDER SECTION 14'));
 
   if (oppHeaderIdx !== -1 && appTitleIdx !== -1 && appTitleIdx > oppHeaderIdx + 4) {
-    // Capture template paragraphs for one opponent from P[oppHeaderIdx + 1 .. +4]
+    // Capture template paragraphs for one opponent from P[oppHeaderIdx + 1 .. +5]
     const tplNameP = children[oppHeaderIdx + 1].cloneNode(true);
     const tplRelP = children[oppHeaderIdx + 2].cloneNode(true);
     const tplAddrP = children[oppHeaderIdx + 3].cloneNode(true);
     const tplAltP = children[oppHeaderIdx + 4].cloneNode(true);
+    const tplSpacerP = children[oppHeaderIdx + 5] ? children[oppHeaderIdx + 5].cloneNode(true) : null;
     const anchorNode = children[appTitleIdx];
 
     // Remove all existing opponent paragraphs between oppHeaderIdx and appTitleIdx
@@ -311,7 +364,7 @@ export async function generateSurfacyDocx(formData = {}, templateFileName = 'sar
     const oppList = opponents.length > 0 ? opponents : [{}];
     oppList.forEach((opp, idx) => {
       const pName = tplNameP.cloneNode(true);
-      setParagraphSingleText(doc, pName, `(${idx + 1}) ${(opp.fullName || '[Opponent Name]').trim()} (${(opp.role || 'Borrower').trim()})`);
+      setParagraphSingleText(doc, pName, `(${idx + 1}) ${(opp.fullName || '[Opponent Name]').trim()}  (${(opp.role || 'Borrower').trim()})`);
       body.insertBefore(pName, anchorNode);
 
       if (opp.relationName?.trim()) {
@@ -321,13 +374,17 @@ export async function generateSurfacyDocx(formData = {}, templateFileName = 'sar
       }
 
       const pAddr = tplAddrP.cloneNode(true);
-      setParagraphSingleText(doc, pAddr, `     Address: ${(opp.residentialAddress || '').trim()}`);
+      setParagraphLabelAndValue(doc, pAddr, '     Address: ', (opp.residentialAddress || '').trim());
       body.insertBefore(pAddr, anchorNode);
 
       if (opp.alternateAddress?.trim()) {
         const pAlt = tplAltP.cloneNode(true);
-        setParagraphSingleText(doc, pAlt, `Also At: ${opp.alternateAddress.trim()}`);
+        setParagraphLabelAndValue(doc, pAlt, '     Also At: ', opp.alternateAddress.trim());
         body.insertBefore(pAlt, anchorNode);
+      }
+
+      if (idx < oppList.length - 1 && tplSpacerP) {
+        body.insertBefore(tplSpacerP.cloneNode(true), anchorNode);
       }
     });
   }

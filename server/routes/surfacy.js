@@ -52,7 +52,7 @@ function extractSummaryFields(formData = {}, explicitTitle) {
 
   const fallbackTitle = primaryOpponent
     ? `${primaryOpponent}${court.courtLocation ? ` - ${court.courtLocation}` : ''}`
-    : applicantName || 'Untitled Surfacy Filing';
+    : applicantName || 'Untitled SARFAESI Filing';
 
   return {
     caseTitle: (explicitTitle || '').trim() || fallbackTitle,
