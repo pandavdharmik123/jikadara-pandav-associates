@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { Layout, Menu, Button, Drawer, Grid, Dropdown, Avatar, Badge, Select } from 'antd';
 import {
@@ -47,6 +48,7 @@ export default function MainLayout() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, logout, activeFinancialYear, setActiveFinancialYear } = useAuthStore();
   const { data: financialYears, isLoading: fyLoading } = useFinancialYears();
 
@@ -75,9 +77,25 @@ export default function MainLayout() {
   }, []);
 
   React.useEffect(() => {
-    if (financialYears && financialYears.length > 0 && !activeFinancialYear) {
+    if (!financialYears || financialYears.length === 0) return;
+
+    if (!activeFinancialYear) {
       const defaultFy = financialYears.find(f => f.isDefault) || financialYears[0];
       setActiveFinancialYear(defaultFy);
+      return;
+    }
+
+    const matched = financialYears.find(f => f.id === activeFinancialYear.id);
+    if (!matched) {
+      const defaultFy = financialYears.find(f => f.isDefault) || financialYears[0];
+      setActiveFinancialYear(defaultFy);
+    } else if (
+      matched.name !== activeFinancialYear.name ||
+      matched.startDate !== activeFinancialYear.startDate ||
+      matched.endDate !== activeFinancialYear.endDate ||
+      matched.isDefault !== activeFinancialYear.isDefault
+    ) {
+      setActiveFinancialYear(matched);
     }
   }, [financialYears, activeFinancialYear, setActiveFinancialYear]);
 
@@ -574,7 +592,12 @@ export default function MainLayout() {
                 value={activeFinancialYear?.id || undefined}
                 onChange={(id) => {
                   const fy = financialYears?.find(f => f.id === id);
-                  setActiveFinancialYear(fy);
+                  if (fy) {
+                    setActiveFinancialYear(fy);
+                    queryClient.invalidateQueries({
+                      predicate: (q) => q.queryKey?.[0] !== 'financialYears' && q.queryKey?.[0] !== 'auth',
+                    });
+                  }
                 }}
                 style={{ width: 200 }}
                 loading={fyLoading}
