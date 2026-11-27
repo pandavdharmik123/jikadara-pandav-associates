@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Button, Space, Spin, Switch, Tag, Tooltip, Typography } from 'antd';
+import { Button, Space, Switch, Tag, Tooltip, Typography } from 'antd';
+import { Sk, SkText } from '../../../components/skeletons';
 import {
   ChevronLeft,
   ChevronRight,
@@ -294,7 +295,29 @@ export default function SurfacyPreviewPane({
           minHeight: 540,
         }}
       >
-        {loading && (
+        {loading && !docxBuffer && (
+          <div
+            style={{
+              maxWidth: 620,
+              margin: '8px auto',
+              padding: '36px 42px',
+              background: '#ffffff',
+              borderRadius: 6,
+              boxShadow: '0 6px 20px rgba(15, 23, 42, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 20,
+            }}
+          >
+            <SkText lines={2} widths={['68%', '40%']} align="center" gap={10} />
+            <SkText lines={4} widths={['36%', '58%', '48%', '82%']} gap={8} />
+            <SkText lines={5} widths={['100%', '96%', '92%', '100%', '74%']} gap={9} />
+            <Sk w="100%" h={76} r={6} />
+            <SkText lines={6} widths={['95%', '100%', '88%', '97%', '84%', '60%']} gap={9} />
+          </div>
+        )}
+
+        {loading && docxBuffer && (
           <div
             style={{
               position: 'sticky',
@@ -305,9 +328,21 @@ export default function SurfacyPreviewPane({
               pointerEvents: 'none',
             }}
           >
-            <Tag color="processing" style={{ padding: '4px 12px', borderRadius: 20 }}>
-              <Spin size="small" style={{ marginRight: 6 }} /> Updating DOCX preview...
-            </Tag>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 14px',
+                borderRadius: 999,
+                background: 'rgba(255, 255, 255, 0.94)',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+              }}
+            >
+              <Sk w={12} circle />
+              <Sk w={120} h={10} r={5} />
+            </div>
           </div>
         )}
 
