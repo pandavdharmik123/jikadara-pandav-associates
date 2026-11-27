@@ -31,6 +31,7 @@ import {
   CloudUpload,
   BookMarked,
   Landmark,
+  Scale,
   // Globe           // AnyRoR portal (temporarily disabled)
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
@@ -183,6 +184,11 @@ export default function MainLayout() {
       key: '/app/tools/document-ai',
       icon: <Sparkles size={20} />,
       label: 'Document AI & OCR',
+    },
+    {
+      key: '/app/tools/surfacy-filing',
+      icon: <Scale size={20} />,
+      label: 'Surfacy Case Filing',
     },
     {
       key: 'form-builder-group',

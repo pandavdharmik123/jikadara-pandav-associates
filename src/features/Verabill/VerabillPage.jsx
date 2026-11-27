@@ -51,6 +51,7 @@ import {
 import dayjs from 'dayjs';
 import html2pdf from 'html2pdf.js';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 import { formatCurrency } from '../../utils/currency';
 import { formatISTDate, toISTDateString } from '../../utils/istDate';
 import TransliterateInput from '../../components/TransliterateInput';
@@ -73,6 +74,10 @@ import SmcTenementInput, { SmcTenementBadge, formatTenementDisplay } from './Smc
 const { Title, Text } = Typography;
 
 export default function VerabillPage() {
+  const { activeFinancialYear } = useAuthStore();
+  const fyStartDate = toISTDateString(activeFinancialYear?.startDate);
+  const fyEndDate = toISTDateString(activeFinancialYear?.endDate);
+
   const [params, setParams] = useState({
     page: 1,
     pageSize: 20,
@@ -84,8 +89,17 @@ export default function VerabillPage() {
     sortDir: 'desc',
   });
 
-  const { data, isLoading } = useVerabillEntries(params);
-  const { data: summary, isLoading: isSummaryLoading } = useVerabillSummary();
+  const queryParams = useMemo(() => ({
+    ...params,
+    ...(fyStartDate && fyEndDate ? { fyStartDate, fyEndDate } : {}),
+  }), [params, fyStartDate, fyEndDate]);
+
+  const summaryParams = useMemo(() => (
+    fyStartDate && fyEndDate ? { fyStartDate, fyEndDate } : undefined
+  ), [fyStartDate, fyEndDate]);
+
+  const { data, isLoading } = useVerabillEntries(queryParams);
+  const { data: summary, isLoading: isSummaryLoading } = useVerabillSummary(summaryParams);
   const createMut = useCreateVerabillEntry();
   const updateMut = useUpdateVerabillEntry();
   const deleteMut = useDeleteVerabillEntry();
@@ -136,7 +150,7 @@ export default function VerabillPage() {
       if (total > entries.length) {
         const { data: fullData } = await api.get('/verabill', {
           params: {
-            ...params,
+            ...queryParams,
             page: 1,
             pageSize: Math.min(total, 1000),
           },

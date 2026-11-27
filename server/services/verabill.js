@@ -1,6 +1,14 @@
 import prisma from '../lib/prisma.js';
 import { VerabillValidationError } from '../lib/verabillValidation.js';
-import { toISTDateString } from '../lib/dateUtils.js';
+import { toISTDateString, startOfDayIST, endOfDayIST } from '../lib/dateUtils.js';
+
+function buildFyDateFilter(fyStartDate, fyEndDate) {
+  if (!fyStartDate || !fyEndDate) return undefined;
+  const gte = startOfDayIST(fyStartDate);
+  const lte = endOfDayIST(fyEndDate);
+  if (!gte || !lte) return undefined;
+  return { gte, lte };
+}
 
 function roundCurrency(value) {
   return Math.round(Number(value || 0) * 100) / 100;
@@ -67,9 +75,13 @@ const entryInclude = {
   expenses: { orderBy: { createdAt: 'asc' } },
 };
 
-export async function getSummary({ userId }) {
+export async function getSummary({ userId, fyStartDate, fyEndDate }) {
+  const where = { userId, isDeleted: false };
+  const dateFilter = buildFyDateFilter(fyStartDate, fyEndDate);
+  if (dateFilter) where.startDate = dateFilter;
+
   const entries = await prisma.verabillEntry.findMany({
-    where: { userId, isDeleted: false },
+    where,
     include: entryInclude,
   });
   let totalFees = 0, totalExpenses = 0;
@@ -88,8 +100,10 @@ export async function getSummary({ userId }) {
   };
 }
 
-export async function listEntries({ userId, search, clientName, property, zone, workType, page, pageSize, sortBy, sortDir }) {
+export async function listEntries({ userId, search, clientName, property, zone, workType, fyStartDate, fyEndDate, page, pageSize, sortBy, sortDir }) {
   const where = { userId, isDeleted: false };
+  const dateFilter = buildFyDateFilter(fyStartDate, fyEndDate);
+  if (dateFilter) where.startDate = dateFilter;
   if (search) {
     where.OR = [
       { clientName: { contains: search, mode: 'insensitive' } },

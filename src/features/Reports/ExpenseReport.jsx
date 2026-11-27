@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Typography, Card, Table, Select, DatePicker, Row, Col, Space, Button, Empty, Modal, Form, Input, message, Tooltip } from 'antd';
 import { BarChart2, FileLineChart, Plus, Edit, Trash2, Download, Eye, EyeOff } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
@@ -401,6 +401,55 @@ export default function ExpenseReport() {
   const tasksNetProfit = reportType === 'MONTHLY' ? (monthlyData?.totals?.netAmount || 0) : (yearlyData?.yearlyTotals?.netAmount || 0);
 
   const totalGeneralExpense = (generalExpenses || []).reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const yearlyGeneralExpenses = useMemo(() => {
+    if (!generalExpenses || generalExpenses.length === 0) return [];
+    const map = new Map();
+    for (const exp of generalExpenses) {
+      const istStr = toISTDateString(exp.date);
+      const monthKey = istStr ? istStr.slice(0, 7) : dayjs(exp.date).format('YYYY-MM');
+      if (!map.has(monthKey)) {
+        map.set(monthKey, {
+          key: monthKey,
+          monthLabel: dayjs(`${monthKey}-01`).format('MMM YYYY'),
+          entryCount: 0,
+          totalAmount: 0,
+        });
+      }
+      const bucket = map.get(monthKey);
+      bucket.entryCount += 1;
+      bucket.totalAmount += Number(exp.amount || 0);
+    }
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [generalExpenses]);
+
+  const yearlyGeneralExpenseColumns = [
+    {
+      title: 'Sr.',
+      key: 'srNo',
+      width: 55,
+      align: 'center',
+      render: (_, __, index) => <Text style={{ color: '#64748b', fontSize: '13px' }}>{index + 1}</Text>,
+    },
+    {
+      title: 'Month',
+      dataIndex: 'monthLabel',
+      key: 'monthLabel',
+    },
+    {
+      title: 'Entries',
+      dataIndex: 'entryCount',
+      key: 'entryCount',
+      align: 'center',
+    },
+    {
+      title: 'Total Expense',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      align: 'right',
+      render: (val) => <PrivacyAmount amount={val} color="#dc2626" style={{ fontWeight: 700 }} />,
+    },
+  ];
   const finalNetProfit = Number(tasksNetProfit) - totalGeneralExpense;
 
   const handleGeneratePDF = async () => {
@@ -719,16 +768,20 @@ export default function ExpenseReport() {
           <Card bordered={false} style={{ borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
             <Table
               className="modern-dashboard-table"
-              columns={generalExpenseColumns}
-              dataSource={generalExpensesLoading ? [] : (generalExpenses || [])}
-              rowKey="id"
+              columns={reportType === 'YEARLY' ? yearlyGeneralExpenseColumns : generalExpenseColumns}
+              dataSource={
+                generalExpensesLoading
+                  ? []
+                  : (reportType === 'YEARLY' ? yearlyGeneralExpenses : (generalExpenses || []))
+              }
+              rowKey={reportType === 'YEARLY' ? 'key' : 'id'}
               pagination={false}
               loading={false}
               scroll={{ x: 'max-content' }}
               size="small"
               locale={{
                 emptyText: generalExpensesLoading ? (
-                  <TableLoadingSkeleton rows={4} columns={5} />
+                  <TableLoadingSkeleton rows={4} columns={reportType === 'YEARLY' ? 4 : 5} />
                 ) : (
                   <Empty description="No general expenses found for this period" />
                 ),
@@ -736,13 +789,26 @@ export default function ExpenseReport() {
               summary={() => (
                 <Table.Summary>
                   <Table.Summary.Row style={{ backgroundColor: '#f9fafb' }}>
-                    <Table.Summary.Cell index={0} colSpan={3}>
+                    <Table.Summary.Cell index={0} colSpan={reportType === 'YEARLY' ? 2 : 3}>
                       <Text strong>Total</Text>
                     </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} align="right">
-                      <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                    {reportType === 'YEARLY' ? (
+                      <>
+                        <Table.Summary.Cell index={1} align="center">
+                          <Text strong>{(generalExpenses || []).length}</Text>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={2} align="right">
+                          <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
+                        </Table.Summary.Cell>
+                      </>
+                    ) : (
+                      <>
+                        <Table.Summary.Cell index={1} align="right">
+                          <PrivacyAmount amount={totalGeneralExpense} color="#dc2626" style={{ fontWeight: 700 }} />
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={2}></Table.Summary.Cell>
+                      </>
+                    )}
                   </Table.Summary.Row>
                 </Table.Summary>
               )}

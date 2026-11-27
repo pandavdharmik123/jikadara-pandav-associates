@@ -28,7 +28,9 @@ function handleError(res, err, fallbackMessage) {
 
 router.get('/summary', requireAuth, async (req, res) => {
   try {
-    const summary = await getSummary({ userId: req.user.id });
+    const fyStartDate = req.query.fyStartDate ? String(req.query.fyStartDate).trim().slice(0, 10) : '';
+    const fyEndDate = req.query.fyEndDate ? String(req.query.fyEndDate).trim().slice(0, 10) : '';
+    const summary = await getSummary({ userId: req.user.id, fyStartDate, fyEndDate });
     res.json({ summary });
   } catch (err) {
     handleError(res, err, 'Failed to fetch verabill summary');

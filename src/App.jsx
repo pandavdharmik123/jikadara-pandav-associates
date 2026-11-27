@@ -36,6 +36,7 @@ import NumberToWordsConverter from './features/NumberToWordsConverter/NumberToWo
 import DocumentAI from './features/DocumentAI/DocumentAI';
 import PedhinamuBuilder from './features/PedhinamuBuilder/PedhinamuBuilder';
 import FormBuilderPage from './features/FormBuilder/FormBuilderPage';
+import SurfacyCaseBuilder from './features/SurfacyFiling/SurfacyCaseBuilder';
 // AnyRoR portal integration (temporarily disabled)
 // import AnyRoRPortal from './features/AnyRoRPortal/AnyRoRPortal';
 
@@ -322,6 +323,10 @@ export default function App() {
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/pedhinamu" />}>
                     <Route path="pedhinamu" element={<PedhinamuBuilder currentAccentColor={currentAccentColor} />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/surfacy-filing" />}>
+                    <Route path="surfacy-filing" element={<SurfacyCaseBuilder currentAccentColor={currentAccentColor} />} />
                   </Route>
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/form-builder" />}>
