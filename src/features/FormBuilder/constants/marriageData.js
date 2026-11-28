@@ -24,6 +24,7 @@ export const createMarriageWitness = (id) => ({
 });
 
 export const createMarriageData = () => ({
+  zone: '',
   application: {
     mobile: '',
     place: '',

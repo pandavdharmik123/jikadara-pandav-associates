@@ -814,6 +814,9 @@ export default function NondhStatusList() {
           >
             <FileCheck size={26} color="#2563eb" />
             Nondh Status
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+              ({stats.total})
+            </Tag>
           </Title>
         </div>
 

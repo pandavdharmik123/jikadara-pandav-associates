@@ -19,6 +19,7 @@ import {
   Edit3,
   Plus,
   Search,
+  X,
   Save,
   Printer,
   Download,
@@ -55,6 +56,7 @@ import { SAMPLE_MADHUBHAI_DATA } from './constants/sampleMadhubhaiData';
 import { normalizeFamilyTree, updateNodePosition, updateMultipleNodePositions, updateNodeSize, updateNodeFontSize } from './utils/treeModel';
 import { ensureUnicode } from './utils/unicodeUtils';
 import { downloadAllPedhinamuZip, generateA4PortraitPdf } from './utils/exportZipBundle';
+import TransliterateInput from '../../components/TransliterateInput';
 import api from '../../services/api';
 
 import './styles/pedhinamu.scss';
@@ -1024,13 +1026,13 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             gap: 12
           }}
         >
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
               Pedhinamu Builder
             </Title>
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              Saved Pedhinamu documents, self-declarations, and Talati applications
-            </Text>
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+              ({savedList.length})
+            </Tag>
           </div>
           <Button
             type="primary"
@@ -1058,14 +1060,55 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
             }}
           >
             <Space wrap>
-              <Input
-                placeholder="Search by title, applicant, deceased, village..."
-                prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
-                value={listSearch}
-                onChange={(e) => setListSearch(e.target.value)}
-                allowClear
-                style={{ width: 320 }}
-              />
+              <div style={{ position: 'relative', width: 340 }}>
+                <Search
+                  size={14}
+                  style={{
+                    color: '#94a3b8',
+                    position: 'absolute',
+                    left: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 2,
+                    pointerEvents: 'none'
+                  }}
+                />
+                <TransliterateInput
+                  placeholder="Search (English / Gujarati)..."
+                  value={listSearch}
+                  onChange={(val) => setListSearch(val)}
+                  style={{
+                    height: 32,
+                    fontSize: 14,
+                    borderRadius: 6,
+                    paddingLeft: 30,
+                    paddingRight: listSearch ? 28 : 11
+                  }}
+                />
+                {listSearch && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setListSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      padding: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      zIndex: 2
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
               <Select
                 value={listTypeFilter}
                 onChange={setListTypeFilter}

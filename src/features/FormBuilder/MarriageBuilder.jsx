@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
+import { Button, Dropdown, Input, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   Download,
   Maximize2,
@@ -208,6 +209,11 @@ export default function MarriageBuilder({
     <div className="fbs-builder marriage-builder">
       <div className="fbs-toolbar">
         <div className="fbs-toolbar-left">
+          {onBack && (
+            <Button icon={<ArrowLeft size={14} />} onClick={onBack}>
+              Back
+            </Button>
+          )}
           <Tooltip title={sidebarCollapsed ? 'Show input panel' : 'Hide input panel'}>
             <button
               type="button"
@@ -232,6 +238,20 @@ export default function MarriageBuilder({
             {issues > 0 ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
             {issues > 0 ? `${issues} field${issues === 1 ? '' : 's'} pending` : 'Ready'}
           </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
+              Zone:
+            </span>
+            <Input
+              size="small"
+              value={data?.zone || ''}
+              onChange={(e) => onChange({ ...data, zone: e.target.value })}
+              placeholder="Enter Zone (English)"
+              maxLength={80}
+              allowClear
+              style={{ width: 170 }}
+            />
+          </div>
         </div>
 
         <Space size={8} className="fbs-toolbar-actions">

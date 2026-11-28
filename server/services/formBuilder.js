@@ -38,16 +38,25 @@ export async function listFormBuilderRecords({
     ];
   }
 
-  const [records, total] = await prisma.$transaction([
+  const includeZone = formKey === 'MARRIAGE_REGISTRATION';
+
+  const [rawRecords, total] = await prisma.$transaction([
     prisma.formBuilderRecord.findMany({
       where,
-      select: listSelect,
+      select: includeZone ? { ...listSelect, data: true } : listSelect,
       orderBy: { updatedAt: 'desc' },
       take: limit,
       skip: offset,
     }),
     prisma.formBuilderRecord.count({ where }),
   ]);
+
+  const records = includeZone
+    ? rawRecords.map(({ data, ...rest }) => ({
+        ...rest,
+        zone: typeof data?.zone === 'string' ? data.zone : '',
+      }))
+    : rawRecords;
 
   return { records, total };
 }
