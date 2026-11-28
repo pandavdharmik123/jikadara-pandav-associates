@@ -216,21 +216,6 @@ export default function FormBuilderPage() {
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [savedRecords, setSavedRecords] = useState([]);
 
-  const notified = useRef(false);
-
-  useEffect(() => {
-    if (notified.current) return;
-    const saved = Object.values(restoredDrafts).filter((draft) => draft?.savedAt);
-    if (saved.length === 0) return;
-    notified.current = true;
-    const latest = saved
-      .map((draft) => new Date(draft.savedAt))
-      .sort((a, b) => b - a)[0];
-    message.info(
-      `Restored ${saved.length === 1 ? 'the draft' : 'the drafts'} saved on this device on ${latest.toLocaleString()}.`
-    );
-  }, [restoredDrafts]);
-
   useEffect(() => {
     const handler = (event) => {
       const hasUnsaved = Object.values(records).some((record) => record.dirty);
@@ -507,7 +492,8 @@ export default function FormBuilderPage() {
       const q = listSearch.toLowerCase();
       return (
         (item.title || '').toLowerCase().includes(q) ||
-        (item.clientName || '').toLowerCase().includes(q)
+        (item.clientName || '').toLowerCase().includes(q) ||
+        (item.zone || '').toLowerCase().includes(q)
       );
     });
 
@@ -532,6 +518,17 @@ export default function FormBuilderPage() {
         key: 'clientName',
         render: (val) => val || '-',
       },
+      ...(activeTab.key === MARRIAGE_TAB_KEY
+        ? [
+            {
+              title: 'Zone',
+              dataIndex: 'zone',
+              key: 'zone',
+              width: 160,
+              render: (val) => val || '-',
+            },
+          ]
+        : []),
       {
         title: 'Status',
         dataIndex: 'status',
@@ -592,13 +589,13 @@ export default function FormBuilderPage() {
             gap: 12,
           }}
         >
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Typography.Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
               {activeTab.label}
             </Typography.Title>
-            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-              Saved {activeTab.label} forms ({activeTab.badge})
-            </Typography.Text>
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+              ({savedRecords.length})
+            </Tag>
           </div>
           <Button type="primary" icon={<Plus size={16} />} onClick={handleAddNew}>
             Add New {activeTab.label}

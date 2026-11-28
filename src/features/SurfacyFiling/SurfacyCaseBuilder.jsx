@@ -1466,7 +1466,13 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
         key: 'caseTitle',
         render: (val, record) => (
           <div>
-            <Text strong style={{ color: '#0f172a' }}>{val}</Text>
+            <Button
+              type="link"
+              style={{ padding: 0, fontWeight: 600, height: 'auto', textAlign: 'left', whiteSpace: 'normal' }}
+              onClick={() => handleLoadCase(record.id)}
+            >
+              {val}
+            </Button>
             {record.applicationNumber && (
               <div style={{ fontSize: 12, color: '#64748b' }}>App No: {record.applicationNumber}</div>
             )}
@@ -1494,12 +1500,10 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
       {
         title: 'Actions',
         key: 'actions',
-        width: 190,
+        width: 150,
         render: (_, record) => (
           <Space size={4}>
-            <Button size="small" type="primary" icon={<Edit size={13} />} onClick={() => handleLoadCase(record.id)}>
-              Edit
-            </Button>
+            <Button size="small" icon={<Edit size={13} />} title="Edit Case" onClick={() => handleLoadCase(record.id)} />
             <Button
               size="small"
               icon={<Copy size={13} />}
@@ -1549,7 +1553,12 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
               <Scale size={20} color="#fff" />
             </div>
             <div>
-              <Title level={4} style={{ margin: 0, fontWeight: 700 }}>SARFAESI Case Filing</Title>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Title level={4} style={{ margin: 0, fontWeight: 700 }}>SARFAESI Case Filing</Title>
+                <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+                  ({casesList.length})
+                </Tag>
+              </div>
               <Text type="secondary" style={{ fontSize: 12 }}>Saved Section 14 Applications, Affidavits &amp; Vakalatnamas</Text>
             </div>
           </div>

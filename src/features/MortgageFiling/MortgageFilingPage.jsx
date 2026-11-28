@@ -412,7 +412,12 @@ export default function MortgageFilingPage({ currentAccentColor }) {
               <Landmark size={20} color="#fff" />
             </div>
             <div>
-              <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Mortgage Filing (MOE Builder)</Title>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Mortgage Filing (MOE Builder)</Title>
+                <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+                  ({savedDocs.length})
+                </Tag>
+              </div>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Memorandum of Agreement (First Time Deposit) — Saved Documents
               </Text>
@@ -467,7 +472,20 @@ export default function MortgageFilingPage({ currentAccentColor }) {
             scroll={{ x: 'max-content' }}
             locale={{ emptyText: <Empty description="No MOE documents found. Click Add New MOE to create one." /> }}
             columns={[
-              { title: 'Document Title', dataIndex: 'documentTitle', render: (v) => <Text strong>{v}</Text> },
+              {
+                title: 'Document Title',
+                width: 280,
+                dataIndex: 'documentTitle',
+                render: (v, r) => (
+                  <Button
+                    type="link"
+                    style={{ padding: 0, fontWeight: 600, height: 'auto', textAlign: 'left', whiteSpace: 'normal' }}
+                    onClick={() => handleOpenDoc(r.id)}
+                  >
+                    {v}
+                  </Button>
+                ),
+              },
               { title: 'Security Provider', dataIndex: 'securityProviderName', render: (v) => v || '—' },
               { title: 'Borrower', dataIndex: 'borrowerName', render: (v) => v || '—' },
               { title: 'Bank', dataIndex: 'bankName', render: (v) => v || '—' },
@@ -486,18 +504,11 @@ export default function MortgageFilingPage({ currentAccentColor }) {
                 ),
               },
               {
-                title: 'Last Updated',
-                dataIndex: 'updatedAt',
-                render: (d) => dayjs(d).format('DD/MM/YYYY HH:mm'),
-              },
-              {
                 title: 'Actions',
-                width: 220,
+                width: 180,
                 render: (_, r) => (
                   <Space size={4}>
-                    <Button size="small" type="primary" icon={<Edit size={13} />} onClick={() => handleOpenDoc(r.id)}>
-                      Edit
-                    </Button>
+                    <Button size="small" icon={<Edit size={13} />} title="Edit" onClick={() => handleOpenDoc(r.id)} />
                     <Button
                       size="small"
                       icon={<Copy size={13} />}
@@ -513,7 +524,6 @@ export default function MortgageFilingPage({ currentAccentColor }) {
                       }}
                     />
                     <Button size="small" icon={<FileText size={13} />} title="Download DOCX" onClick={() => downloadMoeDocx(r.id, r.documentTitle)} />
-                    <Button size="small" icon={<FileDown size={13} />} title="Download PDF" onClick={() => downloadMoePdf(r.id, r.documentTitle).catch((e) => message.warning(e?.response?.data?.error || 'PDF unavailable'))} />
                     <Popconfirm
                       title="Delete this MOE document?"
                       okButtonProps={{ danger: true }}

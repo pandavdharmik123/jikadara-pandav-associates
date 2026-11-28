@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, Card, Table, Button, Space, Input, Modal, message } from 'antd';
+import { Typography, Card, Table, Button, Space, Input, Modal, Tag, message } from 'antd';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useDocumentTypes, useCreateDocumentType, useUpdateDocumentType, useDeleteDocumentType } from '../../hooks/useDocumentTypes';
 import { TableLoadingSkeleton } from '../../components/skeletons';
@@ -109,7 +109,12 @@ export default function DocumentTypesAdmin() {
     <div className="advocate-module">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Document Types</Title>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Document Types</Title>
+            <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+              ({documentTypes?.length ?? 0})
+            </Tag>
+          </div>
           <Text type="secondary">Manage the list of document types available when adding a task.</Text>
         </div>
         <Button
@@ -134,9 +139,9 @@ export default function DocumentTypesAdmin() {
             emptyText: isLoading ? (
               <TableLoadingSkeleton rows={6} columns={3} />
             ) : (
-              <EmptyState 
-                title="No document types found" 
-                description="Click 'Add New Type' to create one." 
+              <EmptyState
+                title="No document types found"
+                description="Click 'Add New Type' to create one."
               />
             )
           }}
@@ -153,8 +158,8 @@ export default function DocumentTypesAdmin() {
         cancelText="Cancel"
       >
         <div style={{ padding: '20px 0' }}>
-          <Input 
-            placeholder="e.g., Will, Rent Agreement, Sale Deed" 
+          <Input
+            placeholder="e.g., Will, Rent Agreement, Sale Deed"
             size="large"
             value={typeName}
             onChange={(e) => setTypeName(e.target.value)}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button, Dropdown, Modal, Space, Tooltip, message } from 'antd';
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   Download,
   MoreVertical,
@@ -162,6 +163,11 @@ export default function CorrectionPanBuilder({
     <div className="fbs-builder">
       <div className="fbs-toolbar">
         <div className="fbs-toolbar-left">
+          {onBack && (
+            <Button icon={<ArrowLeft size={14} />} onClick={onBack}>
+              Back
+            </Button>
+          )}
           <Tooltip title={sidebarCollapsed ? 'Show input panel' : 'Hide input panel'}>
             <button
               type="button"

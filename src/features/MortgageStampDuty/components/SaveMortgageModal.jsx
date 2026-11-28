@@ -129,7 +129,7 @@ export default function SaveMortgageModal({
         }}>
           <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
             <Cloud size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: -2 }} />
-            Saving: {oldPartyName || 'Untitled'} • Total: ₹ {formatMoney(grandTotal)}
+            Saving: {oldPartyName || 'Untitled'} •(₹ {formatMoney(grandTotal)}
           </Text>
         </div>
 

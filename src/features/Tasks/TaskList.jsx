@@ -427,6 +427,9 @@ export default function TaskList() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>Tasks</Title>
+          <Tag color="blue" style={{ borderRadius: 999, fontWeight: 600, fontSize: 12, padding: '2px 10px', margin: 0 }}>
+            ({tasks?.length ?? 0})
+          </Tag>
         </div>
         <div style={{
           display: 'flex',
