@@ -29,6 +29,7 @@ import translateRoutes from './routes/translate.js';
 // import anyrorRoutes from './routes/anyror.js';
 import formBuilderRoutes from './routes/formBuilder.js';
 import surfacyRoutes from './routes/surfacy.js';
+import moeRoutes from './routes/moe.js';
 import backupRoutes from './routes/backup.js';
 import { startBackupScheduler } from './services/backup/scheduler.js';
 
@@ -111,6 +112,7 @@ app.use(cors({
 // before the global parser so the larger limit applies only to this module.
 app.use('/api/form-builder', express.json({ limit: '1mb' }), formBuilderRoutes);
 app.use('/api/surfacy', express.json({ limit: '2mb' }), surfacyRoutes);
+app.use('/api/moe', express.json({ limit: '10mb' }), moeRoutes);
 
 app.use(express.json());
 

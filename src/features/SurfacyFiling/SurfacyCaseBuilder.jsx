@@ -11,6 +11,8 @@ import {
   Divider,
   Input,
   InputNumber,
+  Modal,
+  Popconfirm,
   Row,
   Select,
   Space,
@@ -23,8 +25,11 @@ import {
 import {
   AlertTriangle,
   ArrowDown,
+  ArrowLeft,
   ArrowUp,
   CheckCircle2,
+  Copy,
+  Edit,
   FileText,
   FolderOpen,
   Landmark,
@@ -32,15 +37,19 @@ import {
   RefreshCw,
   Save,
   Scale,
+  Search,
   ShieldAlert,
   Trash2,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
   fetchSurfacyTemplates,
+  fetchSurfacyCases,
   fetchSurfacyCase,
   createSurfacyCase,
   updateSurfacyCase,
+  duplicateSurfacyCase,
+  deleteSurfacyCase,
   generatePreviewDocxBlob,
   downloadSurfacyDocx,
 } from './surfacyApi';
@@ -80,6 +89,12 @@ function fromDatePickerVal(d) {
 export default function SurfacyCaseBuilder({ currentAccentColor }) {
   const accent = currentAccentColor || '#4f46e5';
 
+  const [mode, setMode] = useState('list'); // 'list' | 'builder'
+  const [casesList, setCasesList] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listSearch, setListSearch] = useState('');
+  const [listStatus, setListStatus] = useState('ALL');
+
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [pdfConverterAvailable, setPdfConverterAvailable] = useState(false);
@@ -89,6 +104,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
   const [status, setStatus] = useState('DRAFT');
   const [humanVerified, setHumanVerified] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
@@ -99,6 +115,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
 
   const previewTimerRef = useRef(null);
   const verificationRef = useRef(null);
+  const skipNextDirtyRef = useRef(true);
 
   const activeTemplate = useMemo(
     () => templates.find((t) => t.id === selectedTemplateId) || templates[0] || null,
@@ -148,9 +165,37 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
     };
   }, [refreshPreview]);
 
-  // Debounced live preview update whenever formData changes
+  const loadCasesList = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const params = {};
+      if (listSearch.trim()) params.search = listSearch.trim();
+      if (listStatus !== 'ALL') params.status = listStatus;
+      const res = await fetchSurfacyCases(params);
+      setCasesList(res.cases || []);
+    } catch {
+      message.error('Failed to load saved SARFAESI filings');
+    } finally {
+      setListLoading(false);
+    }
+  }, [listSearch, listStatus]);
+
   useEffect(() => {
-    if (!formData) return undefined;
+    if (mode === 'list') loadCasesList();
+  }, [mode, loadCasesList]);
+
+  useEffect(() => {
+    if (mode !== 'builder' || !formData) return;
+    if (skipNextDirtyRef.current) {
+      skipNextDirtyRef.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [formData, mode]);
+
+  // Debounced live preview update whenever formData changes in builder mode
+  useEffect(() => {
+    if (mode !== 'builder' || !formData) return undefined;
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     previewTimerRef.current = setTimeout(() => {
       refreshPreview(formData, activeTemplate?.fileName);
@@ -158,9 +203,15 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
     return () => {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
-  }, [formData, activeTemplate?.fileName, refreshPreview]);
+  }, [mode, formData, activeTemplate?.fileName, refreshPreview]);
+
+  const updateFormDataDirty = (updater) => {
+    setIsDirty(true);
+    setFormData(updater);
+  };
 
   const updateSection = (sectionKey, patch) => {
+    setIsDirty(true);
     setFormData((prev) => {
       if (!prev) return prev;
       const updated = {
@@ -176,6 +227,24 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
     });
   };
 
+  const handleBackToList = () => {
+    if (!isDirty) {
+      setMode('list');
+      return;
+    }
+    Modal.confirm({
+      title: 'Unsaved Changes',
+      content: 'If you go back, any unsaved changes will be lost. Do you really want to go back?',
+      okText: 'Yes, Go Back',
+      cancelText: 'Stay',
+      okButtonProps: { danger: true },
+      onOk: () => {
+        setIsDirty(false);
+        setMode('list');
+      },
+    });
+  };
+
   const handleNewCase = async () => {
     try {
       const res = await fetchSurfacyTemplates();
@@ -184,9 +253,13 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
       setStatus('DRAFT');
       setHumanVerified(false);
       setFormData(res.defaultFormData);
-      message.info('Started a new SARFAESI Case Filing');
+      skipNextDirtyRef.current = true;
+      setIsDirty(false);
+      setActivePanels(['court', 'applicant', 'opponents']);
+      setMode('builder');
+      refreshPreview(res.defaultFormData, activeTemplate?.fileName);
     } catch {
-      message.error('Failed to reset form');
+      message.error('Failed to initialize new SARFAESI Case Filing');
     }
   };
 
@@ -200,6 +273,11 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
       setStatus(f.status || 'DRAFT');
       setHumanVerified(Boolean(f.humanVerified));
       setFormData(f.formData);
+      skipNextDirtyRef.current = true;
+      setIsDirty(false);
+      setActivePanels(['court', 'applicant', 'opponents']);
+      setMode('builder');
+      refreshPreview(f.formData, f.template?.fileName);
       message.success(`Loaded "${f.caseTitle}"`);
     } catch {
       message.error('Failed to load saved filing');
@@ -232,6 +310,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
       setActiveCaseId(saved.id);
       setCaseTitle(saved.caseTitle);
       setStatus(saved.status);
+      setIsDirty(false);
       message.success(activeCaseId ? 'Filing saved successfully' : 'New filing created & saved');
       return saved;
     } catch (err) {
@@ -1373,11 +1452,158 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
     },
   ];
 
+  if (mode === 'list') {
+    const STATUS_META = {
+      DRAFT: { label: 'Draft', color: 'default' },
+      READY_FOR_REVIEW: { label: 'Ready for Review', color: 'processing' },
+      FINALIZED: { label: 'Finalized', color: 'success' },
+    };
+
+    const listColumns = [
+      {
+        title: 'Case Title',
+        dataIndex: 'caseTitle',
+        key: 'caseTitle',
+        render: (val, record) => (
+          <div>
+            <Text strong style={{ color: '#0f172a' }}>{val}</Text>
+            {record.applicationNumber && (
+              <div style={{ fontSize: 12, color: '#64748b' }}>App No: {record.applicationNumber}</div>
+            )}
+          </div>
+        ),
+      },
+      { title: 'Applicant', dataIndex: 'applicantName', key: 'applicantName', render: (v) => v || '—' },
+      { title: 'Opponent', dataIndex: 'opponentName', key: 'opponentName', render: (v) => v || '—' },
+      { title: 'Court', dataIndex: 'courtName', key: 'courtName', render: (v) => v || '—' },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        render: (s) => {
+          const meta = STATUS_META[s] || STATUS_META.DRAFT;
+          return <Tag color={meta.color}>{meta.label}</Tag>;
+        },
+      },
+      {
+        title: 'Last Updated',
+        dataIndex: 'updatedAt',
+        key: 'updatedAt',
+        render: (d) => dayjs(d).format('DD/MM/YYYY HH:mm'),
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        width: 190,
+        render: (_, record) => (
+          <Space size={4}>
+            <Button size="small" type="primary" icon={<Edit size={13} />} onClick={() => handleLoadCase(record.id)}>
+              Edit
+            </Button>
+            <Button
+              size="small"
+              icon={<Copy size={13} />}
+              title="Duplicate Case"
+              onClick={async () => {
+                try {
+                  await duplicateSurfacyCase(record.id);
+                  message.success('Case duplicated as Draft');
+                  loadCasesList();
+                } catch {
+                  message.error('Failed to duplicate case');
+                }
+              }}
+            />
+            <Button
+              size="small"
+              icon={<FileText size={13} />}
+              title="Download DOCX"
+              onClick={() => downloadSurfacyDocx(record.id, record.caseTitle)}
+            />
+            <Popconfirm
+              title="Delete this filing?"
+              description="This case will be removed from your active SARFAESI filings."
+              okButtonProps={{ danger: true }}
+              onConfirm={async () => {
+                try {
+                  await deleteSurfacyCase(record.id);
+                  message.success('Case deleted');
+                  loadCasesList();
+                } catch {
+                  message.error('Failed to delete case');
+                }
+              }}
+            >
+              <Button size="small" danger icon={<Trash2 size={13} />} title="Delete Case" />
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ];
+
+    return (
+      <div className="surfacy-builder">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Scale size={20} color="#fff" />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontWeight: 700 }}>SARFAESI Case Filing</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Saved Section 14 Applications, Affidavits &amp; Vakalatnamas</Text>
+            </div>
+          </div>
+
+          <Button type="primary" icon={<Plus size={15} />} onClick={handleNewCase}>
+            Add New SARFAESI Case
+          </Button>
+        </div>
+
+        <Card bordered={false} style={{ borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }} styles={{ body: { padding: 0 } }}>
+          <div style={{ display: 'flex', gap: 10, padding: '14px 16px', flexWrap: 'wrap', borderBottom: '1px solid #f1f5f9' }}>
+            <Input
+              placeholder="Search case title, applicant, opponent, court, application no..."
+              prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+              style={{ flex: 1, minWidth: 240 }}
+              allowClear
+            />
+            <Select
+              value={listStatus}
+              onChange={setListStatus}
+              style={{ width: 180 }}
+              options={[
+                { value: 'ALL', label: 'All Statuses' },
+                { value: 'DRAFT', label: 'Draft' },
+                { value: 'READY_FOR_REVIEW', label: 'Ready for Review' },
+                { value: 'FINALIZED', label: 'Finalized' },
+              ]}
+            />
+            <Button icon={<RefreshCw size={14} />} onClick={loadCasesList} loading={listLoading}>Refresh</Button>
+          </div>
+
+          <Table
+            className="modern-dashboard-table"
+            rowKey="id"
+            loading={listLoading}
+            dataSource={casesList}
+            columns={listColumns}
+            size="small"
+            pagination={{ pageSize: 10 }}
+            scroll={{ x: 'max-content' }}
+          />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="surfacy-builder">
       {/* Page Header (matches other tools pages — no card box) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Button icon={<ArrowLeft size={15} />} onClick={handleBackToList} />
           <div
             style={{
               width: 40,
@@ -1411,8 +1637,6 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
         </div>
 
         <Space size={8} wrap>
-          <Button icon={<Plus size={14} />} onClick={handleNewCase}>New Case</Button>
-          <Button icon={<FolderOpen size={14} />} onClick={() => setCaseListOpen(true)}>Saved Cases</Button>
           <Button icon={<Save size={14} style={{ color: accent }} />} loading={saving} onClick={() => handleSaveCase()}>
             Save Draft
           </Button>
@@ -1428,7 +1652,7 @@ export default function SurfacyCaseBuilder({ currentAccentColor }) {
           <Field label="Case Title">
             <Input
               value={caseTitle}
-              onChange={(e) => setCaseTitle(e.target.value)}
+              onChange={(e) => { setIsDirty(true); setCaseTitle(e.target.value); }}
               placeholder="Auto-generated from Opponent & Court"
             />
           </Field>

@@ -209,6 +209,11 @@ export default function MainLayout() {
       label: 'SARFAESI Case Filing',
     },
     {
+      key: '/app/tools/mortgage-filing',
+      icon: <Landmark size={20} />,
+      label: 'Mortgage Filing',
+    },
+    {
       key: 'form-builder-group',
       icon: <FileSignature size={20} />,
       label: 'Form Builder',
@@ -216,7 +221,7 @@ export default function MainLayout() {
         {
           key: '/app/tools/pedhinamu',
           permissionKey: '/app/tools/pedhinamu',
-          icon: <GitFork size={20} />,
+          // icon: <GitFork size={20} />,
           label: 'Pedhinamu Builder',
         },
         {
@@ -652,9 +657,18 @@ export default function MainLayout() {
             flex: 1,
             // AnyRoR portal (temporarily disabled): the zero-padding / no-scroll
             // /app/anyror branch was removed with the feature.
-            padding: location.pathname.includes('/form-builder') ? 0 : '16px',
-            overflowY: location.pathname.includes('/form-builder') ? 'hidden' : 'auto',
-            ...(location.pathname.includes('/form-builder')
+            padding:
+              location.pathname.includes('/form-builder') ||
+              location.pathname.includes('/tools/pedhinamu')
+                ? 0
+                : '16px',
+            overflowY:
+              location.pathname.includes('/form-builder') ||
+              location.pathname.includes('/tools/pedhinamu')
+                ? 'hidden'
+                : 'auto',
+            ...(location.pathname.includes('/form-builder') ||
+            location.pathname.includes('/tools/pedhinamu')
               ? { display: 'flex', flexDirection: 'column' }
               : {}),
           }}

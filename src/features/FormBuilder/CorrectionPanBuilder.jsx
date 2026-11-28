@@ -36,6 +36,7 @@ export default function CorrectionPanBuilder({
   onSave,
   saving = false,
   onOpenSavedForms,
+  onBack,
   onReset,
   dirty = false,
 }) {
@@ -190,6 +191,7 @@ export default function CorrectionPanBuilder({
             onSave={onSave}
             saving={saving}
             onOpenSavedForms={onOpenSavedForms}
+            onBack={onBack}
             dirty={dirty}
           />
           <Button

@@ -58,6 +58,7 @@ export default function MarriageBuilder({
   onSave,
   saving = false,
   onOpenSavedForms,
+  onBack,
   onReset,
   dirty = false,
 }) {
@@ -238,6 +239,7 @@ export default function MarriageBuilder({
             onSave={onSave}
             saving={saving}
             onOpenSavedForms={onOpenSavedForms}
+            onBack={onBack}
             dirty={dirty}
           />
           <Button

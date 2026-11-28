@@ -37,6 +37,7 @@ import DocumentAI from './features/DocumentAI/DocumentAI';
 import PedhinamuBuilder from './features/PedhinamuBuilder/PedhinamuBuilder';
 import FormBuilderPage from './features/FormBuilder/FormBuilderPage';
 import SurfacyCaseBuilder from './features/SurfacyFiling/SurfacyCaseBuilder';
+import MortgageFilingPage from './features/MortgageFiling/MortgageFilingPage';
 // AnyRoR portal integration (temporarily disabled)
 // import AnyRoRPortal from './features/AnyRoRPortal/AnyRoRPortal';
 
@@ -327,6 +328,10 @@ export default function App() {
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/surfacy-filing" />}>
                     <Route path="surfacy-filing" element={<SurfacyCaseBuilder currentAccentColor={currentAccentColor} />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute pageKey="/app/tools/mortgage-filing" />}>
+                    <Route path="mortgage-filing" element={<MortgageFilingPage currentAccentColor={currentAccentColor} />} />
                   </Route>
 
                   <Route element={<ProtectedRoute pageKey="/app/tools/form-builder" />}>

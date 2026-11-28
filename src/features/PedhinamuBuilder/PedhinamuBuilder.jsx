@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Button,
+  Card,
+  Popconfirm,
   Space,
+  Table,
   Typography,
   message,
   Select,
@@ -12,6 +15,10 @@ import {
   Tag
 } from 'antd';
 import {
+  ArrowLeft,
+  Edit3,
+  Plus,
+  Search,
   Save,
   Printer,
   Download,
@@ -124,6 +131,59 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
   const [draftsModalVisible, setDraftsModalVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // List-first workflow state
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'builder'
+  const [savedList, setSavedList] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [listSearch, setListSearch] = useState('');
+  const [listTypeFilter, setListTypeFilter] = useState('ALL');
+  const [isDirty, setIsDirty] = useState(false);
+  const skipNextDirtyRef = useRef(true);
+
+  const fetchSavedPedhinamus = useCallback(async () => {
+    setListLoading(true);
+    try {
+      const res = await api.get('/pedhinamu');
+      if (res.data && res.data.pedhinamus) {
+        setSavedList(
+          res.data.pedhinamus.map((d) => ({
+            id: d.id,
+            title: ensureUnicode(d.title) || 'Untitled Pedhinamu',
+            applicantName: ensureUnicode(d.applicantName || d.documentData?.applicant?.name) || '-',
+            deceasedName: ensureUnicode(d.deceasedName || d.documentData?.deceased?.name || d.documentData?.tree?.rootNode?.name) || '-',
+            moje: ensureUnicode(d.documentData?.general?.moje) || '-',
+            taluka: ensureUnicode(d.documentData?.general?.taluka) || '-',
+            pedhinamuType: d.documentData?.pedhinamuType || 'DECEASED',
+            documentData: d.documentData,
+            updatedAt: d.updatedAt
+          }))
+        );
+      } else {
+        setSavedList([]);
+      }
+    } catch (err) {
+      console.error('Could not fetch pedhinamu list:', err);
+      message.error('Failed to load saved Pedhinamu documents');
+      setSavedList([]);
+    } finally {
+      setListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSavedPedhinamus();
+  }, [fetchSavedPedhinamus]);
+
+  // Track unsaved changes while editing in builder mode
+  useEffect(() => {
+    if (viewMode !== 'builder') return;
+    if (skipNextDirtyRef.current) {
+      skipNextDirtyRef.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [data, viewMode]);
 
   // Autosave to localStorage
   useEffect(() => {
@@ -383,6 +443,7 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       } catch (_) { }
 
       setDraftTitle(finalTitle);
+      setIsDirty(false);
       setSaveModalVisible(false);
     } catch (err) {
       console.error('Database save error:', err);
@@ -410,11 +471,86 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       },
       tree: normTree
     };
+    skipNextDirtyRef.current = true;
     setData(normalized);
     setSelectedNodeId('root');
     setSelectedNodeIds(['root']);
-    if (title) setDraftTitle(title);
+    setDraftTitle(title || '');
     setDraftId(id || null);
+    setIsDirty(false);
+  };
+
+  const handleNewPedhinamu = () => {
+    const blankData = createBlankPedhinamuData('DECEASED');
+    skipNextDirtyRef.current = true;
+    setData(blankData);
+    setSelectedNodeId('root');
+    setSelectedNodeIds(['root']);
+    setDraftTitle('');
+    setDraftId(null);
+    setIsDirty(false);
+    setViewMode('builder');
+  };
+
+  const handleEditPedhinamu = async (record) => {
+    try {
+      let docData = record.documentData;
+      if (!docData) {
+        const res = await api.get(`/pedhinamu/${record.id}`);
+        docData = res.data?.pedhinamu?.documentData;
+      }
+      if (docData) {
+        handleLoadDraft(docData, record.title, record.id);
+        setViewMode('builder');
+      } else {
+        message.error('Document data not found');
+      }
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to load Pedhinamu');
+    }
+  };
+
+  const handleClonePedhinamu = async (record) => {
+    try {
+      await api.post(`/pedhinamu/${record.id}/clone`);
+      message.success(`Duplicated "${record.title}"`);
+      fetchSavedPedhinamus();
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to duplicate Pedhinamu');
+    }
+  };
+
+  const handleDeletePedhinamu = async (record) => {
+    try {
+      await api.delete(`/pedhinamu/${record.id}`);
+      message.success('Pedhinamu moved to Recycle Bin');
+      fetchSavedPedhinamus();
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to delete Pedhinamu');
+    }
+  };
+
+  const handleBackToList = () => {
+    if (isDirty) {
+      Modal.confirm({
+        title: 'Unsaved Changes',
+        content: 'If you go back, any unsaved changes will be lost. Do you really want to go back?',
+        okText: 'Yes, Go Back',
+        okButtonProps: { danger: true },
+        cancelText: 'Cancel',
+        onOk: () => {
+          setIsDirty(false);
+          setViewMode('list');
+          fetchSavedPedhinamus();
+        }
+      });
+      return;
+    }
+    setViewMode('list');
+    fetchSavedPedhinamus();
   };
 
   // Keyboard shortcut Ctrl+S / Cmd+S to save
@@ -770,585 +906,785 @@ export default function PedhinamuBuilder({ currentAccentColor }) {
       setIsExporting(false);
     }
   };
-  return (
-    <PedhinamuInputModeContext.Provider value={fontMode}>
-    <div className="pedhinamu-builder-container">
-      {/* Top Header & Actions Bar */}
-      <div className="pedhinamu-header-toolbar">
-        <div className="pedhinamu-header-left">
-          {/* Collapsible Sidebar Toggle */}
-          <Tooltip title={isSidebarCollapsed ? "Expand Editor Panel" : "Collapse Editor Panel (Full Width Canvas)"}>
-            <button
-              type="button"
-              className={`btn-sidebar-toggle ${isSidebarCollapsed ? 'active' : ''}`}
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+  if (viewMode === 'list') {
+    const filteredList = savedList.filter((item) => {
+      if (listTypeFilter !== 'ALL' && item.pedhinamuType !== listTypeFilter) {
+        return false;
+      }
+      if (!listSearch.trim()) return true;
+      const q = listSearch.toLowerCase();
+      return (
+        (item.title || '').toLowerCase().includes(q) ||
+        (item.applicantName || '').toLowerCase().includes(q) ||
+        (item.deceasedName || '').toLowerCase().includes(q) ||
+        (item.moje || '').toLowerCase().includes(q) ||
+        (item.taluka || '').toLowerCase().includes(q)
+      );
+    });
+
+    const columns = [
+      {
+        title: 'Document Title',
+        dataIndex: 'title',
+        key: 'title',
+        render: (text, record) => (
+          <div>
+            <Button
+              type="link"
+              style={{ padding: 0, fontWeight: 600, height: 'auto', textAlign: 'left' }}
+              onClick={() => handleEditPedhinamu(record)}
             >
-              {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
-            </button>
-          </Tooltip>
-
-          <div className="pedhinamu-header-title-group">
-            <div
-              className="pedhinamu-header-icon-badge"
-              style={{
-                background: currentAccentColor ? `${currentAccentColor}14` : 'rgba(79, 70, 229, 0.08)',
-                borderColor: currentAccentColor ? `${currentAccentColor}30` : 'rgba(79, 70, 229, 0.18)',
-                color: currentAccentColor || '#4f46e5'
-              }}
+              {text || 'Untitled Pedhinamu'}
+            </Button>
+            {record.moje !== '-' && (
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                {record.moje}{record.taluka !== '-' ? `, ${record.taluka}` : ''}
+              </div>
+            )}
+          </div>
+        )
+      },
+      {
+        title: 'Type',
+        dataIndex: 'pedhinamuType',
+        key: 'pedhinamuType',
+        width: 150,
+        render: (val) => (
+          <Tag color={val === 'ALIVE' ? 'green' : 'volcano'}>
+            {val === 'ALIVE' ? 'Alive (હયાતી)' : 'Deceased (અવસાન)'}
+          </Tag>
+        )
+      },
+      {
+        title: 'Applicant',
+        dataIndex: 'applicantName',
+        key: 'applicantName',
+        render: (val) => val || '-'
+      },
+      {
+        title: 'Root / Deceased Person',
+        dataIndex: 'deceasedName',
+        key: 'deceasedName',
+        render: (val) => val || '-'
+      },
+      {
+        title: 'Last Updated',
+        dataIndex: 'updatedAt',
+        key: 'updatedAt',
+        width: 150,
+        render: (val) => (val ? new Date(val).toLocaleDateString('en-IN') : '-')
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        width: 170,
+        align: 'right',
+        render: (_, record) => (
+          <Space size={4}>
+            <Tooltip title="Edit Pedhinamu">
+              <Button
+                type="text"
+                size="small"
+                icon={<Edit3 size={15} />}
+                onClick={() => handleEditPedhinamu(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Duplicate">
+              <Button
+                type="text"
+                size="small"
+                icon={<Copy size={15} />}
+                onClick={() => handleClonePedhinamu(record)}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Delete Pedhinamu?"
+              description="This will move the document to the Recycle Bin."
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => handleDeletePedhinamu(record)}
             >
-              <FileCheck size={18} />
-            </div>
-            <span className="pedhinamu-header-title-text">
-              પેઢીનામું
-            </span>
-          </div>
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        )
+      }
+    ];
 
-          <div className="pedhinamu-header-divider" />
-
-          {/* Pedhinamu Type Mode Switcher: Alive / Hayati vs Deceased / Avsan */}
-          <div className="pedhinamu-mode-selector-wrapper">
-            <span className="mode-selector-label">પ્રકાર:</span>
-            <div className="pedhinamu-mode-segmented">
-              <button
-                type="button"
-                className={`pedhinamu-mode-btn ${data.pedhinamuType !== 'ALIVE' ? 'active-deceased' : ''}`}
-                onClick={() => handleTypeChange('DECEASED')}
-                title="Deceased Mode (અવસાન પામેલ - મૃત્યુ પામનારના વારસદારોનું પેઢીનામું)"
-              >
-                <span className="status-dot deceased-dot" />
-                <span className="mode-text">અવસાન પામેલ (Deceased)</span>
-              </button>
-              <button
-                type="button"
-                className={`pedhinamu-mode-btn ${data.pedhinamuType === 'ALIVE' ? 'active-alive' : ''}`}
-                onClick={() => handleTypeChange('ALIVE')}
-                title="Alive Mode (હયાતી - હયાત વ્યક્તિના વારસદારોનું પેઢીનામું)"
-              >
-                <span className="status-dot alive-dot" />
-                <span className="mode-text">હયાતી (Alive)</span>
-              </button>
-            </div>
+    return (
+      <div style={{ padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12
+          }}
+        >
+          <div>
+            <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
+              Pedhinamu Builder
+            </Title>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              Saved Pedhinamu documents, self-declarations, and Talati applications
+            </Text>
           </div>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={handleNewPedhinamu}
+          >
+            Add New Pedhinamu
+          </Button>
         </div>
 
-        <div className="pedhinamu-header-right">
-          {/* Input Language Selector — single dropdown without label */}
-          <Select
-            size="small"
-            value={fontMode}
-            className="input-lang-select"
-            style={{ width: 115 }}
-            options={[
-              { value: 'ghanshyam', label: 'Ghanshyam' },
-              { value: 'unicode', label: 'Unicode' }
-            ]}
-            onChange={setFontMode}
+        <Card
+          styles={{ body: { padding: 0 } }}
+          style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+        >
+          <div
+            style={{
+              padding: '14px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              borderBottom: '1px solid #f1f5f9',
+              background: '#fff'
+            }}
+          >
+            <Space wrap>
+              <Input
+                placeholder="Search by title, applicant, deceased, village..."
+                prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
+                value={listSearch}
+                onChange={(e) => setListSearch(e.target.value)}
+                allowClear
+                style={{ width: 320 }}
+              />
+              <Select
+                value={listTypeFilter}
+                onChange={setListTypeFilter}
+                style={{ width: 190 }}
+                options={[
+                  { value: 'ALL', label: 'All Types' },
+                  { value: 'DECEASED', label: 'Deceased (અવસાન પામેલ)' },
+                  { value: 'ALIVE', label: 'Alive (હયાતી)' }
+                ]}
+              />
+            </Space>
+            <Button
+              icon={<RefreshCw size={14} />}
+              onClick={fetchSavedPedhinamus}
+              loading={listLoading}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          <Table
+            className="modern-dashboard-table"
+            columns={columns}
+            dataSource={filteredList}
+            rowKey="id"
+            loading={listLoading}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+            locale={{ emptyText: 'No saved Pedhinamu documents yet. Click "Add New Pedhinamu" to start.' }}
           />
+        </Card>
+      </div>
+    );
+  }
 
-          <Tooltip title="View saved drafts in database">
+  return (
+    <PedhinamuInputModeContext.Provider value={fontMode}>
+      <div className="pedhinamu-builder-container">
+        {/* Top Header & Actions Bar */}
+        <div className="pedhinamu-header-toolbar">
+          <div className="pedhinamu-header-left">
             <Button
-              className="btn-saved-drafts"
-              icon={<FolderOpen size={14} />}
-              onClick={() => setDraftsModalVisible(true)}
+              icon={<ArrowLeft size={14} />}
+              onClick={handleBackToList}
             >
-              <span className="btn-label">Saved Documents</span>
-            </Button>
-          </Tooltip>
 
-          {/* Save Button */}
-          <Tooltip title="Save to Database (Ctrl+S / Cmd+S)">
-            <Button
-              type="default"
-              className="btn-save-draft"
-              icon={<Save size={14} style={{ color: '#4f46e5' }} />}
-              loading={isSaving}
-              onClick={handleSaveClick}
-            >
-              <span className="btn-label">Save</span>
             </Button>
-          </Tooltip>
+            {/* Collapsible Sidebar Toggle */}
+            <Tooltip title={isSidebarCollapsed ? "Expand Editor Panel" : "Collapse Editor Panel (Full Width Canvas)"}>
+              <button
+                type="button"
+                className={`btn-sidebar-toggle ${isSidebarCollapsed ? 'active' : ''}`}
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              >
+                {isSidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+              </button>
+            </Tooltip>
 
-          <Space.Compact className="btn-download-group">
-            <Button
-              type="primary"
-              className="btn-download-pdf"
-              icon={<Download size={14} />}
-              loading={isExporting}
-              onClick={handleDownloadAllZip}
-              style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
-            >
-              Download All (ZIP)
-            </Button>
+            <div className="pedhinamu-header-title-group">
+              <div
+                className="pedhinamu-header-icon-badge"
+                style={{
+                  background: currentAccentColor ? `${currentAccentColor}14` : 'rgba(79, 70, 229, 0.08)',
+                  borderColor: currentAccentColor ? `${currentAccentColor}30` : 'rgba(79, 70, 229, 0.18)',
+                  color: currentAccentColor || '#4f46e5'
+                }}
+              >
+                <FileCheck size={18} />
+              </div>
+              <span className="pedhinamu-header-title-text">
+                પેઢીનામું
+              </span>
+            </div>
 
+            <div className="pedhinamu-header-divider" />
+
+            {/* Pedhinamu Type Mode Switcher: Alive / Hayati vs Deceased / Avsan */}
+            <div className="pedhinamu-mode-selector-wrapper">
+              <span className="mode-selector-label">પ્રકાર:</span>
+              <div className="pedhinamu-mode-segmented">
+                <button
+                  type="button"
+                  className={`pedhinamu-mode-btn ${data.pedhinamuType !== 'ALIVE' ? 'active-deceased' : ''}`}
+                  onClick={() => handleTypeChange('DECEASED')}
+                  title="Deceased Mode (અવસાન પામેલ - મૃત્યુ પામનારના વારસદારોનું પેઢીનામું)"
+                >
+                  <span className="status-dot deceased-dot" />
+                  <span className="mode-text">અવસાન પામેલ (Deceased)</span>
+                </button>
+                <button
+                  type="button"
+                  className={`pedhinamu-mode-btn ${data.pedhinamuType === 'ALIVE' ? 'active-alive' : ''}`}
+                  onClick={() => handleTypeChange('ALIVE')}
+                  title="Alive Mode (હયાતી - હયાત વ્યક્તિના વારસદારોનું પેઢીનામું)"
+                >
+                  <span className="status-dot alive-dot" />
+                  <span className="mode-text">હયાતી (Alive)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="pedhinamu-header-right">
+            {/* Input Language Selector — single dropdown without label */}
+            <Select
+              size="small"
+              value={fontMode}
+              className="input-lang-select"
+              style={{ width: 115 }}
+              options={[
+                { value: 'ghanshyam', label: 'Ghanshyam' },
+                { value: 'unicode', label: 'Unicode' }
+              ]}
+              onChange={setFontMode}
+            />
+
+            <Tooltip title="View saved drafts in database">
+              <Button
+                className="btn-saved-drafts"
+                icon={<FolderOpen size={14} />}
+                onClick={() => setDraftsModalVisible(true)}
+              >
+                <span className="btn-label">Saved Documents</span>
+              </Button>
+            </Tooltip>
+
+            {/* Save Button */}
+            <Tooltip title="Save to Database (Ctrl+S / Cmd+S)">
+              <Button
+                type="default"
+                className="btn-save-draft"
+                icon={<Save size={14} style={{ color: '#4f46e5' }} />}
+                loading={isSaving}
+                onClick={handleSaveClick}
+              >
+                <span className="btn-label">Save</span>
+              </Button>
+            </Tooltip>
+
+            <Space.Compact className="btn-download-group">
+              <Button
+                type="primary"
+                className="btn-download-pdf"
+                icon={<Download size={14} />}
+                loading={isExporting}
+                onClick={handleDownloadAllZip}
+                style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
+              >
+                Download All (ZIP)
+              </Button>
+
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'download-all-zip',
+                      icon: <Download size={14} style={{ color: '#4f46e5' }} />,
+                      label: 'Download All (ZIP) - ત્રણેય ડોક્યુમેન્ટ્સ',
+                      onClick: handleDownloadAllZip
+                    },
+                    {
+                      type: 'divider'
+                    },
+                    {
+                      key: 'download-pdf',
+                      icon: <FileCheck size={14} style={{ color: '#ef4444' }} />,
+                      label: 'Download Pedhinamu (PDF)',
+                      onClick: handleDownloadPDF
+                    },
+                    {
+                      key: 'download-svg',
+                      icon: <Download size={14} style={{ color: '#0284c7' }} />,
+                      label: 'Download Pedhinamu (SVG)',
+                      onClick: handleDownloadSVG
+                    },
+                    {
+                      type: 'divider'
+                    },
+                    {
+                      key: 'download-self-decl',
+                      icon: <FileCheck size={14} style={{ color: '#8b5cf6' }} />,
+                      label: 'Download સ્વ-ઘોષણા (PDF)',
+                      onClick: handleDownloadSelfDeclarationPDF
+                    },
+                    {
+                      key: 'download-application',
+                      icon: <FileCheck size={14} style={{ color: '#10b981' }} />,
+                      label: 'Download અરજી / Application (PDF)',
+                      onClick: handleDownloadApplicationPDF
+                    }
+                  ]
+                }}
+                placement="bottomRight"
+              >
+                <Button
+                  type="primary"
+                  className="btn-download-arrow"
+                  icon={<ChevronDown size={14} />}
+                  style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
+                />
+              </Dropdown>
+            </Space.Compact>
+
+            {/* More Actions Menu */}
             <Dropdown
               menu={{
                 items: [
                   {
-                    key: 'download-all-zip',
-                    icon: <Download size={14} style={{ color: '#4f46e5' }} />,
-                    label: 'Download All (ZIP) - ત્રણેય ડોક્યુમેન્ટ્સ',
-                    onClick: handleDownloadAllZip
+                    key: 'auto-arrange',
+                    icon: <RefreshCw size={14} style={{ color: '#4f46e5' }} />,
+                    label: 'Auto-Arrange Tree',
+                    onClick: handleAutoArrange
                   },
                   {
                     type: 'divider'
                   },
                   {
-                    key: 'download-pdf',
-                    icon: <FileCheck size={14} style={{ color: '#ef4444' }} />,
-                    label: 'Download Pedhinamu (PDF)',
-                    onClick: handleDownloadPDF
-                  },
-                  {
-                    key: 'download-svg',
-                    icon: <Download size={14} style={{ color: '#0284c7' }} />,
-                    label: 'Download Pedhinamu (SVG)',
-                    onClick: handleDownloadSVG
-                  },
-                  {
-                    type: 'divider'
-                  },
-                  {
-                    key: 'download-self-decl',
-                    icon: <FileCheck size={14} style={{ color: '#8b5cf6' }} />,
-                    label: 'Download સ્વ-ઘોષણા (PDF)',
-                    onClick: handleDownloadSelfDeclarationPDF
-                  },
-                  {
-                    key: 'download-application',
-                    icon: <FileCheck size={14} style={{ color: '#10b981' }} />,
-                    label: 'Download અરજી / Application (PDF)',
-                    onClick: handleDownloadApplicationPDF
+                    key: 'reset',
+                    icon: <Trash2 size={14} />,
+                    label: 'Reset Form to Blank',
+                    danger: true,
+                    onClick: handleReset
                   }
                 ]
               }}
+              trigger={['click']}
               placement="bottomRight"
             >
-              <Button
-                type="primary"
-                className="btn-download-arrow"
-                icon={<ChevronDown size={14} />}
-                style={{ backgroundColor: currentAccentColor || '#4f46e5' }}
-              />
+              <Tooltip title="More Options">
+                <Button
+                  className="btn-more-options"
+                  icon={<MoreVertical size={16} />}
+                />
+              </Tooltip>
             </Dropdown>
-          </Space.Compact>
-
-          {/* More Actions Menu */}
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'auto-arrange',
-                  icon: <RefreshCw size={14} style={{ color: '#4f46e5' }} />,
-                  label: 'Auto-Arrange Tree',
-                  onClick: handleAutoArrange
-                },
-                {
-                  type: 'divider'
-                },
-                {
-                  key: 'reset',
-                  icon: <Trash2 size={14} />,
-                  label: 'Reset Form to Blank',
-                  danger: true,
-                  onClick: handleReset
-                }
-              ]
-            }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Tooltip title="More Options">
-              <Button
-                className="btn-more-options"
-                icon={<MoreVertical size={16} />}
-              />
-            </Tooltip>
-          </Dropdown>
-        </div>
-      </div>
-
-      {/* Main Workspace (Split View) */}
-      <div className="pedhinamu-main-workspace">
-        {/* Left Side: Form Editor (Smooth Collapsible) */}
-        <div className={`pedhinamu-editor-pane ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-          <PedhinamuForm
-            data={data}
-            onChange={setData}
-            onAutoArrangeTree={handleAutoArrange}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={handleSelectNode}
-          />
+          </div>
         </div>
 
-        {/* Right Side: Live Canvas Preview Viewport */}
-        <div className="pedhinamu-preview-pane" ref={previewPaneRef}>
-          {/* Floating trigger to restore editor when collapsed */}
-          {isSidebarCollapsed && (
-            <button
-              type="button"
-              className="pedhinamu-floating-expand-btn"
-              onClick={() => setIsSidebarCollapsed(false)}
-            >
-              <PanelLeft size={15} />
-              <span>Expand Editor</span>
-            </button>
-          )}
-
-          {/* Modern Floating Glassmorphism Control Dock */}
-          <div className="pedhinamu-floating-control-dock">
-            {/* Document View Switcher */}
-            <div className="dock-pill-switcher doc-type-switcher">
-              <button
-                type="button"
-                className={`dock-pill-btn ${selectedDocumentView === 'pedhinamu' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDocumentView('pedhinamu');
-                  setTimeout(() => handleFitToScreen(), 50);
-                }}
-              >
-                પેઢીનામું
-              </button>
-              <button
-                type="button"
-                className={`dock-pill-btn swa-ghoshna-btn ${selectedDocumentView === 'declaration' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDocumentView('declaration');
-                  setTimeout(() => handleFitToScreen(), 50);
-                }}
-              >
-                સ્વ-ઘોષણા
-              </button>
-              <button
-                type="button"
-                className={`dock-pill-btn ${selectedDocumentView === 'application' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedDocumentView('application');
-                  setTimeout(() => handleFitToScreen(), 50);
-                }}
-              >
-                અરજી
-              </button>
-            </div>
-
-            <div className="dock-divider" />
-
-            {/* Pedhinamu-Specific Page Switcher */}
-            {selectedDocumentView === 'pedhinamu' && (
-              <>
-                <div className="dock-pill-switcher">
-                  <button
-                    type="button"
-                    className={`dock-pill-btn ${activePage === 'all' ? 'active' : ''}`}
-                    onClick={() => setActivePage('all')}
-                  >
-                    All (2 Pages)
-                  </button>
-                  <button
-                    type="button"
-                    className={`dock-pill-btn ${activePage === '1' ? 'active' : ''}`}
-                    onClick={() => setActivePage('1')}
-                  >
-                    Page 1 (Tree)
-                  </button>
-                  <button
-                    type="button"
-                    className={`dock-pill-btn ${activePage === '2' ? 'active' : ''}`}
-                    onClick={() => setActivePage('2')}
-                  >
-                    Page 2 (Panch)
-                  </button>
-                </div>
-
-                <div className="dock-divider" />
-              </>
-            )}
-
-            {/* Zoom Controls */}
-            <div className="dock-group">
-              <button
-                type="button"
-                className="dock-zoom-btn"
-                onClick={() => setZoom((z) => Math.max(0.35, Number((z - 0.1).toFixed(2))))}
-              >
-                <ZoomOut size={14} />
-              </button>
-
-              <span
-                className="dock-zoom-badge"
-                onClick={handleFitToScreen}
-              >
-                {Math.round(zoom * 100)}%
-              </span>
-
-              <button
-                type="button"
-                className="dock-zoom-btn"
-                onClick={() => setZoom((z) => Math.min(1.8, Number((z + 0.1).toFixed(2))))}
-              >
-                <ZoomIn size={14} />
-              </button>
-
-              <button
-                type="button"
-                className="dock-fit-btn"
-                onClick={handleFitToScreen}
-              >
-                Fit
-              </button>
-            </div>
-
-            {selectedDocumentView === 'pedhinamu' && (
-              <>
-                <div className="dock-divider" />
-                <Tooltip title="Auto-Arrange Tree Nodes">
-                  <button
-                    type="button"
-                    className="dock-zoom-btn auto-btn"
-                    onClick={handleAutoArrange}
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                </Tooltip>
-              </>
-            )}
+        {/* Main Workspace (Split View) */}
+        <div className="pedhinamu-main-workspace">
+          {/* Left Side: Form Editor (Smooth Collapsible) */}
+          <div className={`pedhinamu-editor-pane ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+            <PedhinamuForm
+              data={data}
+              onChange={setData}
+              onAutoArrangeTree={handleAutoArrange}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={handleSelectNode}
+            />
           </div>
 
-          {/* Scrollable Viewport */}
-          <div className="pedhinamu-preview-viewport" ref={viewportRef}>
-            <div className="pedhinamu-scroll-track">
-              {selectedDocumentView === 'pedhinamu' ? (
-                <div
-                  className="pedhinamu-zoom-outer"
-                  style={{
-                    width: `${Math.round(1344 * zoom)}px`,
-                    minWidth: `${Math.round(1344 * zoom)}px`,
-                    height: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
-                    minHeight: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
-                    position: 'relative',
-                    flexShrink: 0
+          {/* Right Side: Live Canvas Preview Viewport */}
+          <div className="pedhinamu-preview-pane" ref={previewPaneRef}>
+            {/* Floating trigger to restore editor when collapsed */}
+            {isSidebarCollapsed && (
+              <button
+                type="button"
+                className="pedhinamu-floating-expand-btn"
+                onClick={() => setIsSidebarCollapsed(false)}
+              >
+                <PanelLeft size={15} />
+                <span>Expand Editor</span>
+              </button>
+            )}
+
+            {/* Modern Floating Glassmorphism Control Dock */}
+            <div className="pedhinamu-floating-control-dock">
+              {/* Document View Switcher */}
+              <div className="dock-pill-switcher doc-type-switcher">
+                <button
+                  type="button"
+                  className={`dock-pill-btn ${selectedDocumentView === 'pedhinamu' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedDocumentView('pedhinamu');
+                    setTimeout(() => handleFitToScreen(), 50);
                   }}
                 >
-                  <div
-                    className="pedhinamu-preview-sheet-wrapper"
-                    style={{
-                      width: '1008pt',
-                      transform: `scale(${zoom})`,
-                      transformOrigin: 'top left',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}
-                  >
-                    <div ref={printDocRef}>
-                      <PedhinamuPrintDocument
-                        data={data}
-                        onNodeMove={handleNodeMove}
-                        onNodeResize={handleNodeResize}
-                        onNodeFontSizeChange={handleNodeFontSizeChange}
-                        interactive={true}
-                        scale={zoom}
-                        fontMode="ghanshyam"
-                        activePage={activePage}
-                        selectedNodeId={selectedNodeId}
-                        selectedNodeIds={selectedNodeIds}
-                        onSelectNode={handleSelectNode}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : selectedDocumentView === 'declaration' ? (
-                <div
-                  className="pedhinamu-zoom-outer"
-                  style={{
-                    width: `${Math.round(794 * zoom)}px`,
-                    minWidth: `${Math.round(794 * zoom)}px`,
-                    height: `${Math.round(1123 * zoom)}px`,
-                    minHeight: `${Math.round(1123 * zoom)}px`,
-                    position: 'relative',
-                    flexShrink: 0,
-                    margin: '0 auto'
+                  પેઢીનામું
+                </button>
+                <button
+                  type="button"
+                  className={`dock-pill-btn swa-ghoshna-btn ${selectedDocumentView === 'declaration' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedDocumentView('declaration');
+                    setTimeout(() => handleFitToScreen(), 50);
                   }}
                 >
-                  <div
-                    style={{
-                      width: '794px',
-                      transform: `scale(${zoom})`,
-                      transformOrigin: 'top left',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}
-                  >
-                    <SelfDeclarationDocument data={data} scale={1} fontMode="ghanshyam" />
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="pedhinamu-zoom-outer"
-                  style={{
-                    width: `${Math.round(794 * zoom)}px`,
-                    minWidth: `${Math.round(794 * zoom)}px`,
-                    height: `${Math.round(1123 * zoom)}px`,
-                    minHeight: `${Math.round(1123 * zoom)}px`,
-                    position: 'relative',
-                    flexShrink: 0,
-                    margin: '0 auto'
+                  સ્વ-ઘોષણા
+                </button>
+                <button
+                  type="button"
+                  className={`dock-pill-btn ${selectedDocumentView === 'application' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedDocumentView('application');
+                    setTimeout(() => handleFitToScreen(), 50);
                   }}
                 >
-                  <div
-                    style={{
-                      width: '794px',
-                      transform: `scale(${zoom})`,
-                      transformOrigin: 'top left',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0
-                    }}
-                  >
-                    <ApplicationDocument data={data} scale={1} fontMode="ghanshyam" />
+                  અરજી
+                </button>
+              </div>
+
+              <div className="dock-divider" />
+
+              {/* Pedhinamu-Specific Page Switcher */}
+              {selectedDocumentView === 'pedhinamu' && (
+                <>
+                  <div className="dock-pill-switcher">
+                    <button
+                      type="button"
+                      className={`dock-pill-btn ${activePage === 'all' ? 'active' : ''}`}
+                      onClick={() => setActivePage('all')}
+                    >
+                      All (2 Pages)
+                    </button>
+                    <button
+                      type="button"
+                      className={`dock-pill-btn ${activePage === '1' ? 'active' : ''}`}
+                      onClick={() => setActivePage('1')}
+                    >
+                      Page 1 (Tree)
+                    </button>
+                    <button
+                      type="button"
+                      className={`dock-pill-btn ${activePage === '2' ? 'active' : ''}`}
+                      onClick={() => setActivePage('2')}
+                    >
+                      Page 2 (Panch)
+                    </button>
                   </div>
-                </div>
+
+                  <div className="dock-divider" />
+                </>
+              )}
+
+              {/* Zoom Controls */}
+              <div className="dock-group">
+                <button
+                  type="button"
+                  className="dock-zoom-btn"
+                  onClick={() => setZoom((z) => Math.max(0.35, Number((z - 0.1).toFixed(2))))}
+                >
+                  <ZoomOut size={14} />
+                </button>
+
+                <span
+                  className="dock-zoom-badge"
+                  onClick={handleFitToScreen}
+                >
+                  {Math.round(zoom * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  className="dock-zoom-btn"
+                  onClick={() => setZoom((z) => Math.min(1.8, Number((z + 0.1).toFixed(2))))}
+                >
+                  <ZoomIn size={14} />
+                </button>
+
+                <button
+                  type="button"
+                  className="dock-fit-btn"
+                  onClick={handleFitToScreen}
+                >
+                  Fit
+                </button>
+              </div>
+
+              {selectedDocumentView === 'pedhinamu' && (
+                <>
+                  <div className="dock-divider" />
+                  <Tooltip title="Auto-Arrange Tree Nodes">
+                    <button
+                      type="button"
+                      className="dock-zoom-btn auto-btn"
+                      onClick={handleAutoArrange}
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                  </Tooltip>
+                </>
               )}
             </div>
+
+            {/* Scrollable Viewport */}
+            <div className="pedhinamu-preview-viewport" ref={viewportRef}>
+              <div className="pedhinamu-scroll-track">
+                {selectedDocumentView === 'pedhinamu' ? (
+                  <div
+                    className="pedhinamu-zoom-outer"
+                    style={{
+                      width: `${Math.round(1344 * zoom)}px`,
+                      minWidth: `${Math.round(1344 * zoom)}px`,
+                      height: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
+                      minHeight: `${Math.round((activePage === 'all' ? 1632 : 816) * zoom)}px`,
+                      position: 'relative',
+                      flexShrink: 0
+                    }}
+                  >
+                    <div
+                      className="pedhinamu-preview-sheet-wrapper"
+                      style={{
+                        width: '1008pt',
+                        transform: `scale(${zoom})`,
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                    >
+                      <div ref={printDocRef}>
+                        <PedhinamuPrintDocument
+                          data={data}
+                          onNodeMove={handleNodeMove}
+                          onNodeResize={handleNodeResize}
+                          onNodeFontSizeChange={handleNodeFontSizeChange}
+                          interactive={true}
+                          scale={zoom}
+                          fontMode="ghanshyam"
+                          activePage={activePage}
+                          selectedNodeId={selectedNodeId}
+                          selectedNodeIds={selectedNodeIds}
+                          onSelectNode={handleSelectNode}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : selectedDocumentView === 'declaration' ? (
+                  <div
+                    className="pedhinamu-zoom-outer"
+                    style={{
+                      width: `${Math.round(794 * zoom)}px`,
+                      minWidth: `${Math.round(794 * zoom)}px`,
+                      height: `${Math.round(1123 * zoom)}px`,
+                      minHeight: `${Math.round(1123 * zoom)}px`,
+                      position: 'relative',
+                      flexShrink: 0,
+                      margin: '0 auto'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '794px',
+                        transform: `scale(${zoom})`,
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                    >
+                      <SelfDeclarationDocument data={data} scale={1} fontMode="ghanshyam" />
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="pedhinamu-zoom-outer"
+                    style={{
+                      width: `${Math.round(794 * zoom)}px`,
+                      minWidth: `${Math.round(794 * zoom)}px`,
+                      height: `${Math.round(1123 * zoom)}px`,
+                      minHeight: `${Math.round(1123 * zoom)}px`,
+                      position: 'relative',
+                      flexShrink: 0,
+                      margin: '0 auto'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '794px',
+                        transform: `scale(${zoom})`,
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                    >
+                      <ApplicationDocument data={data} scale={1} fontMode="ghanshyam" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Dedicated Clean Vector Print Container (rendered ONLY during @media print) */}
-      <div className="pedhinamu-dedicated-print-container" aria-hidden="true">
-        <PedhinamuPrintDocument
-          data={data}
-          activePage="all"
-          interactive={false}
-          scale={1}
-          fontMode="ghanshyam"
-        />
-      </div>
-
-      {/* Offscreen unscaled export containers dedicated for razor-sharp 2-page PDF generation */}
-      <div
-        className="pedhinamu-export-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '1008pt',
-          height: '612pt',
-          overflow: 'hidden',
-          zIndex: -9999,
-          pointerEvents: 'none',
-          opacity: 1,
-          backgroundColor: '#ffffff'
-        }}
-        aria-hidden="true"
-      >
-        <div ref={exportPage1Ref} style={{ width: '1008pt', height: '612pt' }}>
+        {/* Dedicated Clean Vector Print Container (rendered ONLY during @media print) */}
+        <div className="pedhinamu-dedicated-print-container" aria-hidden="true">
           <PedhinamuPrintDocument
             data={data}
-            activePage="1"
+            activePage="all"
             interactive={false}
             scale={1}
             fontMode="ghanshyam"
           />
         </div>
-      </div>
 
-      <div
-        className="pedhinamu-export-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '1008pt',
-          height: '612pt',
-          overflow: 'hidden',
-          zIndex: -9999,
-          pointerEvents: 'none',
-          opacity: 1,
-          backgroundColor: '#ffffff'
-        }}
-        aria-hidden="true"
-      >
-        <div ref={exportPage2Ref} style={{ width: '1008pt', height: '612pt' }}>
-          <PedhinamuPrintDocument
+        {/* Offscreen unscaled export containers dedicated for razor-sharp 2-page PDF generation */}
+        <div
+          className="pedhinamu-export-container"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '1008pt',
+            height: '612pt',
+            overflow: 'hidden',
+            zIndex: -9999,
+            pointerEvents: 'none',
+            opacity: 1,
+            backgroundColor: '#ffffff'
+          }}
+          aria-hidden="true"
+        >
+          <div ref={exportPage1Ref} style={{ width: '1008pt', height: '612pt' }}>
+            <PedhinamuPrintDocument
+              data={data}
+              activePage="1"
+              interactive={false}
+              scale={1}
+              fontMode="ghanshyam"
+            />
+          </div>
+        </div>
+
+        <div
+          className="pedhinamu-export-container"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '1008pt',
+            height: '612pt',
+            overflow: 'hidden',
+            zIndex: -9999,
+            pointerEvents: 'none',
+            opacity: 1,
+            backgroundColor: '#ffffff'
+          }}
+          aria-hidden="true"
+        >
+          <div ref={exportPage2Ref} style={{ width: '1008pt', height: '612pt' }}>
+            <PedhinamuPrintDocument
+              data={data}
+              activePage="2"
+              interactive={false}
+              scale={1}
+              fontMode="ghanshyam"
+            />
+          </div>
+        </div>
+
+        {/* Offscreen unscaled export containers for Self-Declaration and Application */}
+        <div
+          className="pedhinamu-export-container"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: '-10000px',
+            width: '794px',
+            minHeight: '1123px',
+            overflow: 'visible',
+            zIndex: -1,
+            pointerEvents: 'none',
+            opacity: 1,
+            backgroundColor: '#ffffff'
+          }}
+          aria-hidden="true"
+        >
+          <SelfDeclarationDocument
+            ref={exportSelfDeclarationRef}
             data={data}
-            activePage="2"
-            interactive={false}
             scale={1}
             fontMode="ghanshyam"
           />
         </div>
-      </div>
 
-      {/* Offscreen unscaled export containers for Self-Declaration and Application */}
-      <div
-        className="pedhinamu-export-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: '-10000px',
-          width: '794px',
-          minHeight: '1123px',
-          overflow: 'visible',
-          zIndex: -1,
-          pointerEvents: 'none',
-          opacity: 1,
-          backgroundColor: '#ffffff'
-        }}
-        aria-hidden="true"
-      >
-        <SelfDeclarationDocument
-          ref={exportSelfDeclarationRef}
-          data={data}
-          scale={1}
-          fontMode="ghanshyam"
+        <div
+          className="pedhinamu-export-container"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: '-10000px',
+            width: '794px',
+            minHeight: '1123px',
+            overflow: 'visible',
+            zIndex: -1,
+            pointerEvents: 'none',
+            opacity: 1,
+            backgroundColor: '#ffffff'
+          }}
+          aria-hidden="true"
+        >
+          <ApplicationDocument
+            ref={exportApplicationRef}
+            data={data}
+            scale={1}
+            fontMode="ghanshyam"
+          />
+        </div>
+
+        {/* Save to Database Modal */}
+        <SavePedhinamuModal
+          visible={saveModalVisible}
+          onClose={() => setSaveModalVisible(false)}
+          onSave={executeSaveDraft}
+          currentData={data}
+          currentDraftTitle={draftTitle}
+          currentDraftId={draftId}
+          isSaving={isSaving}
+        />
+
+        {/* Saved Drafts Modal */}
+        <SavedDraftsModal
+          visible={draftsModalVisible}
+          onClose={() => setDraftsModalVisible(false)}
+          onLoadDraft={handleLoadDraft}
+          currentData={data}
+          currentDraftId={draftId}
         />
       </div>
-
-      <div
-        className="pedhinamu-export-container"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: '-10000px',
-          width: '794px',
-          minHeight: '1123px',
-          overflow: 'visible',
-          zIndex: -1,
-          pointerEvents: 'none',
-          opacity: 1,
-          backgroundColor: '#ffffff'
-        }}
-        aria-hidden="true"
-      >
-        <ApplicationDocument
-          ref={exportApplicationRef}
-          data={data}
-          scale={1}
-          fontMode="ghanshyam"
-        />
-      </div>
-
-      {/* Save to Database Modal */}
-      <SavePedhinamuModal
-        visible={saveModalVisible}
-        onClose={() => setSaveModalVisible(false)}
-        onSave={executeSaveDraft}
-        currentData={data}
-        currentDraftTitle={draftTitle}
-        currentDraftId={draftId}
-        isSaving={isSaving}
-      />
-
-      {/* Saved Drafts Modal */}
-      <SavedDraftsModal
-        visible={draftsModalVisible}
-        onClose={() => setDraftsModalVisible(false)}
-        onLoadDraft={handleLoadDraft}
-        currentData={data}
-        currentDraftId={draftId}
-      />
-    </div>
     </PedhinamuInputModeContext.Provider>
   );
 }

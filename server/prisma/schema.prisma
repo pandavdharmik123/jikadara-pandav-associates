@@ -85,6 +85,7 @@ model User {
   formBuilderRecords  FormBuilderRecord[]
   verabillEntries     VerabillEntry[]
   surfacyFilings      SurfacyFiling[]
+  moeDocuments        MoeDocument[]
   refreshTokens       RefreshToken[]
 
   // ─── Notary Hisab ───
@@ -691,6 +692,60 @@ model SurfacyFiling {
 
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   template SurfacyTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@index([userId, isDeleted, updatedAt])
+  @@index([templateId])
+  @@index([status])
+}
+
+// ─── Mortgage Filing (Memorandum of Agreement / MOE Builder) ───
+
+enum MoeDocumentStatus {
+  DRAFT
+  READY_FOR_REVIEW
+  FINALIZED
+}
+
+model MoeTemplate {
+  id                 String   @id @default(uuid())
+  templateKey        String   @unique
+  name               String
+  description        String   @default("")
+  fileName           String
+  version            String   @default("1.0.0")
+  isActive           Boolean  @default(true)
+  bankDefaults       Json     @default("{}")
+  sections           Json     @default("[]")
+  fieldMapping       Json     @default("[]")
+  conditionalClauses Json     @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documents MoeDocument[]
+
+  @@index([isActive])
+}
+
+model MoeDocument {
+  id                   String            @id @default(uuid())
+  userId               String
+  templateId           String
+  documentTitle        String            @default("Untitled MOE Document")
+  securityProviderName String            @default("")
+  borrowerName         String            @default("")
+  bankName             String            @default("")
+  depositDate          String            @default("")
+  status               MoeDocumentStatus @default(DRAFT)
+  humanVerified        Boolean           @default(false)
+  formData             Json              @default("{}")
+  revision             Int               @default(1)
+  isDeleted            Boolean           @default(false)
+  deletedAt            DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template MoeTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
 
   @@index([userId, isDeleted, updatedAt])
   @@index([templateId])
