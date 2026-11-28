@@ -42,6 +42,7 @@ export const AVAILABLE_PAGE_GROUPS = [
       { key: '/app/tools/pedhinamu', label: 'Pedhinamu Builder', description: 'Dynamic 2-Page Legal Landscape Family Tree' },
       { key: '/app/tools/form-builder', label: 'Form Builder', description: 'PAN Card, Marriage Registration & Property Tax forms' },
       { key: '/app/tools/surfacy-filing', label: 'SARFAESI Case Filing', description: 'SARFAESI Section 14 Application, Affidavit, Vakalatnama & Index Builder' },
+      { key: '/app/tools/mortgage-filing', label: 'Mortgage Filing', description: 'Memorandum of Agreement (MOE) Builder — First Time Deposit' },
     ],
   },
 ];

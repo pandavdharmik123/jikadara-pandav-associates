@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { extractAliveHeirs, getHeirsSummary } from '../utils/heirsExtractor';
+import { extractAliveHeirs, extractAllHeirs, getHeirsSummary } from '../utils/heirsExtractor';
 import { toGujaratiNumber } from '../utils/gujaratiNumbers';
 import { convertUnicodeToGhanshyamLegacy } from '../../../utils/ghanshyamLegacy';
 
@@ -83,8 +83,9 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
     }
   }
 
-  const heirs = extractAliveHeirs(tree);
-  const heirsSummary = getHeirsSummary(heirs);
+  const heirs = extractAllHeirs(tree);
+  const aliveHeirs = extractAliveHeirs(tree);
+  const heirsSummary = getHeirsSummary(aliveHeirs);
 
   // Helper to format a property for ALIVE mode natural paragraph reading
   const formatPropertyAlive = (prop) => {
@@ -341,7 +342,12 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
         </thead>
         <tbody className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
           {heirs && heirs.length > 0 ? (
-            heirs.map((heir) => (
+            heirs.map((heir) => {
+              const trimmedName = (heir.name || '').trim();
+              const displayName = heir.deceased && trimmedName && !trimmedName.startsWith('સ્વ.')
+                ? `સ્વ. ${trimmedName}`
+                : heir.name;
+              return (
               <tr key={heir.id || heir.srNo} className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
@@ -353,13 +359,15 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
                   style={{ border: '1px solid #000000', padding: '2px 8px', textAlign: 'left', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
-                  {toFont(heir.name)}
+                  {toFont(displayName)}
                 </td>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
                   style={{ border: '1px solid #000000', padding: '2px 4px', textAlign: 'center', fontFamily: docFontFamily, fontSize: '20px' }}
                 >
-                  {toFont(heir.ageGujarati)}
+                  {heir.deceased
+                    ? (heir.deathDate ? toFont(`(મરણ તા. ${heir.deathDate})`) : toFont('(અવસાન)'))
+                    : toFont(heir.ageGujarati)}
                 </td>
                 <td
                   className={fontMode === 'ghanshyam' ? 'font-nilkanth' : ''}
@@ -368,7 +376,8 @@ const SelfDeclarationDocument = forwardRef(function SelfDeclarationDocument(
                   {toFont(heir.relationship)}
                 </td>
               </tr>
-            ))
+              );
+            })
           ) : (
             <tr>
               <td

@@ -31,6 +31,7 @@ export default function PropertyTaxBuilder({
   onSave,
   saving = false,
   onOpenSavedForms,
+  onBack,
   onReset,
   dirty = false,
 }) {
@@ -155,6 +156,7 @@ export default function PropertyTaxBuilder({
             onSave={onSave}
             saving={saving}
             onOpenSavedForms={onOpenSavedForms}
+            onBack={onBack}
             dirty={dirty}
           />
           <Button

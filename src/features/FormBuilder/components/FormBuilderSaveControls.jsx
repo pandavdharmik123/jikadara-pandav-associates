@@ -1,5 +1,5 @@
-import { Button, Tooltip } from 'antd';
-import { Cloud, FolderOpen } from 'lucide-react';
+import { Button } from 'antd';
+import { ArrowLeft, Cloud, FolderOpen } from 'lucide-react';
 
 /**
  * Save controls shared by every form template. The database only receives the
@@ -9,16 +9,24 @@ export default function FormBuilderSaveControls({
   onSave,
   saving = false,
   onOpenSavedForms,
+  onBack,
   dirty = false,
 }) {
   return (
     <div className='save-document-controls'>
+      {onBack && (
+        <Button icon={<ArrowLeft size={14} />} onClick={onBack}>
+          Back
+        </Button>
+      )}
       <Button icon={<Cloud size={14} />} loading={saving} onClick={onSave}>
         Save
       </Button>
-      <Button icon={<FolderOpen size={14} />} onClick={onOpenSavedForms}>
-        Saved forms
-      </Button>
+      {!onBack && onOpenSavedForms && (
+        <Button icon={<FolderOpen size={14} />} onClick={onOpenSavedForms}>
+          Saved forms
+        </Button>
+      )}
     </div>
   );
 }

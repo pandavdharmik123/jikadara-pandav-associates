@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { Button, Drawer, Modal, Popconfirm, Skeleton, Tooltip, message } from 'antd';
+import { Button, Card, Drawer, Input, Modal, Popconfirm, Skeleton, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
 import {
   Clock,
+  Edit3,
   FilePlus2,
   FileText,
   Files,
   FolderOpen,
+  Plus,
   RefreshCw,
+  Search,
   Trash2,
 } from 'lucide-react';
 import PanCardBuilder from './PanCardBuilder';
@@ -141,12 +144,12 @@ const FORM_TABS = [
 const confirmDiscardChanges = () =>
   new Promise((resolve) => {
     Modal.confirm({
-      title: 'Discard unsaved changes?',
+      title: 'Unsaved Changes',
       content:
-        'The current editor has changes that have not been saved to your account.',
-      okText: 'Discard changes',
+        'If you go back, any unsaved changes will be lost. Do you really want to go back?',
+      okText: 'Yes, Go Back',
       okButtonProps: { danger: true },
-      cancelText: 'Keep editing',
+      cancelText: 'Cancel',
       onOk: () => resolve(true),
       onCancel: () => resolve(false),
     });
@@ -206,6 +209,8 @@ export default function FormBuilderPage() {
   );
 
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
+  const [listSearch, setListSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerFormKey, setDrawerFormKey] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
@@ -382,11 +387,32 @@ export default function FormBuilderPage() {
     loadSavedRecords();
   };
 
-  const openSavedRecord = async (id) => {
+  useEffect(() => {
+    if (!activeTab) return;
+    setViewMode('list');
+    setListSearch('');
+    loadSavedRecords();
+  }, [activeTab?.key]);
+
+  const handleAddNew = () => {
+    resetActiveForm();
+    setViewMode('builder');
+  };
+
+  const handleBackToList = async () => {
+    if (records[activeTab?.key]?.dirty) {
+      const discard = await confirmDiscardChanges();
+      if (!discard) return;
+    }
+    setViewMode('list');
+    loadSavedRecords();
+  };
+
+  const openSavedRecord = async (id, skipConfirm = false) => {
     if (!activeTab) return;
     const key = activeTab.key;
 
-    if (records[key]?.dirty) {
+    if (!skipConfirm && records[key]?.dirty) {
       const discard = await confirmDiscardChanges();
       if (!discard) return;
     }
@@ -426,6 +452,7 @@ export default function FormBuilderPage() {
         revision: record.revision,
       });
       setDrawerOpen(false);
+      setViewMode('builder');
       message.success(`Opened “${record.title || 'saved form'}”.`);
     } catch (error) {
       message.error(
@@ -474,6 +501,159 @@ export default function FormBuilderPage() {
 
   const currentRecord = records[activeTab.key];
 
+  if (viewMode === 'list') {
+    const filteredRecords = savedRecords.filter((item) => {
+      if (!listSearch.trim()) return true;
+      const q = listSearch.toLowerCase();
+      return (
+        (item.title || '').toLowerCase().includes(q) ||
+        (item.clientName || '').toLowerCase().includes(q)
+      );
+    });
+
+    const columns = [
+      {
+        title: 'Document Title',
+        dataIndex: 'title',
+        key: 'title',
+        render: (text, record) => (
+          <Button
+            type="link"
+            style={{ padding: 0, fontWeight: 600, height: 'auto', textAlign: 'left' }}
+            onClick={() => openSavedRecord(record.id, true)}
+          >
+            {text || 'Untitled Form'}
+          </Button>
+        ),
+      },
+      {
+        title: 'Applicant / Client',
+        dataIndex: 'clientName',
+        key: 'clientName',
+        render: (val) => val || '-',
+      },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        width: 140,
+        render: (val) => (
+          <Tag color={val === 'COMPLETED' ? 'green' : 'default'}>
+            {val || 'SAVED'}
+          </Tag>
+        ),
+      },
+      {
+        title: 'Last Updated',
+        dataIndex: 'updatedAt',
+        key: 'updatedAt',
+        width: 160,
+        render: (val) => (val ? new Date(val).toLocaleDateString('en-IN') : '-'),
+      },
+      {
+        title: 'Actions',
+        key: 'actions',
+        width: 120,
+        align: 'right',
+        render: (_, record) => (
+          <Space size={4}>
+            <Tooltip title="Edit">
+              <Button
+                type="text"
+                size="small"
+                icon={<Edit3 size={15} />}
+                onClick={() => openSavedRecord(record.id, true)}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Delete saved form?"
+              description="This cannot be undone."
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => deleteSavedRecord(record.id)}
+            >
+              <Tooltip title="Delete">
+                <Button type="text" size="small" danger icon={<Trash2 size={15} />} />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ];
+
+    return (
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div>
+            <Typography.Title level={3} style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>
+              {activeTab.label}
+            </Typography.Title>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              Saved {activeTab.label} forms ({activeTab.badge})
+            </Typography.Text>
+          </div>
+          <Button type="primary" icon={<Plus size={16} />} onClick={handleAddNew}>
+            Add New {activeTab.label}
+          </Button>
+        </div>
+
+        <Card
+          styles={{ body: { padding: 0 } }}
+          style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0' }}
+        >
+          <div
+            style={{
+              padding: '14px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              borderBottom: '1px solid #f1f5f9',
+              background: '#fff',
+            }}
+          >
+            <Input
+              placeholder={`Search ${activeTab.label} records...`}
+              prefix={<Search size={14} style={{ color: '#94a3b8' }} />}
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+              allowClear
+              style={{ width: 320 }}
+            />
+            <Button
+              icon={<RefreshCw size={14} />}
+              onClick={loadSavedRecords}
+              loading={drawerLoading}
+            >
+              Refresh
+            </Button>
+          </div>
+
+          <Table
+            className="modern-dashboard-table"
+            columns={columns}
+            dataSource={filteredRecords}
+            rowKey="id"
+            loading={drawerLoading}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+            locale={{
+              emptyText: `No saved ${activeTab.label} forms yet. Click "Add New ${activeTab.label}" to create one.`,
+            }}
+          />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="form-builder-page">
       <div className="fbs-tab-content">
@@ -485,6 +665,7 @@ export default function FormBuilderPage() {
             onSave: saveActiveForm,
             saving,
             onOpenSavedForms: openSavedForms,
+            onBack: handleBackToList,
             onReset: resetActiveForm,
             dirty: Boolean(currentRecord?.dirty),
           })}
